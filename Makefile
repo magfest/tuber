@@ -29,7 +29,7 @@ rpm: venv node_modules
 	cp -r dist/* server/web/
 	cp -r migrations server/
 	-find server/ -type d -name __pycache__ -delete
-	cd server && ../venv/bin/python setup.py bdist_rpm --release $(shell git rev-list $(shell git tag)..HEAD --count)
+	cd server && /usr/bin/env python3 setup.py bdist_rpm --release $(shell git rev-list $(shell git tag)..HEAD --count)
 
 .PHONY: clean
 clean:
