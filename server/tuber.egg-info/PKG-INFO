@@ -1,0 +1,16 @@
+Metadata-Version: 1.1
+Name: tuber
+Version: 1.0.0
+Summary: It's a potato.
+Home-page: https://github.com/bitbyt3r/tuber
+Author: Mark Murnane
+Author-email: mark@hackafe.net
+License: GPLv3
+Description: Track shifts, sell badges, and more.
+Keywords: events
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: No Input/Output (Daemon)
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3 :: Only

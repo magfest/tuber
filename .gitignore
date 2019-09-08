@@ -2,6 +2,9 @@
 node_modules
 /dist
 
+/venv
+tuber.conf
+
 /tests/e2e/videos/
 /tests/e2e/screenshots/
 

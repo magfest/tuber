@@ -1,0 +1,13 @@
+[Unit]
+Description=Tuber gunicorn daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/gunicorn-3 tuber:app
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+PrivateTmp=true
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

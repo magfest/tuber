@@ -1,0 +1,3 @@
+[console_scripts]
+tuber = tuber.__main__:main
+
