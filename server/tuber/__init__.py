@@ -29,8 +29,14 @@ app.static_folder = config['static_folder']
 app.config['SQLALCHEMY_DATABASE_URI'] = config['sql_connection']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-Migrate(app, db)
 
 import tuber.models
 import tuber.static
 import tuber.api
+
+Migrate(app, db)
+with app.app_context():
+    if os.path.isdir(config['migrations_folder']):
+        if config['development']:
+            migrate()
+        upgrade()

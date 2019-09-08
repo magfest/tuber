@@ -2,8 +2,16 @@
 node_modules
 /dist
 
-/venv
 tuber.conf
+database.db
+server/build
+server/dist
+server/migrations
+server/web
+
+__pycache__/
+*.py[cod]
+/venv
 
 /tests/e2e/videos/
 /tests/e2e/screenshots/

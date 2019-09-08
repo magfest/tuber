@@ -25,7 +25,10 @@ rpm: venv node_modules
 	-rm -rf dist
 	npm run build
 	-rm -rf server/web/*
+	-mkdir server/web
 	cp -r dist/* server/web/
+	cp -r migrations server/
+	-find server/ -type d -name __pycache__ -delete
 	cd server && ../venv/bin/python setup.py bdist_rpm --release $(shell git rev-list $(shell git tag)..HEAD --count)
 
 .PHONY: clean
@@ -34,5 +37,6 @@ clean:
 	-rm -rf server/tuber.egg-info
 	-rm -rf server/build
 	-rm -rf server/dist
+	-rf -rf server/migrations
 	-rm -rf node_modules
 	-rm -rf server/web
