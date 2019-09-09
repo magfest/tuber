@@ -14,7 +14,7 @@ Requires: python3-flask
 Requires: python3-requests
 Requires: python3-gunicorn
 Requires: python3-flask-sqlalchemy
-Requires: python1-flask-migrate
+Requires: python3-flask-migrate
 
 %define  debug_package %{nil}
 %{?python_enable_dependency_generator}
