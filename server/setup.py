@@ -22,11 +22,11 @@ except:
     version_num = '1.0.0'
 
 data_files = [
-    ('/usr/share/tuber/', ('server/contrib/tuber.conf',)),
-    ('/usr/lib/systemd/system/', ('server/contrib/tuber.service',)),
+    ('/etc/tuber/tuber.conf', ('contrib/tuber.json',)),
+    ('/usr/lib/systemd/system/', ('contrib/tuber.service',)),
 ]
 
-for root, dirs, files in os.walk("server/web"):
+for root, dirs, files in os.walk("web"):
     if files:
         data_files.append((os.path.join('/usr/share/tuber/', root), [os.path.join(root, x) for x in files]))
 

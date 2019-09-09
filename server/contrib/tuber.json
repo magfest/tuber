@@ -1,0 +1,6 @@
+{
+    "development": false,
+    "static_folder": "/usr/share/tuber/web",
+    "migrations_folder": "/usr/share/tuber/migrations",
+    "sql_connection": "sqlite:///var/lib/tuber/database.db"
+}

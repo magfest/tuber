@@ -16,6 +16,7 @@ Requires: python3-gunicorn
 Requires: python3-flask-sqlalchemy
 Requires: python1-flask-migrate
 
+%define  debug_package %{nil}
 %{?python_enable_dependency_generator}
 
 %description
@@ -27,16 +28,19 @@ Tuber is an event management system.
 %build
 cd ./server
 %py3_build
+find 
 cd ..
 npm install
 npm run build
 
 %install
-cd ./server
+cd server
 %py3_install
 cd ..
 mkdir -p %{buildroot}/usr/lib/systemd/system
+mkdir -p %{buildroot}/etc/tuber
 cp server/contrib/tuber.service %{buildroot}/usr/lib/systemd/system/
+cp server/contrib/tuber.json %{buildroot}/etc/tuber/tuber.conf
 mkdir -p %{buildroot}/usr/share/tuber/web/js/
 mkdir -p %{buildroot}/usr/share/tuber/web/css/
 cp dist/js/app.*.js %{buildroot}/usr/share/tuber/web/
@@ -47,16 +51,14 @@ cp dist/index.html %{buildroot}/usr/share/tuber/web/
 cp dist/favicon.ico %{buildroot}/usr/share/tuber/web/
 mkdir -p %{buildroot}/usr/share/tuber/migrations/
 cp -r migrations/* %{buildroot}/usr/share/tuber/migrations/
-mkdir -p %{buildroot}/etc/tuber
-cp server/contrib/tuber.conf %{buildroot}/etc/tuber/
 
 %files
 %config /etc/tuber/tuber.conf
 /usr/lib/systemd/system/tuber.service
 /usr/bin/tuber
 /usr/share/tuber
-%{python3_sitearch}/tuber/
-%{python3_sitearch}/tuber-*.egg-info/
+%{python3_sitelib}/tuber/
+%{python3_sitelib}/tuber-*.egg-info/
 
 %changelog
 {{{ git_dir_changelog }}}
