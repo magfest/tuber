@@ -38,20 +38,20 @@ cd server
 %py3_install
 cd ..
 mkdir -p %{buildroot}/usr/lib/systemd/system
+mkdir -p %{buildroot}/var/lib/tuber/
+mkdir -p %{buildroot}/usr/share/tuber/web/js/
+mkdir -p %{buildroot}/usr/share/tuber/web/css/
+mkdir -p %{buildroot}/usr/share/tuber/migrations/
 mkdir -p %{buildroot}/etc/tuber
 cp server/contrib/tuber.service %{buildroot}/usr/lib/systemd/system/
 cp server/contrib/tuber.json %{buildroot}/etc/tuber/
 cp server/contrib/tuber.json %{buildroot}/usr/share/tuber/
-mkdir -p %{buildroot}/var/lib/tuber/
-mkdir -p %{buildroot}/usr/share/tuber/web/js/
-mkdir -p %{buildroot}/usr/share/tuber/web/css/
 cp dist/js/app.*.js %{buildroot}/usr/share/tuber/web/js/
 cp dist/js/chunk-vendors.*.js %{buildroot}/usr/share/tuber/web/js/
 cp dist/css/app.*.css %{buildroot}/usr/share/tuber/web/css/
 cp dist/css/chunk-vendors.*.css %{buildroot}/usr/share/tuber/web/css/
 cp dist/index.html %{buildroot}/usr/share/tuber/web/
 cp dist/favicon.ico %{buildroot}/usr/share/tuber/web/
-mkdir -p %{buildroot}/usr/share/tuber/migrations/
 cp -r migrations/* %{buildroot}/usr/share/tuber/migrations/
 
 %files
