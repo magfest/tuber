@@ -9,11 +9,11 @@ node_modules: package.json
 develop: build tuber.conf
 	node_modules/.bin/kill-port 8081 8080
 	npm run serve &
-	FLASK_ENV=development venv/bin/tuber --config tuber.conf
+	FLASK_ENV=development venv/bin/tuber --config tuber.json
 
-tuber.conf:
-	cp server/contrib/tuber.conf.devel tuber.conf
-	echo "Copied default tuber.conf from server/contrib/tuber.conf. Feel free to edit it to your heart's content."
+tuber.json:
+	cp server/contrib/tuber.json.devel tuber.json
+	echo "Copied default tuber.json from server/contrib/tuber.json. Feel free to edit it to your heart's content."
 
 venv: venv/bin/activate
 

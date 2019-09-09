@@ -22,7 +22,7 @@ except:
     version_num = '1.0.0'
 
 data_files = [
-    ('/etc/tuber/tuber.conf', ('contrib/tuber.json',)),
+    ('/etc/tuber/', ('contrib/tuber.json',)),
     ('/usr/lib/systemd/system/', ('contrib/tuber.service',)),
 ]
 
@@ -36,7 +36,7 @@ for root, dirs, files in os.walk("migrations"):
 
 setup(
     name='tuber',
-    packages=['tuber'],
+    packages=['tuber', 'tuber.models', 'tuber.api'],
     version=version_num,
     description="It's a potato.",
     long_description="""Track shifts, sell badges, and more.""",

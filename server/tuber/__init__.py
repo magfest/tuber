@@ -12,7 +12,7 @@ config = {
     "sql_connection": "sqlite:///database.db"
 }
 
-config_file = "/etc/tuber/tuber.conf"
+config_file = "/etc/tuber/tuber.json"
 
 if '--config' in sys.argv:
     config_file = sys.argv[sys.argv.index('--config') + 1]
