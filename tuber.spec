@@ -8,6 +8,7 @@ VCS: {{{ git_dir_vcs }}}
 Source: {{{ git_dir_pack }}}
 BuildRequires: python3-devel
 BuildRequires: npm
+BuildRequires: git
 Requires: python3-passlib
 Requires: python3-flask
 Requires: python3-requests
