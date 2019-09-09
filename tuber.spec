@@ -1,5 +1,5 @@
 Name: tuber
-Version: {{{ git_dir_version }}}
+Version: {{{ git_dir_version name=tuber }}}
 Release: 1%{?dist}
 Summary: Event Management System
 License: MIT
