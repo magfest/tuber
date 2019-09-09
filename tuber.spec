@@ -1,4 +1,4 @@
-Name: {{{ git_name tuber }}}
+Name: tuber
 Version: {{{ git_dir_version }}}
 Release: 1%{?dist}
 Summary: Event Management System
