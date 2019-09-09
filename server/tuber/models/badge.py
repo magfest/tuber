@@ -8,7 +8,7 @@ class Badge(db.Model):
     first_name = db.Column(db.String(128), nullable=False)
     last_name = db.Column(db.String(128), nullable=False)
     legal_name = db.Column(db.String(256), nullable=False)
-    legal_name_matches = db.Column(db.Booleon)
+    legal_name_matches = db.Column(db.Boolean)
     email = db.Column(db.String(128), unique=False, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
@@ -32,7 +32,8 @@ class RibbonType(db.Model):
         return '<RibbonType %r>' % self.name
 
 class RibbonToBadge(db.Model):
-    pass
+    id = db.Column(db.Integer, primary_key=True)
 
 class Group(db.Model):
-    pass
+    id = db.Column(db.Integer, primary_key=True)
+

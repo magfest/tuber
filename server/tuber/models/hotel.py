@@ -1,3 +1,5 @@
+from tuber import db
+
 class HotelRoom(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event = db.Column(db.Integer, db.ForeignKey('badge.id'))
@@ -8,7 +10,7 @@ class HotelRoom(db.Model):
         return '<BadgeType %r>' % self.name
 
 class HotelRoomNight(db.Model):
-    pass
+    id = db.Column(db.Integer, primary_key=True)
 
 class BadgeToRoomNight(db.Model):
     id = db.Column(db.Integer, primary_key=True)

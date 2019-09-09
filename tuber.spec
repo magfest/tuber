@@ -43,7 +43,7 @@ cp server/contrib/tuber.service %{buildroot}/usr/lib/systemd/system/
 cp server/contrib/tuber.json %{buildroot}/etc/tuber/tuber.json
 mkdir -p %{buildroot}/usr/share/tuber/web/js/
 mkdir -p %{buildroot}/usr/share/tuber/web/css/
-cp dist/js/app.*.js %{buildroot}/usr/share/tuber/web/
+cp dist/js/app.*.js %{buildroot}/usr/share/tuber/web/js/
 cp dist/js/chunk-vendors.*.js %{buildroot}/usr/share/tuber/web/js/
 cp dist/css/app.*.css %{buildroot}/usr/share/tuber/web/css/
 cp dist/css/chunk-vendors.*.css %{buildroot}/usr/share/tuber/web/css/

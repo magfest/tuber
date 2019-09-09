@@ -26,10 +26,10 @@ if os.path.isfile(config_file):
 app = Flask(__name__)
 app.static_folder = config['static_folder']
 
-if config['sql_connection'].startswith("sqlite:///"):
-    path = config['sql_connection'].split("sqlite:///")[1]
+if config['sql_connection'].startswith("sqlite://"):
+    path = config['sql_connection'].split("sqlite://")[1]
     if not os.path.isabs(path):
-        config['sql_connection'] = "sqlite:///" + os.path.join(os.path.dirname(__file__), "../../", path)
+        config['sql_connection'] = "sqlite://" + os.path.join(os.path.dirname(__file__), "../../", path)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = config['sql_connection']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
