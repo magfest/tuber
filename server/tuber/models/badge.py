@@ -32,5 +32,7 @@ class RibbonType(db.Model):
         return '<RibbonType %r>' % self.name
 
 class RibbonToBadge(db.Model):
+    pass
 
 class Group(db.Model):
+    pass
