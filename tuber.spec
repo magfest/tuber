@@ -40,7 +40,9 @@ cd ..
 mkdir -p %{buildroot}/usr/lib/systemd/system
 mkdir -p %{buildroot}/etc/tuber
 cp server/contrib/tuber.service %{buildroot}/usr/lib/systemd/system/
-cp server/contrib/tuber.json %{buildroot}/etc/tuber/tuber.json
+cp server/contrib/tuber.json %{buildroot}/etc/tuber/
+cp server/contrib/tuber.json %{buildroot}/usr/share/tuber/
+mkdir -p %{buildroot}/var/lib/tuber/
 mkdir -p %{buildroot}/usr/share/tuber/web/js/
 mkdir -p %{buildroot}/usr/share/tuber/web/css/
 cp dist/js/app.*.js %{buildroot}/usr/share/tuber/web/js/
@@ -59,6 +61,7 @@ cp -r migrations/* %{buildroot}/usr/share/tuber/migrations/
 /usr/share/tuber
 %{python3_sitelib}/tuber/
 %{python3_sitelib}/tuber-*.egg-info/
+%dir /var/lib/tuber
 
 %changelog
 {{{ git_dir_changelog }}}
