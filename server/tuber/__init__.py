@@ -1,6 +1,6 @@
 from flask import Flask, g
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate, upgrade, migrate
+from flask_migrate import Migrate
 import json
 import sys
 import os
@@ -26,17 +26,23 @@ if os.path.isfile(config_file):
 app = Flask(__name__)
 app.static_folder = config['static_folder']
 
+if config['sql_connection'].startswith("sqlite:///"):
+    path = config['sql_connection'].split("sqlite:///")[1]
+    if not os.path.isabs(path):
+        config['sql_connection'] = "sqlite:///" + os.path.join(os.path.dirname(__file__), "../../", path)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = config['sql_connection']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
 
-import tuber.models
-import tuber.static
-import tuber.api
+def init_db():
+    global db
+    db = SQLAlchemy(app)
 
-Migrate(app, db)
-with app.app_context():
-    if os.path.isdir(config['migrations_folder']):
-        if config['development']:
-            migrate()
-        upgrade()
+    import tuber.csrf
+    import tuber.models
+    import tuber.static
+    import tuber.api
+    
+    db.create_all()
+    db.session.commit()
+    Migrate(app, db)

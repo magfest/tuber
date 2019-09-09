@@ -1,4 +1,7 @@
 module.exports = {
+  devServer: {
+    public: "localhost:8081"
+  },
   productionSourceMap: false,
   chainWebpack: config => {
     if (process.env.NODE_ENV === 'test') {
@@ -6,5 +9,10 @@ module.exports = {
       sassRule.uses.clear()
       sassRule.use('null-loader').loader('null-loader')
     }
+  },
+  chainWebpack: config => {
+    config.module.rule('eslint').use('eslint-loader').options({
+      fix: true,
+    })
   }
 }

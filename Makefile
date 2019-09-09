@@ -21,6 +21,11 @@ venv/bin/activate:
 	python3 -m venv venv
 	echo "export FLASK_APP=tuber" >> venv/bin/activate
 
+test: build
+	pytest
+	npm run test:unit
+	npm run test:e2e
+
 rpm: venv node_modules
 	-rm -rf dist
 	npm run build

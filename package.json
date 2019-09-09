@@ -12,6 +12,7 @@
   "dependencies": {
     "core-js": "^2.6.5",
     "vue": "^2.6.10",
+    "vue-cookies": "^1.5.13",
     "vue-router": "^3.0.3",
     "vuetify": "^2.0.0",
     "vuex": "^3.0.1"
@@ -45,7 +46,11 @@
       "plugin:vue/essential",
       "@vue/airbnb"
     ],
-    "rules": {},
+    "rules": {
+      "max-len": 0,
+      "no-param-reassign": 0,
+      "no-shadow": 0
+    },
     "parserOptions": {
       "parser": "babel-eslint"
     },

@@ -59,6 +59,7 @@ setup(
         'requests',
         'flask-sqlalchemy',
         'flask-migrate',
+        'passlib',
     ],
     data_files=data_files,
     entry_points={

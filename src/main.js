@@ -1,8 +1,12 @@
 import Vue from 'vue';
+import cookies from 'vue-cookies';
 import App from './App.vue';
 import router from './router';
-import store from './store';
-import vuetify from './plugins/vuetify';
+import store from './store/store';
+import vuetify from './vuetify';
+import './mixins/index';
+
+Vue.use(cookies);
 
 Vue.config.productionTip = false;
 
