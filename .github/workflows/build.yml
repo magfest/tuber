@@ -38,6 +38,9 @@ jobs:
     - name: Install tuber
       run: |
         venv\Scripts\activate && cd server && ..\venv\Scripts\python.exe setup.py develop
+    - name: Build Frontend
+      run: |
+        npm install
     - name: Run backend tests
       run: |
         venv\Scripts\pip.exe install pytest
