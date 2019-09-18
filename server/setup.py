@@ -55,11 +55,11 @@ setup(
         'Programming Language :: Python :: 3 :: Only',
     ],
     install_requires=[
-        'flask',
         'requests',
         'flask-sqlalchemy',
         'flask-migrate',
         'passlib',
+        'flask',
     ],
     data_files=data_files,
     entry_points={
