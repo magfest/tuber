@@ -31,7 +31,7 @@ jobs:
         python-version: 3.x
     - name: Install
       run: |
-        python3 -m venv venv
+        python -m venv venv
         venv\Scripts\activate
         cd server && ..\venv\Scripts\python.exe setup.py develop
     - name: Test with pytest

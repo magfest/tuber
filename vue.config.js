@@ -9,8 +9,6 @@ module.exports = {
       sassRule.uses.clear()
       sassRule.use('null-loader').loader('null-loader')
     }
-  },
-  chainWebpack: config => {
     config.module.rule('eslint').use('eslint-loader').options({
       fix: true,
     })
