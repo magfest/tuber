@@ -7,11 +7,10 @@ on:
 
 jobs:
   build_and_test_ubuntu:
-
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python 3.7
+    - name: Set up Python 3
       uses: actions/setup-python@v1
       with:
         python-version: 3.x
@@ -22,3 +21,22 @@ jobs:
       run: |
         venv/bin/pip install pytest
         make test
+  build_and_test_windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.x
+    - name: Install
+      run: |
+        python3 -m venv venv
+        venv\Scripts\activate
+        cd server && ..\venv\Scripts\python.exe setup.py develop
+    - name: Test with pytest
+      run: |
+        venv\Scripts\pip.exe install pytest
+        venv\Scripts\pytest.exe
+        npm test:unit
+        npm test:e2e
