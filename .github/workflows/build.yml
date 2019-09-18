@@ -34,7 +34,7 @@ jobs:
         make
     - name: Build DEB
       run: |
-        apt install debuild
+        sudo apt install -y debuild
         debuild -us -uc
   build_macos:
     runs-on: macos-latest
