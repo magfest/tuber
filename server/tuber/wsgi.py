@@ -1,5 +1,4 @@
-from tuber import app as application
+from tuber.__main__ import main
 
-if __name__ == "__main__":
-    tuber.init_db()
-    application.run()
+if __name__ == '__main__':
+    main()

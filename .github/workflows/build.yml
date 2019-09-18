@@ -23,31 +23,23 @@ jobs:
         make test
     - name: Build DEB
       run: |
+        apt install debuild
         debuild -us -uc
-  build_and_test_windows:
-    runs-on: windows-latest
+  build_and_test_macos:
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python 3
       uses: actions/setup-python@v1
       with:
         python-version: 3.x
-    - name: Create venv
+    - name: Install
       run: |
-        python -m venv venv
-    - name: Install tuber
+        make
+    - name: Test with pytest
       run: |
-        venv\Scripts\activate && cd server && ..\venv\Scripts\python.exe setup.py develop
-    - name: Build Frontend
+        venv/bin/pip install pytest
+        make test
+    - name: Build DMG
       run: |
-        npm install
-    - name: Run backend tests
-      run: |
-        venv\Scripts\pip.exe install pytest
-        venv\Scripts\pytest.exe
-    - name: Run frontend unit tests
-      run: |
-        npm run test:unit
-    - name: Build MSI Installer
-      run: |
-        venv\Scripts\activate && cd server && ..\venv\Scripts\python.exe setup.py bdist_msi
+        echo "Building DMG"
