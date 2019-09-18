@@ -29,11 +29,11 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.x
-    - name: Install
+    - name: Create venv
       run: |
         python -m venv venv
-        venv\Scripts\activate
-        cd server && ..\venv\Scripts\python.exe setup.py develop
+    - name: Install tuber
+        venv\Scripts\activate && cd server && ..\venv\Scripts\python.exe setup.py develop
     - name: Test with pytest
       run: |
         venv\Scripts\pip.exe install pytest
