@@ -39,7 +39,7 @@ jobs:
     - name: Test with pytest
       run: |
         venv/bin/pip install pytest
-        make test
+        venv/bin/pytest
     - name: Build DMG
       run: |
         echo "Building DMG"
