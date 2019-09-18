@@ -33,6 +33,7 @@ jobs:
       run: |
         python -m venv venv
     - name: Install tuber
+      run: |
         venv\Scripts\activate && cd server && ..\venv\Scripts\python.exe setup.py develop
     - name: Test with pytest
       run: |
