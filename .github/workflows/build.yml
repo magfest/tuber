@@ -1,8 +1,9 @@
 name: Python application
 
 on:
-  branches:
-    - master
+  push:
+    branches:
+      - master
 
 jobs:
   build_and_test_ubuntu:
