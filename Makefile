@@ -22,7 +22,7 @@ venv/bin/activate:
 	echo "export FLASK_APP=tuber" >> venv/bin/activate
 
 test: build
-	pytest
+	venv/bin/pytest
 	npm run test:unit
 	npm run test:e2e
 

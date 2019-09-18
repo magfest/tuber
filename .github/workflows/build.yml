@@ -20,5 +20,5 @@ jobs:
         make
     - name: Test with pytest
       run: |
-        python -m pip install pytest
+        venv/bin/pip install pytest
         make test
