@@ -60,7 +60,7 @@ export default {
         } else {
           self.$store.commit('open_snackbar', 'Failed to create admin account.');
         }
-      }).catch((error) => {
+      }).catch(() => {
         self.initial_setup_loading = false;
         self.$store.commit('open_snackbar', 'Network error while creating admin account.');
       });
