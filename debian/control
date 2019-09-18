@@ -1,12 +1,10 @@
-Package: tuber
+Source: tuber
 Maintainer: Mark Murnane <mark@hackafe.net>
 Description: Tuber is a registration and event management system.
-Version: 1.0.0
+Standards-Version: 1.0.0
 Section: utils
+
+Package: tuber
 Priority: optional
 Architecture: all
-Depends: python3-flask
-Depends: python3-flask-sqlalchemy
-Depends: python3-requests
-Depends: python3-flask-migrate
-Depends: python3-passlib
+Depends: python3-flask, python3-flask-sqlalchemy, python3-requests, python3-flask-migrate, python3-passlib
