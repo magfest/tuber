@@ -61,7 +61,6 @@ export default {
           self.$store.commit('open_snackbar', 'Failed to create admin account.');
         }
       }).catch((error) => {
-        console.log('Got error', error);
         self.initial_setup_loading = false;
         self.$store.commit('open_snackbar', 'Network error while creating admin account.');
       });
