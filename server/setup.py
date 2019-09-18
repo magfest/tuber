@@ -56,8 +56,8 @@ setup(
     ],
     install_requires=[
         'requests',
-        'flask-sqlalchemy',
-        'flask-migrate',
+        'Flask-SQLAlchemy',
+        'Flask-Migrate',
         'passlib',
         'flask',
     ],
