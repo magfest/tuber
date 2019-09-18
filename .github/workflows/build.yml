@@ -48,9 +48,6 @@ jobs:
     - name: Run frontend unit tests
       run: |
         npm run test:unit
-    - name: Run frontend end to end tests
-      run: |
-        npm run test:e2e
     - name: Build MSI Installer
       run: |
         venv\Scripts\activate && cd server && ..\venv\Scripts\python.exe setup.py bdist_msi
