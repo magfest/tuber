@@ -21,6 +21,9 @@ jobs:
       run: |
         venv/bin/pip install pytest
         make test
+    - name: Build DEB
+      run: |
+        debuild -us -uc
   build_and_test_windows:
     runs-on: windows-latest
     steps:
@@ -35,9 +38,16 @@ jobs:
     - name: Install tuber
       run: |
         venv\Scripts\activate && cd server && ..\venv\Scripts\python.exe setup.py develop
-    - name: Test with pytest
+    - name: Run backend tests
       run: |
         venv\Scripts\pip.exe install pytest
         venv\Scripts\pytest.exe
-        npm test:unit
-        npm test:e2e
+    - name: Run frontend unit tests
+      run: |
+        npm run test:unit
+    - name: Run frontend end to end tests
+      run: |
+        npm run test:e2e
+    - name: Build MSI Installer
+      run: |
+        venv\Scripts\activate && cd server && ..\venv\Scripts\python.exe setup.py bdist_msi
