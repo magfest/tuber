@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  build_and_test_ubuntu:
+  test_frontend:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -21,11 +21,22 @@ jobs:
       run: |
         venv/bin/pip install pytest
         make test
+  build_ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.x
+    - name: Install
+      run: |
+        make
     - name: Build DEB
       run: |
         apt install debuild
         debuild -us -uc
-  build_and_test_macos:
+  build_macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
@@ -36,10 +47,6 @@ jobs:
     - name: Install
       run: |
         make
-    - name: Test with pytest
-      run: |
-        venv/bin/pip install pytest
-        venv/bin/pytest
     - name: Build DMG
       run: |
         echo "Building DMG"
