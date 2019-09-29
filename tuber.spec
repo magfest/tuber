@@ -28,13 +28,11 @@ Tuber is an event management system.
 %build
 %py3_build
 find 
-cd ..
 npm install
 npm run build
 
 %install
 %py3_install
-cd ..
 mkdir -p %{buildroot}/usr/lib/systemd/system
 mkdir -p %{buildroot}/var/lib/tuber/
 mkdir -p %{buildroot}/usr/share/tuber/web/js/
