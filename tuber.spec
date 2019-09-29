@@ -41,9 +41,10 @@ mkdir -p %{buildroot}/usr/share/tuber/web/js/
 mkdir -p %{buildroot}/usr/share/tuber/web/css/
 mkdir -p %{buildroot}/usr/share/tuber/migrations/
 mkdir -p %{buildroot}/etc/tuber
-cp server/contrib/tuber.service %{buildroot}/usr/lib/systemd/system/
-cp server/contrib/tuber.json %{buildroot}/etc/tuber/
-cp server/contrib/tuber.json %{buildroot}/usr/share/tuber/
+cp contrib/nginx.conf %{buildroot}/usr/share/tuber/nginx.conf
+cp contrib/tuber.service %{buildroot}/usr/lib/systemd/system/
+cp contrib/tuber.json %{buildroot}/etc/tuber/
+cp contrib/tuber.json %{buildroot}/usr/share/tuber/
 cp dist/js/app.*.js %{buildroot}/usr/share/tuber/web/js/
 cp dist/js/chunk-vendors.*.js %{buildroot}/usr/share/tuber/web/js/
 cp dist/css/app.*.css %{buildroot}/usr/share/tuber/web/css/

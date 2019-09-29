@@ -21,19 +21,6 @@ try:
 except:
     version_num = '1.0.0'
 
-data_files = [
-    ('/etc/tuber/', ('contrib/tuber.json',)),
-    ('/usr/lib/systemd/system/', ('contrib/tuber.service',)),
-]
-
-for root, dirs, files in os.walk("dist"):
-    if files:
-        data_files.append((os.path.join('/usr/share/tuber/', root), [os.path.join(root, x) for x in files]))
-
-for root, dirs, files in os.walk("migrations"):
-    if files:
-        data_files.append((os.path.join('/usr/share/tuber/', root), [os.path.join(root, x) for x in files]))
-
 setup(
     name='tuber',
     packages=['tuber', 'tuber.models', 'tuber.api'],
@@ -61,7 +48,6 @@ setup(
         'passlib',
         'flask',
     ],
-    data_files=data_files,
     entry_points={
         'console_scripts': [
             'tuber=tuber.__main__:main',
