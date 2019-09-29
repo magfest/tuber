@@ -26,7 +26,7 @@ data_files = [
     ('/usr/lib/systemd/system/', ('contrib/tuber.service',)),
 ]
 
-for root, dirs, files in os.walk("web"):
+for root, dirs, files in os.walk("dist"):
     if files:
         data_files.append((os.path.join('/usr/share/tuber/', root), [os.path.join(root, x) for x in files]))
 
@@ -43,7 +43,7 @@ setup(
     license="GPLv3",
     author='Mark Murnane',
     author_email='mark@hackafe.net',
-    url='https://github.com/bitbyt3r/tuber',
+    url='https://github.com/magfest/tuber',
     keywords=[
         'events',
     ],

@@ -26,7 +26,6 @@ Tuber is an event management system.
 {{{ git_dir_setup_macro }}}
 
 %build
-cd ./server
 %py3_build
 find 
 cd ..
@@ -34,7 +33,6 @@ npm install
 npm run build
 
 %install
-cd server
 %py3_install
 cd ..
 mkdir -p %{buildroot}/usr/lib/systemd/system
