@@ -7,7 +7,7 @@ import os
 
 config = {
     "development": True,
-    "static_folder": "web",
+    "static_folder": "dist",
     "migrations_folder": "migrations",
     "sql_connection": "sqlite:///database.db"
 }
