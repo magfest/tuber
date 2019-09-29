@@ -2,12 +2,11 @@
 node_modules
 /dist
 
-tuber.conf
+tuber.json
 database.db
-server/build
-server/dist
-server/migrations
-server/web
+build
+dist
+migrations
 
 __pycache__/
 *.py[cod]
