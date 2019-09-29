@@ -4,7 +4,7 @@ function json(response) {
   return response.json();
 }
 
-const post = function (url, data) {
+function post(url, data) {
   data.csrf_token = window.$cookies.get('csrf_token');
   const promise = new Promise(((resolve, reject) => {
     fetch(url, {
@@ -21,7 +21,7 @@ const post = function (url, data) {
     });
   }));
   return promise;
-};
+}
 
 Vue.mixin({ methods: { post } });
 
