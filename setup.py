@@ -30,7 +30,8 @@ setup(
         'Flask-Migrate',
         'passlib',
         'flask',
-        'gunicorn'
+        'gunicorn',
+        'psycopg2'
     ],
     entry_points={
         'console_scripts': [

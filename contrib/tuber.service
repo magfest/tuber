@@ -3,7 +3,7 @@ Description=Tuber gunicorn daemon
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/gunicorn-3 tuber:app
+ExecStart=/usr/bin/gunicorn-3 tuber.wsgi:app
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID
 PrivateTmp=true

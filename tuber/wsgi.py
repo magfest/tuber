@@ -1,4 +1,4 @@
-from tuber.__main__ import main
-from tuber import app
+from tuber import app, config
+import tuber
 
-main()
+tuber.init_db()
