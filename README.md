@@ -78,3 +78,8 @@ npm run test:unit
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+### Heroku
+Heroku configuration is in a combination of app.json and Procfile.
+
+Opening a PR against magfest/tuber will automatically deploy a testing environment for your PR. Merging to master moves that code to staging.
