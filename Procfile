@@ -1,1 +1,1 @@
-api: gunicorn tuber/wsgi.py --log-file -
+api: gunicorn tuber:app --log-file -
