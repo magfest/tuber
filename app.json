@@ -10,9 +10,6 @@
       "url": "heroku/nodejs"
     }
   ],
-  "env": {
-    "FLASK_ENV": ""
-  },
   "formation": {
     "web": {
       "quantity": 1
