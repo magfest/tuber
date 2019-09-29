@@ -6,7 +6,7 @@ import sys
 import os
 
 config = {
-    "development": True,
+    "development": False,
     "static_folder": "dist",
     "migrations_folder": "migrations",
     "sql_connection": "sqlite:///database.db"
@@ -26,6 +26,7 @@ if os.path.isfile(config_file):
 if 'DATABASE_URL' in os.environ:
     config['sql_connection'] = os.environ['DATABASE_URL']
 
+print(config['static_folder'])
 app = Flask(__name__)
 app.static_folder = config['static_folder']
 

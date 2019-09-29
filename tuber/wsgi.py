@@ -1,4 +1,4 @@
 from tuber.__main__ import main
+from tuber import app
 
-if __name__ == '__main__':
-    main()
+main()
