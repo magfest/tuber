@@ -6,7 +6,7 @@ build: venv node_modules
 node_modules: package.json
 	npm install
 
-develop: build tuber.conf
+develop: build tuber.json
 	node_modules/.bin/kill-port 8081 8080
 	npm run serve &
 	FLASK_ENV=development venv/bin/tuber --config tuber.json

@@ -23,6 +23,9 @@ if os.path.isfile(config_file):
     except:
         sys.exit("Failed to parse configuration file: {}".format(config_file))
 
+if 'DATABASE_URL' in os.environ:
+    config['sql_connection'] = os.environ['DATABASE_URL']
+
 app = Flask(__name__)
 app.static_folder = config['static_folder']
 
