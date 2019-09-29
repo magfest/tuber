@@ -8,7 +8,7 @@ dnf copr enable bitbyt3r/Tuber
 dnf install copr
 systemctl start copr
 systemctl enable copr
-cp /usr/share/copr/nginx.conf /etc/nginx/conf.d/tuber.conf
+cp /usr/share/tuber/nginx.conf /etc/nginx/conf.d/tuber.conf
 systemctl start nginx
 systemctl enable nginx
 ```
