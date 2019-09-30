@@ -81,7 +81,7 @@ export default {
       }).then((resp) => {
         if (resp.success) {
           self.$store.dispatch('check_initial_setup').then(() => {
-            self.$router.push('login');
+            self.$router.push({ name: 'login' });
           });
           self.$store.commit('open_snackbar', 'Created admin account successfully!');
         } else {
@@ -100,9 +100,7 @@ export default {
         description: this.description,
       }).then((resp) => {
         if (resp.success) {
-          self.$store.dispatch('get_events').then(() => {
-            self.$store.commit('set_event', resp.event.id);
-          });
+          self.$store.dispatch('get_events');
           self.$store.commit('open_snackbar', 'Created event successfully!');
         } else {
           self.$store.commit('open_snackbar', 'Failed to create event.');

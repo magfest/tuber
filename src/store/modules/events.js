@@ -18,7 +18,9 @@ const actions = {
       fetch('/api/events/list').then((response) => {
         response.json().then((data) => {
           commit('set_events', data.events);
-          commit('set_event', state.events[0]);
+          if (data.events.length > 0) {
+            commit('set_event', state.events[0]);
+          }
           resolve();
         });
       }).catch(() => {
