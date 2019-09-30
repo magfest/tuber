@@ -16,7 +16,7 @@ jobs:
         python-version: 3.x
     - name: Install
       run: |
-        make
+        make install-develop
     - name: Test with pytest
       run: |
         venv/bin/pip install pytest
