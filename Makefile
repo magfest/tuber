@@ -1,7 +1,7 @@
 all: build
 
 build: venv node_modules
-	venv/bin/python setup.py develop
+	venv/bin/python setup.py build
 
 node_modules: package.json
 	npm install
@@ -21,9 +21,14 @@ venv/bin/activate:
 	python3 -m venv venv
 	echo "export FLASK_APP=tuber" >> venv/bin/activate
 
-test: build
+test: build pytest
 	venv/bin/pytest
 	npm run test
+
+pytest: venv/bin/pytest
+
+venv/bin/pytest: venv
+	venv/bin/pip install -r requirements-test.txt
 
 rpm: venv node_modules
 	-rm -rf dist

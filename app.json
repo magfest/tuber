@@ -17,6 +17,7 @@
   },
   "name": "tuber",
   "scripts": {
+    "test-setup": "make build",
     "test": "make test"
   },
   "stack": "heroku-18"
