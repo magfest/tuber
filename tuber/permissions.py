@@ -33,20 +33,21 @@ def get_user():
             if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config['session_duration']):
                 session.last_active = datetime.datetime.now()
                 g.user = session.user
-                permissions = db.session.query(Grant).filter(Grant.user == g.user).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
+                permissions = db.session.query(Grant.department, Role.event, Permission.operation).filter(Grant.user == g.user).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
                 g.perms = []
                 for permission in permissions:
-                    perms.append({"department": permission['department'], "event": permission['event'], "operation": permission['operation']})
+                    g.perms.append({"department": permission.department, "event": permission.event, "operation": permission.operation})
                 db.session.add(session)
             else:
                 session.delete()
             db.session.commit()
 
 def check_permission(operation="", event="", department=""):
+    print(g.perms)
     for i in g.perms:
-        if event and (i['event'] != "*" and i['event'] != event):
+        if event and (not i['event'] is None) and (i['event'] != event):
             continue
-        if department and (i['department'] != "*" and i['department'] != department):
+        if department and (not i['department'] is None) and (i['department'] != department):
             continue
         perm_entity, perm_op = i['operation'].split(".")
         req_entity, req_op = operation.split(".")

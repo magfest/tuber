@@ -21,10 +21,11 @@ def initial_setup():
     if request.json['username'] and request.json['email'] and request.json['password']:
         user = User(username=request.json['username'], email=request.json['email'], password=sha256_crypt.encrypt(request.json['password']))
         role = Role(name="Server Admin", description="Allowed to do anything.")
-        perm = Permission(operation="*.*", role=role.id)
-        grant = Grant(user=user.id, role=role.id)
         db.session.add(user)
         db.session.add(role)
+        db.session.flush()
+        perm = Permission(operation="*.*", role=role.id)
+        grant = Grant(user=user.id, role=role.id)
         db.session.add(perm)
         db.session.add(grant)
         db.session.commit()

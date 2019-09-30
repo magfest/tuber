@@ -41,7 +41,7 @@ export default {
       }).then((resp) => {
         if (resp.success) {
           self.$store.dispatch('check_logged_in').then(() => {
-            self.$router.push('home');
+            self.$router.push({ name: 'home' });
           });
           self.$store.commit('open_snackbar', 'Logged in successfully!');
         } else {
