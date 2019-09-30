@@ -15,20 +15,18 @@ def client():
     with tuber.app.test_client() as client:
         yield client
 
+def csrf(rv):
+    for cookie in rv.headers.getlist('Set-Cookie'):
+        if cookie.startswith('csrf_token='):
+            return cookie.split("; ")[0].split("=")[1]
+
 def test_csrf(client):
     """Ensure that the CSRF cookie is being set and checked"""
     rv = client.get('/api/check_initial_setup')
-    value = ""
-    for cookie in rv.headers.getlist('Set-Cookie'):
-        if cookie.startswith("csrf_token="):
-            value = cookie.split("; ")[0].split("=")[1]
-    assert(value)
+    assert(csrf(rv))
     rv = client.post('/api/check_initial_setup', data="{}", content_type="application/json")
     assert("You must pass a csrf token" in str(rv.data))
-    for cookie in rv.headers.getlist('Set-Cookie'):
-        if cookie.startswith("csrf_token="):
-            value = cookie.split("; ")[0].split("=")[1]
-    rv = client.post('/api/check_initial_setup', data=json.dumps({"csrf_token": value}), content_type="application/json")
+    rv = client.post('/api/check_initial_setup', data=json.dumps({"csrf_token": csrf(rv)}), content_type="application/json")
     assert(not "csrf" in str(rv.data))
 
 def test_initial_setup(client):
@@ -45,3 +43,30 @@ def test_initial_setup(client):
     rv = client.get("/api/check_initial_setup")
     data = json.loads(rv.data)
     assert(not data['initial_setup'])
+
+def test_login(client):
+    """Ensure that invalid username/password is rejected and valid ones accepted"""
+    rv = client.get('/api/check_login')
+    assert(not json.loads(rv.data)['success'])
+    rv = client.post('/api/logout', data=json.dumps({"csrf_token": csrf(rv)}), content_type="application/json")
+    assert(not json.loads(rv.data)['success'])
+    rv = client.post('/api/login', data=json.dumps({"csrf_token": csrf(rv), "username": "admin", "password": "WRONG"}), content_type="application/json")
+    assert(not json.loads(rv.data)['success'])
+    rv = client.post('/api/login', data=json.dumps({"csrf_token": csrf(rv), "username": "bad", "password": "WRONG"}), content_type="application/json")
+    assert(not json.loads(rv.data)['success'])
+    rv = client.post('/api/login', data=json.dumps({"csrf_token": csrf(rv), "username": "bad", "password": "admin"}), content_type="application/json")
+    assert(not json.loads(rv.data)['success'])
+    rv = client.post('/api/login', data=json.dumps({"csrf_token": csrf(rv), "username": "admin", "password": "admin"}), content_type="application/json")
+    assert(json.loads(rv.data)['success'])
+    session = json.loads(rv.data)['session']
+    assert(session)
+
+    rv = client.get('/api/check_login')
+    assert(json.loads(rv.data)['success'])
+
+    rv = client.post('/api/logout', data=json.dumps({"csrf_token": csrf(rv)}), content_type="application/json")
+    assert(json.loads(rv.data)['success'])
+
+    rv = client.get('/api/check_login')
+    assert(not json.loads(rv.data)['success'])
+

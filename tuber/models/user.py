@@ -13,7 +13,26 @@ class User(db.Model):
 class Session(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.Column(db.Integer, db.ForeignKey('user.id'))
+    secret = db.Column(db.String(64))
     last_active = db.Column(db.DateTime)
 
     def __repr__(self):
         return '<Session %r>' % self.id
+
+class Permission(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    operation = db.Column(db.String(64), unique=True)
+    role = db.Column(db.Integer, db.ForeignKey('role.id'))
+
+class Role(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True)
+    description = db.Column(db.String(128))
+    event = db.Column(db.Integer, nullable=True)
+
+class Grant(db.Model):
+    # Null values become wildcards, i.e. if event is NULL, then the grant applies to all events
+    id = db.Column(db.Integer, primary_key=True)
+    user = db.Column(db.Integer, nullable=True)
+    role = db.Column(db.Integer, nullable=True)
+    department = db.Column(db.Integer, nullable=True)

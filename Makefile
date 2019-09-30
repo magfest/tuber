@@ -23,7 +23,7 @@ venv/bin/activate:
 
 test: build
 	venv/bin/pytest
-	npm run test:unit
+	npm run test
 
 rpm: venv node_modules
 	-rm -rf dist

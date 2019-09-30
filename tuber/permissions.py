@@ -1,5 +1,7 @@
-from tuber import app
-from flask import jsonify
+from tuber import app, db, config
+from flask import jsonify, g, request, url_for, redirect
+from tuber.models import *
+import datetime
 
 class PermissionDenied(Exception):
     status_code = 403
@@ -21,3 +23,37 @@ def handle_permission_denied(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
+
+@app.before_request
+def get_user():
+    g.user = None
+    if 'session' in request.cookies:
+        session = db.session.query(Session).filter(Session.secret == request.cookies.get('session')).one_or_none()
+        if session:
+            if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config['session_duration']):
+                session.last_active = datetime.datetime.now()
+                g.user = session.user
+                permissions = db.session.query(Grant).filter(Grant.user == g.user).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
+                g.perms = []
+                for permission in permissions:
+                    perms.append({"department": permission['department'], "event": permission['event'], "operation": permission['operation']})
+                db.session.add(session)
+            else:
+                session.delete()
+            db.session.commit()
+
+def check_permission(operation="", event="", department=""):
+    for i in g.perms:
+        if event and (i['event'] != "*" and i['event'] != event):
+            continue
+        if department and (i['department'] != "*" and i['department'] != department):
+            continue
+        perm_entity, perm_op = i['operation'].split(".")
+        req_entity, req_op = operation.split(".")
+        if perm_entity != "*" and req_entity != perm_entity:
+            continue
+        if perm_op != "*" and req_op != perm_op:
+            continue
+        return True
+    return False
+        

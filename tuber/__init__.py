@@ -9,7 +9,8 @@ config = {
     "development": False,
     "static_folder": "../dist",
     "migrations_folder": "migrations",
-    "sql_connection": "sqlite:///database.db"
+    "sql_connection": "sqlite:///database.db",
+    "session_duration": 7200
 }
 
 config_file = "/etc/tuber/tuber.json"
