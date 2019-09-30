@@ -2,7 +2,7 @@ from tuber import db
 
 class HotelRoomBlock(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    event = db.Column(db.Integer, db.ForeignKey('ev ent.id'))
+    event = db.Column(db.Integer, db.ForeignKey('event.id'))
     name = db.Column(db.String(128), nullable=True)
     description = db.Column(db.String(256), nullable=True)
 
