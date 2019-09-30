@@ -51,3 +51,4 @@ clean:
 	-rm -rf node_modules
 	-rm -rf web
 	-rm *.deb
+	-rm -rf .pytest_cache

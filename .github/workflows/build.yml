@@ -29,13 +29,12 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.x
-    - name: Install
+    - name: Build Packages
       run: |
-        make
-    - name: Build DEB
-      run: |
-        sudo apt install -y devscripts
-        debuild -us -uc
+        sudo apt install -y ruby ruby-dev rubygems build-essential
+        sudo gem install --no-document fpm
+        make rpm
+        make deb
   build_macos:
     runs-on: macos-latest
     steps:
