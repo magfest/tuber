@@ -2,11 +2,15 @@ all: build
 
 build: venv node_modules
 	venv/bin/python setup.py build
+	npm run build
 
 node_modules: package.json
 	npm install
 
-develop: build tuber.json
+install-develop: venv
+	venv/bin/python setup.py develop
+
+develop: install-develop tuber.json
 	node_modules/.bin/kill-port 8081 8080
 	npm run serve &
 	FLASK_ENV=development venv/bin/tuber --config tuber.json
