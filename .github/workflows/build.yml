@@ -45,7 +45,7 @@ jobs:
         python-version: 3.x
     - name: Install
       run: |
-        make
+        make install-develop
     - name: Build DMG
       run: |
-        echo "Building DMG"
+        venv/bin/python setup.py py2app

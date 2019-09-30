@@ -33,6 +33,12 @@ setup(
         'gunicorn',
         'psycopg2'
     ],
+    setup_requires=[
+        'py2app'
+    ],
+    app=[
+        "tuber/wsgi.py"
+    ],
     entry_points={
         'console_scripts': [
             'tuber=tuber.__main__:main',
