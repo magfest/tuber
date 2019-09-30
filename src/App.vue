@@ -35,7 +35,7 @@
     <v-content>
       <router-view/>
     </v-content>
-    <v-snackbar v-model="snackbar">
+    <v-snackbar v-if="snackbar">
       {{ snackbar_text }}
       <v-btn color="pink" :timeout="0" text @click="$store.commit('close_snackbar')">Close</v-btn>
     </v-snackbar>
@@ -66,10 +66,24 @@ export default {
     ...mapGetters([
       'snackbar',
       'snackbar_text',
+      'initial_setup',
+      'logged_in',
     ]),
   },
   created() {
     this.$vuetify.theme.dark = true;
+    const self = this;
+    this.$store.dispatch('check_logged_in').then(() => {
+      self.$store.dispatch('check_initial_setup').then(() => {
+        if (!self.initial_setup) {
+          if (!self.logged_in) {
+            if (self.$router.currentRoute.name !== 'login') {
+              self.$router.push('login');
+            }
+          }
+        }
+      });
+    });
   },
 };
 </script>

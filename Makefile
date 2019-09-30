@@ -7,7 +7,7 @@ build: venv node_modules
 node_modules: package.json
 	npm install
 
-install-develop: venv
+install-develop: venv node_modules
 	venv/bin/python setup.py develop
 
 develop: install-develop tuber.json

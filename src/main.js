@@ -10,7 +10,7 @@ Vue.use(cookies);
 
 Vue.config.productionTip = false;
 
-new Vue({
+window.vue = new Vue({
   router,
   store,
   vuetify,

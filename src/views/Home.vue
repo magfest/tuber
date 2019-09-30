@@ -43,7 +43,6 @@ export default {
     ]),
   },
   mounted() {
-    this.$store.dispatch('check_initial_setup');
   },
   methods: {
     create_admin() {
@@ -55,7 +54,9 @@ export default {
         email: this.email,
       }).then((resp) => {
         if (resp.success) {
-          self.$store.dispatch('check_initial_setup');
+          self.$store.dispatch('check_initial_setup').then(() => {
+            self.$router.push('login');
+          });
           self.$store.commit('open_snackbar', 'Created admin account successfully!');
         } else {
           self.$store.commit('open_snackbar', 'Failed to create admin account.');
