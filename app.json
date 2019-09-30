@@ -17,6 +17,7 @@
   },
   "name": "tuber",
   "scripts": {
+    "test": "pytest"
   },
   "stack": "heroku-18"
 }
