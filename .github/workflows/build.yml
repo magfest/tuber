@@ -17,7 +17,11 @@ jobs:
     - name: Install
       run: |
         sudo apt install libpq-dev
+<<<<<<< HEAD
         make
+=======
+        make install-develop
+>>>>>>> Fixing pytest
     - name: Test with pytest
       run: |
         venv/bin/pip install pytest
