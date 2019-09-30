@@ -71,7 +71,6 @@ export default {
     const self = this;
     this.$store.dispatch('check_logged_in').then(() => {
       self.$store.dispatch('check_initial_setup').then(() => {
-        self.update();
         if (self.initial_setup) {
           if (self.$router.currentRoute.name !== 'home') {
             self.$router.push({ name: 'home' });

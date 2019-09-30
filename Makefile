@@ -37,8 +37,10 @@ venv/bin/pytest: venv
 rpm: venv node_modules
 	-rm -rf dist
 	npm run build
-	-find . -type d -name __pycache__ -delete
 	/usr/bin/env python3 setup.py bdist_rpm --release $(shell git rev-list $(shell git tag)..HEAD --count)
+
+deb: rpm
+	fpm -s rpm -t deb dist/tuber*.noarch.rpm
 
 .PHONY: clean
 clean:
@@ -48,3 +50,4 @@ clean:
 	-rm -rf dist
 	-rm -rf node_modules
 	-rm -rf web
+	-rm *.deb
