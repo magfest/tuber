@@ -12,6 +12,7 @@ __pycache__/
 *.py[cod]
 /venv
 *.egg-info/
+.eggs/
 
 /tests/e2e/videos/
 /tests/e2e/screenshots/

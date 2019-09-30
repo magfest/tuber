@@ -16,6 +16,7 @@ jobs:
         python-version: 3.x
     - name: Install
       run: |
+        sudo apt install libpq-dev
         make
     - name: Test with pytest
       run: |
