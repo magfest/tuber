@@ -50,6 +50,7 @@ jobs:
         node-version: 10.x
     - name: Install
       run: |
+        xcode-select --install
         brew install postgresql
         make install-develop
     - name: Build DMG
