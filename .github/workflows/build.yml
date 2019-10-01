@@ -53,7 +53,7 @@ jobs:
         brew install openssl
         export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/opt/openssl/lib/
         brew install postgresql
-        make install-develop
+        make build
     - name: Build DMG
       run: |
-        venv/bin/python setup.py py2app
+        python3 setup.py py2app
