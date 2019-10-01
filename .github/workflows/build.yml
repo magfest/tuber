@@ -50,7 +50,8 @@ jobs:
         node-version: 10.x
     - name: Install
       run: |
-        xcode-select --install
+        brew install openssl
+        export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/opt/openssl/lib/
         brew install postgresql
         make install-develop
     - name: Build DMG
