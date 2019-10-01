@@ -54,6 +54,7 @@ jobs:
         export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/opt/openssl/lib/
         brew install postgresql
         make build
+        sudo pip3 install psycopg2
     - name: Build DMG
       run: |
         python3 setup.py py2app
