@@ -1,9 +1,12 @@
 # Tuber
+
 [![Copr build status](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/)
 
 ## Installation
+
 This software is currently only packaged for RHEL/Fedora. Builds are available on COPR:
-```
+
+```bash
 dnf copr enable bitbyt3r/Tuber
 dnf install copr
 systemctl start copr
@@ -14,7 +17,8 @@ systemctl enable nginx
 ```
 
 You can also run tuber directly on the command line to use the built in webserver, but this is not recommended for production deploys:
-```
+
+```bash
 dnf copr enable bitbyt3r/Tuber
 dnf install copr
 tuber
@@ -23,63 +27,76 @@ tuber
 Configuration is in /etc/tuber/tuber.json. The main configuration required is for a database. The default database is sqlite, so for production deploys you should probably set up mariadb/mysql/postgres or any other database supported by SQLAlchemy.
 
 ## Developing
+
 After cloning this repository you will need the following dependencies:
-```
+
+```bash
 dnf install npm python3
 apt install npm python3
 ```
 
 Once you have the dependencies you can simply run make to build, then make develop to run the test server:
-```
+
+```bash
 make
 make develop
 ```
 
 You can run the tests using make test, though you will need to install pytest first:
-```
+
+```bash
 dnf install python3-pytest
 make test
 ```
 
 ## Project setup
-```
+
+```bash
 npm install
 ```
 
 ### Compiles and hot-reloads for development
-```
+
+```bash
 npm run serve
 ```
 
 ### Compiles and minifies for production
-```
+
+```bash
 npm run build
 ```
 
 ### Run your tests
-```
+
+```bash
 npm run test
 ```
 
 ### Lints and fixes files
-```
+
+```bash
 npm run lint
 ```
 
 ### Run your end-to-end tests
-```
+
+```bash
 npm run test:e2e
 ```
 
 ### Run your unit tests
-```
+
+```bash
 npm run test:unit
 ```
 
 ### Customize configuration
+
 See [Configuration Reference](https://cli.vuejs.org/config/).
 
 ### Heroku
+
 Heroku configuration is in a combination of app.json and Procfile.
 
 Opening a PR against magfest/tuber will automatically deploy a testing environment for your PR. Merging to master moves that code to staging.
