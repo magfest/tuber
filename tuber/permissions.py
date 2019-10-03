@@ -33,6 +33,7 @@ def get_user():
             if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config['session_duration']):
                 session.last_active = datetime.datetime.now()
                 g.user = session.user
+                g.session = session.secret
                 permissions = db.session.query(Grant.department, Role.event, Permission.operation).filter(Grant.user == g.user).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
                 g.perms = []
                 for permission in permissions:
@@ -43,7 +44,6 @@ def get_user():
             db.session.commit()
 
 def check_permission(operation="", event="", department=""):
-    print(g.perms)
     for i in g.perms:
         if event and (not i['event'] is None) and (i['event'] != event):
             continue

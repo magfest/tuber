@@ -58,9 +58,13 @@ def logout():
 def check_login():
     if g.user:
         user = db.session.query(User).filter(User.id == g.user).one()
-        return jsonify({"success": True, "user": {"email": user.email, "username": user.username, "id": user.id}})
+        return jsonify({"success": True, "user": {"email": user.email, "username": user.username, "id": user.id}, "session": g.session})
     return jsonify({"success": False})
 
 @app.route("/api/test_permission")
 def test_permission():
     return jsonify({"success": check_permission(**request.json)})
+
+@app.route("/api/user/permissions")
+def get_permissions():
+    return jsonify({"success": True, "permissions": g.perms})

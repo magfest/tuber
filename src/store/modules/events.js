@@ -13,14 +13,11 @@ const getters = {
 
 // actions
 const actions = {
-  get_events({ commit, state }) {
+  get_events({ commit }) {
     return new Promise((resolve, reject) => {
       fetch('/api/events/list').then((response) => {
         response.json().then((data) => {
           commit('set_events', data.events);
-          if (data.events.length > 0) {
-            commit('set_event', state.events[0]);
-          }
           resolve();
         });
       }).catch(() => {
@@ -34,6 +31,16 @@ const actions = {
 const mutations = {
   set_events(state, events) {
     Vue.set(state, 'events', events);
+    if (state.event) {
+      for (let i = 0; i < state.events.length; i += 1) {
+        if (state.events[i].id === state.event.id) {
+          return;
+        }
+      }
+      if (state.events.length > 0) {
+        [state.event] = events;
+      }
+    }
   },
   set_event(state, event) {
     state.event = event;

@@ -1,21 +1,29 @@
 <template>
   <v-app>
-    <v-navigation-drawer v-model="drawer" app clipped>
-      <v-list dense>
-        <v-list-item>
-          <v-list-item-action>
-            <v-icon>mdi-view-dashboard</v-icon>
-          </v-list-item-action>
+    <v-navigation-drawer v-model="drawer" app :clipped="true">
+      <v-list dense nav>
+        <v-list-item v-if="show_hotel" link>
+          <v-list-item-icon>
+            <v-icon>hotel</v-icon>
+          </v-list-item-icon>
           <v-list-item-content>
-            <v-list-item-title>Dashboard</v-list-item-title>
+            <v-list-item-title>Hotels</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
-        <v-list-item>
-          <v-list-item-action>
-            <v-icon>mdi-settings</v-icon>
-          </v-list-item-action>
+        <v-list-item v-if="show_event_settings" link>
+          <v-list-item-icon>
+            <v-icon>settings</v-icon>
+          </v-list-item-icon>
           <v-list-item-content>
-            <v-list-item-title>Settings</v-list-item-title>
+            <v-list-item-title>Event Settings</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+        <v-list-item v-if="logged_in" link>
+          <v-list-item-icon>
+            <v-icon>lock</v-icon>
+          </v-list-item-icon>
+          <v-list-item-content>
+            <v-list-item-title>Logout</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
       </v-list>
@@ -24,7 +32,7 @@
     <v-app-bar app clipped-left>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-toolbar-title class="headline">
-        <span>2ber</span>
+        <span>Tuber</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <div>
@@ -56,6 +64,8 @@ export default {
   data: () => ({
     drawer: null,
     selected_event: {},
+    show_hotel: false,
+    show_event_settings: false,
   }),
   computed: {
     ...mapGetters([
@@ -76,6 +86,7 @@ export default {
             self.$store.commit('set_event', el);
           }
         });
+        this.update();
       },
     },
   },
@@ -100,10 +111,15 @@ export default {
   methods: {
     update() {
       this.$store.dispatch('get_events');
+      this.show_hotel = this.checkPermission('hotels.read');
+      this.show_event_settings = this.checkPermission('event.read', this.event.id);
     },
   },
   watchers: {
     logged_in: () => {
+      this.update();
+    },
+    event: () => {
       this.update();
     },
   },
