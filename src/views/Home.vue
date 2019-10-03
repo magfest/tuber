@@ -10,11 +10,11 @@
             <v-text-field label="Username" v-model="username" outlined></v-text-field>
             <v-text-field label="Password" v-model="password" type="password" outlined></v-text-field>
             <v-text-field label="Email" v-model="email" outlined></v-text-field>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn outlined type="submit" @click="create_admin">Submit</v-btn>
+            </v-card-actions>
           </v-form>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn outlined @click="create_admin">Submit</v-btn>
-          </v-card-actions>
         </v-card-text>
       </v-card>
     </div>
@@ -29,7 +29,7 @@
             <v-text-field label="Description" v-model="description" outlined></v-text-field>
             <v-card-actions>
               <v-spacer></v-spacer>
-              <v-btn outlined @click="create_event">Submit</v-btn>
+              <v-btn outlined type="submit" @click="create_event">Submit</v-btn>
             </v-card-actions>
           </v-form>
         </v-card-text>
