@@ -28,7 +28,7 @@
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <div>
-        <v-select class="event-select" :items="events" item-text="name" item-value="id" :value="event.id" label="Event" outlined></v-select>
+        <v-select class="event-select" :items="events" item-text="name" item-value="id" v-model="event" label="Event" outlined></v-select>
       </div>
     </v-app-bar>
 
@@ -55,6 +55,7 @@ export default {
   name: 'App',
   data: () => ({
     drawer: null,
+    selected_event: {},
   }),
   computed: {
     ...mapGetters([
@@ -63,14 +64,27 @@ export default {
       'initial_setup',
       'logged_in',
       'events',
-      'event',
     ]),
+    event: {
+      get() {
+        return this.$store.state.events.event;
+      },
+      set(value) {
+        const self = this;
+        this.events.forEach((el) => {
+          if (el.id === value) {
+            self.$store.commit('set_event', el);
+          }
+        });
+      },
+    },
   },
   mounted() {
     this.$vuetify.theme.dark = true;
     const self = this;
     this.$store.dispatch('check_logged_in').then(() => {
       self.$store.dispatch('check_initial_setup').then(() => {
+        self.update();
         if (self.initial_setup) {
           if (self.$router.currentRoute.name !== 'home') {
             self.$router.push({ name: 'home' });
