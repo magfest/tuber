@@ -43,9 +43,9 @@
     <v-content>
       <router-view/>
     </v-content>
-    <v-snackbar v-if="snackbar">
+    <v-snackbar v-model="snackbar_open">
       {{ snackbar_text }}
-      <v-btn color="pink" :timeout="0" text @click="$store.commit('close_snackbar')">Close</v-btn>
+      <v-btn color="pink" text @click="$store.commit('close_snackbar')">Close</v-btn>
     </v-snackbar>
   </v-app>
 </template>
@@ -69,12 +69,22 @@ export default {
   }),
   computed: {
     ...mapGetters([
-      'snackbar',
       'snackbar_text',
       'initial_setup',
+      'user',
       'logged_in',
       'events',
     ]),
+    snackbar_open: {
+      get() {
+        return this.$store.state.snackbar.snackbar;
+      },
+      set(value) {
+        if (!value) {
+          this.$store.commit('close_snackbar');
+        }
+      },
+    },
     event: {
       get() {
         return this.$store.state.events.event;
@@ -86,7 +96,6 @@ export default {
             self.$store.commit('set_event', el);
           }
         });
-        this.update();
       },
     },
   },
@@ -95,7 +104,6 @@ export default {
     const self = this;
     this.$store.dispatch('check_logged_in').then(() => {
       self.$store.dispatch('check_initial_setup').then(() => {
-        self.update();
         if (self.initial_setup) {
           if (self.$router.currentRoute.name !== 'home') {
             self.$router.push({ name: 'home' });
@@ -109,18 +117,20 @@ export default {
     });
   },
   methods: {
-    update() {
-      this.$store.dispatch('get_events');
+    updateMenus() {
       this.show_hotel = this.checkPermission('hotels.read');
       this.show_event_settings = this.checkPermission('event.read', this.event.id);
     },
   },
-  watchers: {
-    logged_in: () => {
-      this.update();
+  watch: {
+    user() {
+      const self = this;
+      this.$store.dispatch('get_events').then(() => {
+        self.updateMenus();
+      });
     },
-    event: () => {
-      this.update();
+    event() {
+      this.updateMenus();
     },
   },
 };

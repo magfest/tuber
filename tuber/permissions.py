@@ -27,6 +27,7 @@ def handle_permission_denied(error):
 @app.before_request
 def get_user():
     g.user = None
+    g.perms = []
     if 'session' in request.cookies:
         session = db.session.query(Session).filter(Session.secret == request.cookies.get('session')).one_or_none()
         if session:
@@ -35,7 +36,6 @@ def get_user():
                 g.user = session.user
                 g.session = session.secret
                 permissions = db.session.query(Grant.department, Role.event, Permission.operation).filter(Grant.user == g.user).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
-                g.perms = []
                 for permission in permissions:
                     g.perms.append({"department": permission.department, "event": permission.event, "operation": permission.operation})
                 db.session.add(session)

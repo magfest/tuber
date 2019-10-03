@@ -36,12 +36,14 @@ const actions = {
         response.json().then((data) => {
           if (data.success) {
             fetch('/api/user/permissions').then((perms) => {
-              perms.json().then((data) => {
-                commit('set_perms', data.permissions);
+              perms.json().then((permdata) => {
+                commit('set_perms', permdata.permissions);
+                commit('login', data);
+                resolve();
               });
+            }).catch(() => {
+              reject();
             });
-            commit('login', data);
-            resolve();
           } else {
             commit('logout');
             resolve();
@@ -61,17 +63,18 @@ const mutations = {
   },
   login(state, data) {
     if (data.success) {
-      state.logged_in = true;
+      Vue.set(state, 'logged_in', true);
       Vue.set(state, 'user', data.user);
       Vue.set(state, 'session', data.session);
     } else {
-      state.logged_in = false;
+      Vue.set(state, 'logged_in', false);
     }
   },
   logout(state) {
     state.user = {};
     state.session = '';
     state.logged_in = false;
+    Vue.set(state, 'perms', []);
   },
   set_perms(state, data) {
     Vue.set(state, 'perms', data);
