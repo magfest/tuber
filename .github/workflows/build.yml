@@ -36,21 +36,3 @@ jobs:
         sudo gem install --no-document fpm
         make rpm
         make deb
-  build_macos:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.x
-    - name: Set up Node 10
-      uses: actions/setup-node@v1
-      with:
-        node-version: 10.x
-    - name: Install
-      run: |
-        make install-develop
-    - name: Build DMG
-      run: |
-        venv/bin/python setup.py py2app
