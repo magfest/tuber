@@ -6,6 +6,7 @@ import StaffList from './views/StaffList.vue';
 import StaffDetail from './views/StaffDetail.vue';
 import DepartmentList from './views/DepartmentList.vue';
 import DepartmentDetail from './views/DepartmentDetail.vue';
+import HotelRequest from './views/Hotels/Request.vue';
 
 Vue.use(Router);
 
@@ -42,6 +43,11 @@ export default new Router({
       path: '/departments/:id',
       name: 'departmentdetail',
       component: DepartmentDetail,
+    },
+    {
+      path: '/hotels/request/:id',
+      name: 'hotelsrequest',
+      component: HotelRequest,
     },
   ],
 });
