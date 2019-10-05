@@ -22,4 +22,15 @@ def staffer_auth():
     success = id == request.json['token']
     return jsonify({"success": success})
 
-@app.route("/api/hotel/")
+@app.route("/api/hotel/request", methods=["POST"])
+def submit_hotel_request():
+    if check_permission("hotels.request.create"):
+        #if request.json['name'] and request.json['description']:
+        #    event = Event(name=request.json['name'], description=request.json['description'])
+        #    db.session.add(event)
+        #    db.session.flush()
+        #    resp = {"id": event.id, "name": event.name, "description": event.description}
+        #    db.session.commit()
+        resp = {}
+        return jsonify({"success": True, "event": resp})
+    return jsonify({"success": False})
