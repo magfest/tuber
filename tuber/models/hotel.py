@@ -38,9 +38,12 @@ class HotelLocation(db.Model):
 class HotelRoomNight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(16), nullable=False)
+    restricted = db.Column(db.Boolean, nullable=False, default=False)
 
 class BadgeToRoomNight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     room_block = db.Column(db.Integer, db.ForeignKey('hotel_room_block.id'), nullable=False)
     room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
+    justification = db.Column(db.String(512), nullable=True)
+    justification_approved = db.Column(db.Boolean, nullable=True, default=False)
