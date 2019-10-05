@@ -40,7 +40,7 @@ def get_user():
                     g.perms.append({"department": permission.department, "event": permission.event, "operation": permission.operation})
                 db.session.add(session)
             else:
-                session.delete()
+                db.session.delete(session)
             db.session.commit()
 
 def check_permission(operation="", event="", department=""):
