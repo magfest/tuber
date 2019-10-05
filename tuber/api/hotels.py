@@ -10,7 +10,7 @@ headers = {
     'X-Auth-Token': config['uber_api_token']
 }
 
-@app.route("/api/hotel/staffer_auth", methods=["POST"])
+@app.route("/api/hotels/staffer_auth", methods=["POST"])
 def staffer_auth():
     req = {
         "method": "attendee.search",
@@ -42,8 +42,8 @@ def staffer_auth():
     return response
 
 
-@app.route("/api/hotel/request", methods=["POST"])
-def submit_hotel_request():
+@app.route("/api/hotels/request", methods=["POST"])
+def submit_hotels_request():
     if check_permission("hotels.request.create"):
         #if request.json['name'] and request.json['description']:
         #    event = Event(name=request.json['name'], description=request.json['description'])

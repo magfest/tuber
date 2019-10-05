@@ -99,23 +99,6 @@ export default {
       },
     },
   },
-  mounted() {
-    this.$vuetify.theme.dark = true;
-    const self = this;
-    this.$store.dispatch('check_logged_in').then(() => {
-      self.$store.dispatch('check_initial_setup').then(() => {
-        if (self.initial_setup) {
-          if (self.$router.currentRoute.name !== 'home') {
-            self.$router.push({ name: 'home' });
-          }
-        } else if (!self.logged_in) {
-          if (self.$router.currentRoute.name !== 'login') {
-            self.$router.push({ name: 'login' });
-          }
-        }
-      });
-    });
-  },
   methods: {
     updateMenus() {
       this.show_hotel = this.checkPermission('hotels.read');

@@ -45,7 +45,7 @@ export default new Router({
       component: DepartmentDetail,
     },
     {
-      path: '/hotels/request/:id',
+      path: '/hotels/request',
       name: 'hotelsrequest',
       component: HotelRequest,
     },
