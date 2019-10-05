@@ -5,6 +5,7 @@ const state = {
   user: {},
   logged_in: false,
   session: '',
+  perms: [],
 };
 
 // getters
@@ -12,6 +13,7 @@ const getters = {
   initial_setup: state => state.initial_setup,
   user: state => state.user,
   logged_in: state => state.logged_in,
+  perms: state => state.perms,
 };
 
 // actions
@@ -33,8 +35,15 @@ const actions = {
       fetch('/api/check_login').then((response) => {
         response.json().then((data) => {
           if (data.success) {
-            commit('login', data);
-            resolve();
+            fetch('/api/user/permissions').then((perms) => {
+              perms.json().then((permdata) => {
+                commit('set_perms', permdata.permissions);
+                commit('login', data);
+                resolve();
+              });
+            }).catch(() => {
+              reject();
+            });
           } else {
             commit('logout');
             resolve();
@@ -54,17 +63,21 @@ const mutations = {
   },
   login(state, data) {
     if (data.success) {
-      state.logged_in = true;
+      Vue.set(state, 'logged_in', true);
       Vue.set(state, 'user', data.user);
       Vue.set(state, 'session', data.session);
     } else {
-      state.logged_in = false;
+      Vue.set(state, 'logged_in', false);
     }
   },
   logout(state) {
     state.user = {};
     state.session = '';
     state.logged_in = false;
+    Vue.set(state, 'perms', []);
+  },
+  set_perms(state, data) {
+    Vue.set(state, 'perms', data);
   },
 };
 

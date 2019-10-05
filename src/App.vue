@@ -1,21 +1,29 @@
 <template>
   <v-app>
-    <v-navigation-drawer v-model="drawer" app clipped>
-      <v-list dense>
-        <v-list-item>
-          <v-list-item-action>
-            <v-icon>mdi-view-dashboard</v-icon>
-          </v-list-item-action>
+    <v-navigation-drawer v-model="drawer" app :clipped="true">
+      <v-list dense nav>
+        <v-list-item v-if="show_hotel" link>
+          <v-list-item-icon>
+            <v-icon>hotel</v-icon>
+          </v-list-item-icon>
           <v-list-item-content>
-            <v-list-item-title>Dashboard</v-list-item-title>
+            <v-list-item-title>Hotels</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
-        <v-list-item>
-          <v-list-item-action>
-            <v-icon>mdi-settings</v-icon>
-          </v-list-item-action>
+        <v-list-item v-if="show_event_settings" link>
+          <v-list-item-icon>
+            <v-icon>settings</v-icon>
+          </v-list-item-icon>
           <v-list-item-content>
-            <v-list-item-title>Settings</v-list-item-title>
+            <v-list-item-title>Event Settings</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+        <v-list-item v-if="logged_in" link>
+          <v-list-item-icon>
+            <v-icon>lock</v-icon>
+          </v-list-item-icon>
+          <v-list-item-content>
+            <v-list-item-title>Logout</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
       </v-list>
@@ -28,16 +36,16 @@
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <div>
-        <v-select class="event-select" :items="events" item-text="name" item-value="id" :value="event.id" label="Event" outlined></v-select>
+        <v-select class="event-select" :items="events" item-text="name" item-value="id" v-model="event" label="Event" outlined></v-select>
       </div>
     </v-app-bar>
 
     <v-content>
       <router-view/>
     </v-content>
-    <v-snackbar v-if="snackbar">
+    <v-snackbar v-model="snackbar_open">
       {{ snackbar_text }}
-      <v-btn color="pink" :timeout="0" text @click="$store.commit('close_snackbar')">Close</v-btn>
+      <v-btn color="pink" text @click="$store.commit('close_snackbar')">Close</v-btn>
     </v-snackbar>
   </v-app>
 </template>
@@ -55,16 +63,41 @@ export default {
   name: 'App',
   data: () => ({
     drawer: null,
+    selected_event: {},
+    show_hotel: false,
+    show_event_settings: false,
   }),
   computed: {
     ...mapGetters([
-      'snackbar',
       'snackbar_text',
       'initial_setup',
+      'user',
       'logged_in',
       'events',
-      'event',
     ]),
+    snackbar_open: {
+      get() {
+        return this.$store.state.snackbar.snackbar;
+      },
+      set(value) {
+        if (!value) {
+          this.$store.commit('close_snackbar');
+        }
+      },
+    },
+    event: {
+      get() {
+        return this.$store.state.events.event;
+      },
+      set(value) {
+        const self = this;
+        this.events.forEach((el) => {
+          if (el.id === value) {
+            self.$store.commit('set_event', el);
+          }
+        });
+      },
+    },
   },
   mounted() {
     this.$vuetify.theme.dark = true;
@@ -84,13 +117,20 @@ export default {
     });
   },
   methods: {
-    update() {
-      this.$store.dispatch('get_events');
+    updateMenus() {
+      this.show_hotel = this.checkPermission('hotels.read');
+      this.show_event_settings = this.checkPermission('event.read', this.event.id);
     },
   },
-  watchers: {
-    logged_in: () => {
-      this.update();
+  watch: {
+    user() {
+      const self = this;
+      this.$store.dispatch('get_events').then(() => {
+        self.updateMenus();
+      });
+    },
+    event() {
+      this.updateMenus();
     },
   },
 };

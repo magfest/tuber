@@ -11,7 +11,7 @@
             <v-text-field label="Password" v-model="password" type="password" outlined></v-text-field>
             <v-card-actions>
               <v-spacer></v-spacer>
-              <v-btn outlined @click="login">Login</v-btn>
+              <v-btn outlined type="submit" @click="login">Login</v-btn>
             </v-card-actions>
           </v-form>
         </v-card-text>
