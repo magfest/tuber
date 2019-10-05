@@ -1,24 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
-import tempfile
-import pytest
-import tuber
+from util import *
 import json
-import os
-
-fd, filename = tempfile.mkstemp()
-tuber.app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///" + filename
-tuber.init_db()
-
-@pytest.fixture
-def client():
-    tuber.app.config['TESTING'] = True
-    with tuber.app.test_client() as client:
-        yield client
-
-def csrf(rv):
-    for cookie in rv.headers.getlist('Set-Cookie'):
-        if cookie.startswith('csrf_token='):
-            return cookie.split("; ")[0].split("=")[1]
 
 def test_csrf(client):
     """Ensure that the CSRF cookie is being set and checked"""

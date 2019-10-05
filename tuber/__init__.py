@@ -10,7 +10,9 @@ config = {
     "static_folder": "../dist",
     "migrations_folder": "migrations",
     "sql_connection": "sqlite:///database.db",
-    "session_duration": 7200
+    "session_duration": 7200,
+    "uber_api_token": "",
+    "uber_api_url": ""
 }
 
 config_file = "/etc/tuber/tuber.json"
