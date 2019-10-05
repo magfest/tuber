@@ -27,6 +27,12 @@ if os.path.isfile(config_file):
 if 'DATABASE_URL' in os.environ:
     config['sql_connection'] = os.environ['DATABASE_URL']
 
+if 'UBER_API_URL' in os.environ:
+    config['uber_api_url'] = os.environ['UBER_API_URL']
+
+if 'UBER_API_TOKEN' in os.environ:
+    config['uber_api_token'] = os.environ['UBER_API_TOKEN']
+
 app = Flask(__name__)
 app.static_folder = config['static_folder']
 

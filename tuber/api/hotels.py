@@ -21,3 +21,5 @@ def staffer_auth():
     id = resp.json()['result'][0]['id']
     success = id == request.json['token']
     return jsonify({"success": success})
+
+@app.route("/api/hotel/")
