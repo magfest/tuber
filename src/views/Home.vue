@@ -3,7 +3,7 @@
     <div v-if="initial_setup">
       <br>
       <v-card max-width="700" :raised="true" class="mx-auto" :loading="initial_setup_loading">
-        <v-card-title>Welcome to 2ber!</v-card-title>
+        <v-card-title>Welcome to Tuber!</v-card-title>
         <v-card-text>
           <v-form>
             <p>Please create an admin account:</p>

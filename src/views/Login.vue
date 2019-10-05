@@ -3,7 +3,7 @@
     <div>
       <br>
       <v-card max-width="700" :raised="true" class="mx-auto" :loading="login_loading">
-        <v-card-title>Welcome to 2ber!</v-card-title>
+        <v-card-title>Welcome to Tuber!</v-card-title>
         <v-card-text>
           <v-form>
             <p>Please log in:</p>

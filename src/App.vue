@@ -24,7 +24,7 @@
     <v-app-bar app clipped-left>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-toolbar-title class="headline">
-        <span>2ber</span>
+        <span>Tuber</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <div>
