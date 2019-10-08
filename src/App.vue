@@ -99,6 +99,9 @@ export default {
       },
     },
   },
+  mounted() {
+    this.$vuetify.theme.dark = true;
+  },
   methods: {
     updateMenus() {
       this.show_hotel = this.checkPermission('hotels.read');

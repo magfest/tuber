@@ -1,5 +1,6 @@
 <template>
   <div>
+    <h1>You have logged out</h1>
   </div>
 </template>
 
@@ -8,8 +9,23 @@
 
 <script>
 export default {
-  name: '',
+  name: 'Logout',
   data: () => ({
   }),
+  mounted() {
+    const self = this;
+    this.post('/api/logout').then((resp) => {
+      if (resp.success) {
+        self.$store.dispatch('check_logged_in').then(() => {
+          self.$router.push({ name: 'home' });
+        });
+        self.$store.commit('open_snackbar', 'Logged out successfully!');
+      } else {
+        self.$store.commit('open_snackbar', 'Failed to log out. Were you logged in?');
+      }
+    }).catch(() => {
+      self.$store.commit('open_snackbar', 'Network error while logging out.');
+    });
+  },
 };
 </script>
