@@ -5,6 +5,9 @@ function json(response) {
 }
 
 function post(url, data) {
+  if (data === undefined) {
+    data = {};
+  }
   data.csrf_token = window.$cookies.get('csrf_token');
   const promise = new Promise(((resolve, reject) => {
     fetch(url, {

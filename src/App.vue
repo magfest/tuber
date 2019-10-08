@@ -1,44 +1,61 @@
 <template>
   <v-app>
-    <v-navigation-drawer v-model="drawer" app :clipped="true">
-      <v-list dense nav>
-        <v-list-item v-if="show_hotel" link>
-          <v-list-item-icon>
-            <v-icon>hotel</v-icon>
-          </v-list-item-icon>
-          <v-list-item-content>
-            <v-list-item-title>Hotels</v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-        <v-list-item v-if="show_event_settings" link>
-          <v-list-item-icon>
-            <v-icon>settings</v-icon>
-          </v-list-item-icon>
-          <v-list-item-content>
-            <v-list-item-title>Event Settings</v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-        <v-list-item v-if="logged_in" link>
-          <v-list-item-icon>
-            <v-icon>lock</v-icon>
-          </v-list-item-icon>
-          <v-list-item-content>
-            <v-list-item-title>Logout</v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-      </v-list>
-    </v-navigation-drawer>
-
     <v-app-bar app clipped-left>
-      <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
-      <v-toolbar-title class="headline">
-        <span>Tuber</span>
+      <v-app-bar-nav-icon  @click.stop="drawer = !drawer" class="hidden-lg-and-up"></v-app-bar-nav-icon>
+      <v-toolbar-title>
+        <span class="pr-md-10">Tuber</span>
       </v-toolbar-title>
+      <div class="hidden-md-and-down">
+        <v-menu class="px-md-1" offset-y v-for="navmenu in filtered_menus" :key="navmenu.name">
+          <template v-slot:activator="{ on }">
+            <v-btn v-on="on" :alt="navmenu.alt">
+              <v-icon left>{{ navmenu.icon }}</v-icon>{{ navmenu.name }}
+            </v-btn>
+          </template>
+          <v-list>
+            <v-list-item v-for="(item, index) in navmenu.items" :key="index" @click="$router.push({path: item.path})" :alt="item.alt">
+              <v-list-item-title><v-icon left>{{ item.icon }}</v-icon>{{ item.name }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </div>
+      <div class="px-md-4 hidden-md-and-down">
+      <v-btn alt="Logout" @click="$router.push({name: 'logout'})" v-if="logged_in">
+        Logout
+      </v-btn>
+      </div>
       <v-spacer></v-spacer>
       <div>
         <v-select class="event-select" :items="events" item-text="name" item-value="id" v-model="event" label="Event" outlined></v-select>
       </div>
     </v-app-bar>
+
+    <v-navigation-drawer v-model="drawer" temporary absolute width = "400" id = "drawer">
+      <v-toolbar-title>
+        <span class="mx-auto">Tuber</span>
+      </v-toolbar-title>
+      <v-divider>
+      </v-divider>
+      <v-expansion-panels>
+        <v-expansion-panel v-for="navmenu in filtered_menus" :key="navmenu.name">
+          <v-expansion-panel-header>
+              <div>{{ navmenu.name }}</div>
+          </v-expansion-panel-header>
+          <v-expansion-panel-content>
+            <v-list>
+              <v-list-item v-for="(item, index) in navmenu.items" :key="index" @click="$router.push({path: item.path})" :alt="item.alt">
+                <v-list-item-title><v-icon left>{{ item.icon }}</v-icon>{{ item.name }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-expansion-panel-content>
+        </v-expansion-panel>
+        <v-expansion-panel alt="Logout" @click="$router.push({name: 'logout'})" v-if="logged_in">
+          <v-expansion-panel-header expand-icon="">
+            Logout
+          </v-expansion-panel-header>
+        </v-expansion-panel>
+      </v-expansion-panels>
+    </v-navigation-drawer>
 
     <v-content>
       <router-view/>
@@ -66,6 +83,58 @@ export default {
     selected_event: {},
     show_hotel: false,
     show_event_settings: false,
+    menu: [
+      {
+        name: 'Hotels',
+        alt: 'Assign Staffers to Rooms',
+        icon: 'hotel',
+        items: [
+          {
+            name: 'Room Request',
+            alt: 'Request a hotel room for yourself',
+            path: '/hotel/request',
+            icon: 'settings',
+            permissions: [
+              'hotelrequest.read',
+            ],
+          },
+          {
+            name: 'Approve Requests',
+            alt: 'Approve hotel requests from staffers in your department',
+            path: '/hotel/approve',
+            icon: 'settings',
+            permissions: [
+              'hotelrequest.write',
+            ],
+          },
+          {
+            name: 'Assign Rooms',
+            alt: 'Assign staffers to hotel rooms',
+            path: '/hotel/assign',
+            icon: 'settings',
+            permissions: [
+              'hotelassignment.read',
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Event Settings',
+        alt: 'Change Event-Global Settings',
+        icon: 'settings',
+        items: [
+          {
+            name: 'Event Settings',
+            alt: 'Change Event-Global Settings',
+            icon: 'settings',
+            path: '/event/settings',
+            permissions: [
+              'event.read',
+            ],
+          },
+        ],
+      },
+    ],
   }),
   computed: {
     ...mapGetters([
@@ -75,6 +144,32 @@ export default {
       'logged_in',
       'events',
     ]),
+    filtered_menus() {
+      const filtered = [];
+      for (let i = 0; i < this.menu.length; i += 1) {
+        const submenu = [];
+        for (let j = 0; j < this.menu[i].items.length; j += 1) {
+          let allowed = true;
+          for (let k = 0; k < this.menu[i].items[j].permissions.length; k += 1) {
+            if (!this.checkPermission(this.menu[i].items[j].permissions[k])) {
+              allowed = false;
+            }
+          }
+          if (allowed) {
+            submenu.push(this.menu[i].items[j]);
+          }
+        }
+        if (submenu.length > 0) {
+          filtered.push({
+            name: this.menu[i].name,
+            alt: this.menu[i].alt,
+            icon: this.menu[i].icon,
+            items: submenu,
+          });
+        }
+      }
+      return filtered;
+    },
     snackbar_open: {
       get() {
         return this.$store.state.snackbar.snackbar;
