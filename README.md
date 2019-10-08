@@ -4,13 +4,15 @@
 
 ## Installation
 
+For production deploys it is recommended to use the RPM package, which will install Gunicorn and includes a basic nginx config file. All sessions and other state are stored in the database, so it is possible to scale horizontally by running multiple tuber servers in front of the same database.
+
 This software is currently only packaged for RHEL/Fedora. Builds are available on COPR:
 
 ```bash
 dnf copr enable bitbyt3r/Tuber
-dnf install copr
-systemctl start copr
-systemctl enable copr
+dnf install tuber
+systemctl start tuber
+systemctl enable tuber
 cp /usr/share/tuber/nginx.conf /etc/nginx/conf.d/tuber.conf
 systemctl start nginx
 systemctl enable nginx
@@ -31,69 +33,23 @@ Configuration is in /etc/tuber/tuber.json. The main configuration required is fo
 After cloning this repository you will need the following dependencies:
 
 ```bash
-dnf install npm python3
-apt install npm python3
+dnf install npm python3 # Fedora/RHEL/CentOS
+apt install npm python3 # Debian/Ubuntu
+brew install npm python # MacOS
 ```
 
 Once you have the dependencies you can simply run make to build, then make develop to run the test server:
 
 ```bash
-make
 make develop
 ```
 
 You can run the tests using make test, though you will need to install pytest first:
 
 ```bash
-dnf install python3-pytest
+venv/bin/pip install pytest
 make test
 ```
-
-## Project setup
-
-```bash
-npm install
-```
-
-### Compiles and hot-reloads for development
-
-```bash
-npm run serve
-```
-
-### Compiles and minifies for production
-
-```bash
-npm run build
-```
-
-### Run your tests
-
-```bash
-npm run test
-```
-
-### Lints and fixes files
-
-```bash
-npm run lint
-```
-
-### Run your end-to-end tests
-
-```bash
-npm run test:e2e
-```
-
-### Run your unit tests
-
-```bash
-npm run test:unit
-```
-
-### Customize configuration
-
-See [Configuration Reference](https://cli.vuejs.org/config/).
 
 ### Heroku
 
