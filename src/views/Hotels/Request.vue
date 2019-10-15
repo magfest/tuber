@@ -8,46 +8,49 @@
           <v-form>
             <p>These questions will help us find the best roommates for you. If you already have a group you'd like to room with the best way to be grouped
               together is to each request each other as roommates, and request the same nights. If this is your first time in staff housing or you don't
-              know who you would like to room with then this form will help us match you with compatible roommates.</p><br>
+              know who you would like to room with then this form will help us match you with compatible roommates.</p>
 
-            <p>Let us know if you don't want to apply for a room:</p>
+            <p class="accent--text">Rooms are best-effort, we take your request details into consideration, but cannot guarantee assignments will perfectly match requests.</p><br>
+
+            <p class="font-weight-black">Let us know if you don't want to apply for a room:</p>
             <v-checkbox class="my-n5" v-model="decline" label="I do NOT want a staff room."></v-checkbox><br>
 
-            <p>Which nights would you like a room?</p>
+            <p class="font-weight-black">Which nights would you like a room?</p>
+            <p>Nights marked "Setup" or "Teardown" will require department head approval. Talk to your department head for details.</p>
             <v-checkbox class="my-n5" v-for="night in room_nights" v-model="night.checked" :key="night.name" :label="night.name" :disabled="decline">
             </v-checkbox><br>
 
-            <p>Who would you like to room with?</p>
+            <p class="font-weight-black">Who would you like to room with?</p>
             <roommate-field label="Requested Roommates" v-model="requested_roommates" :disabled="decline"></roommate-field><br>
 
-            <p>Who would you <b>not</b> like to room with?</p>
+            <p class="font-weight-black">Who would you <b>not</b> like to room with?</p>
             <roommate-field label="Anti-requested Roommates" v-model="antirequested_roommates" :disabled="decline"></roommate-field><br>
 
-            <p>Is there anything else we should know?</p>
+            <p class="font-weight-black">Is there anything else we should know?</p>
             <v-textarea v-model="notes" :disabled="decline" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></v-textarea>
 
             <v-divider></v-divider><br>
-            <p><b>The following questions are optional, but will help us match you with roommates.
-              Note that the above roommate requests and anti-requests will take precedence over the below preferences.</b></p><br>
+            <p class="accent--text">The following questions are optional, but will help us match you with roommates.
+              Note that the above roommate requests and anti-requests will take precedence over the below preferences.</p><br>
 
-            <p>Would you prefer to room with other people in your department?</p>
+            <p class="font-weight-black">Would you prefer to room with other people in your department?</p>
             <v-checkbox class="my-n5" :disabled="decline" v-model="prefer_department" label="Yes, I would prefer to room with my department."></v-checkbox>
             <p v-if="prefer_department && departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
             <v-select :disabled="decline" :items="departments" v-if="prefer_department && departments.length > 1" item-text="name" item-value="id" v-model="preferred_department"></v-select>
             <p v-if="prefer_department && departments.length == 1">We will try to put you with the {{ departments[0].name }} department.</p><br>
 
-            <p>Would you prefer single gender rooming?</p>
+            <p class="font-weight-black">Would you prefer single gender rooming?</p>
             <v-checkbox class="my-n5" :disabled="decline" v-model="single_gender" label="Yes, I would prefer a single-gender room."></v-checkbox>
             <p v-if="single_gender">What gender would you like to room with?</p>
             <v-text-field :disabled="decline" v-if="single_gender" v-model="gender" hint="We will do our best to group entries logically. I.E. males will be grouped with guys." label="Gender"></v-text-field><br>
 
-            <p>What is your preferred noise level?</p>
+            <p class="font-weight-black">What is your preferred noise level?</p>
             <v-select :disabled="decline" v-model="noise_level" :items="noise_levels"></v-select><br>
 
-            <p>Are you sensitive to smoke?</p>
+            <p class="font-weight-black">Are you sensitive to smoke?</p>
             <v-checkbox class="my-n5" :disabled="decline" v-model="smoke_sensitive" label="I am sensitive to smoke."></v-checkbox><br>
 
-            <p>When do you plan to go to sleep?</p>
+            <p class="font-weight-black">When do you plan to go to sleep?</p>
             <v-select :disabled="decline" v-model="sleep_time" :items="sleep_times"></v-select><br>
 
             <v-card-actions>
@@ -104,7 +107,7 @@ export default {
       '4pm-6pm',
       '6pm-8pm',
     ],
-    sleep_time: '12am',
+    sleep_time: '12am-2am',
     departments: [
       {
         name: 'TechOps',
@@ -117,35 +120,35 @@ export default {
     ],
     room_nights: [
       {
-        name: 'Monday, 2019-12-30',
+        name: 'Monday (Setup)',
         checked: false,
       },
       {
-        name: 'Tuesday, 2019-12-31',
+        name: 'Tuesday (Setup)',
         checked: false,
       },
       {
-        name: 'Wednesday, 2020-01-01',
+        name: 'Wednesday (Setup)',
         checked: false,
       },
       {
-        name: 'Thursday, 2020-01-02',
+        name: 'Thursday',
         checked: true,
       },
       {
-        name: 'Friday, 2020-01-03',
+        name: 'Friday',
         checked: true,
       },
       {
-        name: 'Saturday, 2020-01-04',
+        name: 'Saturday',
         checked: true,
       },
       {
-        name: 'Sunday, 2020-01-05',
+        name: 'Sunday (Teardown)',
         checked: false,
       },
       {
-        name: 'Monday, 2020-01-06',
+        name: 'Monday (Teardown)',
         checked: false,
       },
     ],
