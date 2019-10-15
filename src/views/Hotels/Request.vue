@@ -20,16 +20,16 @@
             <p>Who would you <b>not</b> like to room with?</p>
             <roommate-field label="Anti-requested Roommates" v-model="antirequested_roommates"></roommate-field><br>
 
+            <p>Is there anything else we should know?</p>
+            <v-textarea v-model="notes" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></v-textarea>
+
+            <p><b>The following questions are optional, but will help us match you with roommates:</b></p><br>
+
             <p>Would you prefer to room with other people in your department?</p>
             <v-checkbox v-model="prefer_department" label="Prefer my department"></v-checkbox>
             <p v-if="prefer_department && departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
             <v-select :items="departments" v-if="prefer_department && departments.length > 1" item-text="name" item-value="id" v-model="preferred_department"></v-select>
             <p v-if="prefer_department && departments.length == 1">We will try to put you with the {{ departments[0].name }} department.</p><br>
-
-            <p>Is there anything else we should know?</p>
-            <v-textarea v-model="notes" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></v-textarea>
-
-            <p><b>The following questions are optional, but will help us match you with roommates:</b></p><br>
 
             <p>Do you prefer single gender rooming?</p>
             <v-checkbox v-model="single_gender" label="I would like to opt-in to single-gendered rooming."></v-checkbox>
