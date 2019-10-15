@@ -31,15 +31,15 @@
               Note that the above roommate requests and anti-requests will take precedence over the below preferences.</b></p><br>
 
             <p>Would you prefer to room with other people in your department?</p>
-            <v-checkbox class="my-n5" :disabled="decline" v-model="prefer_department" label="Prefer my department"></v-checkbox>
+            <v-checkbox class="my-n5" :disabled="decline" v-model="prefer_department" label="Yes, I would prefer to room with my department."></v-checkbox>
             <p v-if="prefer_department && departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
             <v-select :disabled="decline" :items="departments" v-if="prefer_department && departments.length > 1" item-text="name" item-value="id" v-model="preferred_department"></v-select>
             <p v-if="prefer_department && departments.length == 1">We will try to put you with the {{ departments[0].name }} department.</p><br>
 
-            <p>Do you prefer single gender rooming?</p>
-            <v-checkbox class="my-n5" :disabled="decline" v-model="single_gender" label="I would like to opt-in to single-gendered rooming."></v-checkbox>
+            <p>Would you prefer single gender rooming?</p>
+            <v-checkbox class="my-n5" :disabled="decline" v-model="single_gender" label="Yes, I would prefer a single-gender room."></v-checkbox>
             <p v-if="single_gender">What gender would you like to room with?</p>
-            <v-text-field :disabled="decline" v-if="single_gender" v-model="gender" hint="Entries will be matched literally, i.e. males will be grouped separately from guys." label="Gender"></v-text-field><br>
+            <v-text-field :disabled="decline" v-if="single_gender" v-model="gender" hint="We will do our best to group entries logically. I.E. males will be grouped with guys." label="Gender"></v-text-field><br>
 
             <p>What is your preferred noise level?</p>
             <v-select :disabled="decline" v-model="noise_level" :items="noise_levels"></v-select><br>
@@ -47,7 +47,7 @@
             <p>Are you sensitive to smoke?</p>
             <v-checkbox class="my-n5" :disabled="decline" v-model="smoke_sensitive" label="I am sensitive to smoke."></v-checkbox><br>
 
-            <p>When do you plan to sleep?</p>
+            <p>When do you plan to go to sleep?</p>
             <v-select :disabled="decline" v-model="sleep_time" :items="sleep_times"></v-select><br>
 
             <v-card-actions>
@@ -91,11 +91,18 @@ export default {
     noise_level: "Moderate - I don't make a lot of noise.",
     smoke_sensitive: false,
     sleep_times: [
-      'During the day',
-      '8pm',
-      '10pm',
-      '12am',
-      '2am',
+      '8pm-10pm',
+      '10pm-12am',
+      '12am-2am',
+      '2am-4am',
+      '4am-6am',
+      '6am-8am',
+      '8am-10am',
+      '10am-12pm',
+      '12pm-2pm',
+      '2pm-4pm',
+      '4pm-6pm',
+      '6pm-8pm',
     ],
     sleep_time: '12am',
     departments: [
