@@ -29,8 +29,10 @@ def import_uber_staff():
     session = requests.Session()
     session.post(request.json['uber_url']+"/accounts/login", data={"email": request.json['email'], "password": request.json['password'], "original_location": "homepage"})
     attendees = get_uber_csv(session, "Attendee")
+    num_staff = 0
     for attendee in attendees:
         if attendee['hotel_eligible'].lower() == "true":
+            num_staff += 1
             user_id = None
             user = db.session.query(User).filter(User.password == attendee['id']).one_or_none()
             if user:
@@ -78,4 +80,4 @@ def import_uber_staff():
         )
         db.session.add(department_member)
     db.session.commit()
-    return jsonify({"success": True, "num_staff": len(attendees)})
+    return jsonify({"success": True, "num_staff": num_staff})
