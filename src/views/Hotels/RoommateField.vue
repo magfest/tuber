@@ -11,6 +11,7 @@
         prepend-icon="person"
         append-icon=""
         :placeholder="placeholder"
+        :disabled="disabled"
         multiple
         chips
         hide-selected
@@ -41,6 +42,10 @@ export default {
     placeholder: {
       type: String,
       default: 'Start Typing to Search',
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
     },
   },
   data: () => ({

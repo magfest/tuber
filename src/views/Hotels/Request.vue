@@ -3,47 +3,52 @@
     <div>
       <br>
       <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
-        <v-card-title>Staff Hotel Request Form</v-card-title>
+        <v-card-title>Staff Hotel Room Request Form</v-card-title>
         <v-card-text>
           <v-form>
             <p>These questions will help us find the best roommates for you. If you already have a group you'd like to room with the best way to be grouped
               together is to each request each other as roommates, and request the same nights. If this is your first time in staff housing or you don't
               know who you would like to room with then this form will help us match you with compatible roommates.</p><br>
 
+            <p>Let us know if you don't want to apply for a room:</p>
+            <v-checkbox class="my-n5" v-model="decline" label="I do NOT want a staff room."></v-checkbox><br>
+
             <p>Which nights would you like a room?</p>
-            <v-checkbox class="my-n5" v-for="night in room_nights" v-model="night.checked" :key="night.name" :label="night.name">
+            <v-checkbox class="my-n5" v-for="night in room_nights" v-model="night.checked" :key="night.name" :label="night.name" :disabled="decline">
             </v-checkbox><br>
 
             <p>Who would you like to room with?</p>
-            <roommate-field label="Requested Roommates" v-model="requested_roommates"></roommate-field><br>
+            <roommate-field label="Requested Roommates" v-model="requested_roommates" :disabled="decline"></roommate-field><br>
 
             <p>Who would you <b>not</b> like to room with?</p>
-            <roommate-field label="Anti-requested Roommates" v-model="antirequested_roommates"></roommate-field><br>
+            <roommate-field label="Anti-requested Roommates" v-model="antirequested_roommates" :disabled="decline"></roommate-field><br>
 
             <p>Is there anything else we should know?</p>
-            <v-textarea v-model="notes" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></v-textarea>
+            <v-textarea v-model="notes" :disabled="decline" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></v-textarea>
 
-            <p><b>The following questions are optional, but will help us match you with roommates:</b></p><br>
+            <v-divider></v-divider><br>
+            <p><b>The following questions are optional, but will help us match you with roommates.
+              Note that the above roommate requests and anti-requests will take precedence over the below preferences.</b></p><br>
 
             <p>Would you prefer to room with other people in your department?</p>
-            <v-checkbox v-model="prefer_department" label="Prefer my department"></v-checkbox>
+            <v-checkbox class="my-n5" :disabled="decline" v-model="prefer_department" label="Prefer my department"></v-checkbox>
             <p v-if="prefer_department && departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
-            <v-select :items="departments" v-if="prefer_department && departments.length > 1" item-text="name" item-value="id" v-model="preferred_department"></v-select>
+            <v-select :disabled="decline" :items="departments" v-if="prefer_department && departments.length > 1" item-text="name" item-value="id" v-model="preferred_department"></v-select>
             <p v-if="prefer_department && departments.length == 1">We will try to put you with the {{ departments[0].name }} department.</p><br>
 
             <p>Do you prefer single gender rooming?</p>
-            <v-checkbox v-model="single_gender" label="I would like to opt-in to single-gendered rooming."></v-checkbox>
+            <v-checkbox class="my-n5" :disabled="decline" v-model="single_gender" label="I would like to opt-in to single-gendered rooming."></v-checkbox>
             <p v-if="single_gender">What gender would you like to room with?</p>
-            <v-text-field v-if="single_gender" v-model="gender" hint="If you identify as an attack helicopter then we will put you in a room with the other attack helicopters." label="Gender"></v-text-field><br>
+            <v-text-field :disabled="decline" v-if="single_gender" v-model="gender" hint="Entries will be matched literally, i.e. males will be grouped separately from guys." label="Gender"></v-text-field><br>
 
-            <p>What is your preferred noise level? (Do you snore/leave the tv on/otherwise)</p>
-            <v-select v-model="noise_level" :items="noise_levels"></v-select><br>
+            <p>What is your preferred noise level?</p>
+            <v-select :disabled="decline" v-model="noise_level" :items="noise_levels"></v-select><br>
 
             <p>Are you sensitive to smoke?</p>
-            <v-checkbox v-model="smoke_sensitive" label="I am sensitive to smoke."></v-checkbox><br>
+            <v-checkbox class="my-n5" :disabled="decline" v-model="smoke_sensitive" label="I am sensitive to smoke."></v-checkbox><br>
 
             <p>When do you plan to sleep?</p>
-            <v-select v-model="sleep_time" :items="sleep_times"></v-select><br>
+            <v-select :disabled="decline" v-model="sleep_time" :items="sleep_times"></v-select><br>
 
             <v-card-actions>
               <v-spacer></v-spacer>
@@ -69,6 +74,7 @@ export default {
     RoommateField,
   },
   data: () => ({
+    decline: false,
     loading: false,
     requested_roommates: [],
     antirequested_roommates: [],
@@ -78,11 +84,11 @@ export default {
     single_gender: false,
     gender: '',
     noise_levels: [
-      'Quiet',
-      'Moderate',
-      'Loud',
+      'Quiet - I am quiet, and prefer quiet.',
+      "Moderate - I don't make a lot of noise.",
+      "Loud - I'm ok if someone snores or I snore.",
     ],
-    noise_level: 'Quiet',
+    noise_level: "Moderate - I don't make a lot of noise.",
     smoke_sensitive: false,
     sleep_times: [
       'During the day',
@@ -91,7 +97,7 @@ export default {
       '12am',
       '2am',
     ],
-    sleep_time: '',
+    sleep_time: '12am',
     departments: [
       {
         name: 'TechOps',
