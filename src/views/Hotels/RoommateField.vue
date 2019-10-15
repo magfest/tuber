@@ -4,7 +4,6 @@
         :items="options"
         :loading="optionsLoading"
         :search-input.sync="search"
-        hide-no-data
         item-text="text"
         item-value="id"
         :label="label"
@@ -17,7 +16,8 @@
         hide-selected
         deletable-chips
         return-object
-        clearable
+        auto-select-first
+        hide-no-data
       ></v-autocomplete>
 </template>
 
@@ -114,6 +114,7 @@ export default {
     },
     roommates(value) {
       this.search = '';
+      this.options = value;
       this.$emit('input', value);
     },
     event() {

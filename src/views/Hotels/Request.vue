@@ -47,8 +47,8 @@
             <p class="font-weight-black">What is your preferred noise level?</p>
             <v-select :disabled="decline" v-model="noise_level" :items="noise_levels"></v-select><br>
 
-            <p class="font-weight-black">Are you sensitive to smoke?</p>
-            <v-checkbox class="my-n5" :disabled="decline" v-model="smoke_sensitive" label="I am sensitive to smoke."></v-checkbox><br>
+            <p class="font-weight-black">Would you prefer non-smoking roommates?</p>
+            <v-checkbox class="my-n5" :disabled="decline" v-model="smoke_sensitive" label="Yes, I would prefer non-smoking roommates."></v-checkbox><br>
 
             <p class="font-weight-black">When do you plan to go to sleep?</p>
             <v-select :disabled="decline" v-model="sleep_time" :items="sleep_times"></v-select><br>
