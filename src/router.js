@@ -10,6 +10,7 @@ import DepartmentDetail from './views/DepartmentDetail.vue';
 import HotelRequest from './views/Hotels/Request.vue';
 import EventCreate from './views/Events/Create.vue';
 import InitialSetup from './views/InitialSetup.vue';
+import ImportStaff from './views/Importer/Staff.vue';
 import store from './store/store';
 
 Vue.use(Router);
@@ -67,6 +68,11 @@ const router = new Router({
       path: '/events/create',
       name: 'eventcreate',
       component: EventCreate,
+    },
+    {
+      path: '/import/staff',
+      name: 'importstaff',
+      component: ImportStaff,
     },
   ],
 });

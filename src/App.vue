@@ -134,6 +134,15 @@ export default {
               'event.read',
             ],
           },
+          {
+            name: 'Import Staff',
+            alt: 'Import staff from Uber',
+            icon: 'import_export',
+            path: '/import/staff',
+            permissions: [
+              'import.staff',
+            ],
+          },
         ],
       },
     ],

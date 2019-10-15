@@ -2,7 +2,6 @@ from tuber import app, config, db
 from flask import send_from_directory, send_file, request, jsonify
 from tuber.models import *
 from tuber.permissions import *
-from sqlalchemy import or_
 import requests
 import datetime
 import uuid
@@ -26,6 +25,8 @@ def staffer_auth():
     email = result['email']
     username = id
     if id != request.json['token']:
+        return {"success": False}
+    if not result['staffing']:
         return {"success": False}
     user = db.session.query(User).filter(User.password == id).one_or_none()
     if user:
@@ -58,19 +59,35 @@ def submit_hotels_request():
 
 @app.route("/api/hotels/roommate_search", methods=["POST"])
 def roommate_search():
-    if not request.json['event']:
+    event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
+    if not event:
         return jsonify({"success": False})
     if check_permission("staff.search_names", event=request.json['event']):
-        results = db.session.query(Badge).filter(Badge.search_name.like("%{}%".format(request.json['search'].lower()))).limit(25).all()
+        results = db.session.query(Badge).filter(Badge.event_id == request.json['event'], Badge.search_name.like("%{}%".format(request.json['search'].lower()))).limit(25).all()
         filtered_results = []
         for res in results:
             departments = db.session.query(BadgeToDepartment).filter(BadgeToDepartment.badge == res.id).all()
             filtered_departments = []
             for dept in departments:
-                filtered_departments.append(dept.id)
+                filtered_departments.append(dept.department)
             filtered_results.append({
                 "name": "{} {}".format(res.first_name, res.last_name),
                 "id": res.id,
                 "departments": filtered_departments
             })
         return jsonify({"success": True, "results": filtered_results})
+
+@app.route("/api/hotels/department_names", methods=["POST"])
+def department_names():
+    event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
+    if not event:
+        return jsonify({"success": False})
+    if check_permission("staff.search_names", event=request.json['event']):
+        departments = db.session.query(Department).filter(Department.event_id == event.id).all()
+        filtered = {}
+        for dept in departments:
+            filtered[dept.id] = {
+                "name": dept.name,
+                "description": dept.description
+            }
+        return jsonify({"success": True, "departments": filtered})

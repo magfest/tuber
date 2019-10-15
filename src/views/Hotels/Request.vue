@@ -12,10 +12,8 @@
             </v-checkbox>
             <p>Who would you like to room with?</p>
             <roommate-field label="Requested Roommates" v-model="requested_roommates"></roommate-field>
-            {{ requested_roommates }}
             <p>Who would you <b>not</b> like to room with?</p>
             <roommate-field label="Anti-requested Roommates" v-model="antirequested_roommates"></roommate-field>
-            {{ antirequested_roommates }}
             <!--
               Room Nights:
                 Multiple checkboxes based off of the RoomNights model.
@@ -84,7 +82,7 @@ export default {
       },
       {
         name: 'Wednesday',
-        checked: true,
+        checked: false,
       },
     ],
   }),
