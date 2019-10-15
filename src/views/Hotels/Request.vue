@@ -104,35 +104,35 @@ export default {
     ],
     room_nights: [
       {
-        name: 'Monday',
+        name: 'Monday, 2019-12-30',
         checked: false,
       },
       {
-        name: 'Tuesday',
+        name: 'Tuesday, 2019-12-31',
         checked: false,
       },
       {
-        name: 'Wednesday',
+        name: 'Wednesday, 2020-01-01',
         checked: false,
       },
       {
-        name: 'Thursday',
+        name: 'Thursday, 2020-01-02',
+        checked: true,
+      },
+      {
+        name: 'Friday, 2020-01-03',
+        checked: true,
+      },
+      {
+        name: 'Saturday, 2020-01-04',
+        checked: true,
+      },
+      {
+        name: 'Sunday, 2020-01-05',
         checked: false,
       },
       {
-        name: 'Friday',
-        checked: false,
-      },
-      {
-        name: 'Saturday',
-        checked: false,
-      },
-      {
-        name: 'Sunday',
-        checked: false,
-      },
-      {
-        name: 'Monday',
+        name: 'Monday, 2020-01-06',
         checked: false,
       },
     ],

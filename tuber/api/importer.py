@@ -74,10 +74,12 @@ def import_uber_staff():
         if not department:
             print("Could not find department {} for attendee {}.".format(dm['department_id'], dm['attendee_id']))
             continue
-        department_member = BadgeToDepartment(
-            badge = badge.id,
-            department = department.id
-        )
-        db.session.add(department_member)
+        existing = db.session.query(BadgeToDepartment).filter(BadgeToDepartment.badge == badge.id, BadgeToDepartment.department == department.id).one_or_none()
+        if not existing:
+            department_member = BadgeToDepartment(
+                badge = badge.id,
+                department = department.id
+            )
+            db.session.add(department_member)
     db.session.commit()
     return jsonify({"success": True, "num_staff": num_staff})
