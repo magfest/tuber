@@ -58,7 +58,9 @@
     </v-navigation-drawer>
 
     <v-content>
-      <router-view/>
+      <transition name="slide">
+        <router-view/>
+      </transition>
     </v-content>
     <v-snackbar v-model="snackbar_open">
       {{ snackbar_text }}
@@ -92,7 +94,7 @@ export default {
           {
             name: 'Room Request',
             alt: 'Request a hotel room for yourself',
-            path: '/hotel/request',
+            path: '/hotels/request',
             icon: 'settings',
             permissions: [
               'hotelrequest.read',
@@ -101,7 +103,7 @@ export default {
           {
             name: 'Approve Requests',
             alt: 'Approve hotel requests from staffers in your department',
-            path: '/hotel/approve',
+            path: '/hotels/approve',
             icon: 'settings',
             permissions: [
               'hotelrequest.write',
@@ -110,7 +112,7 @@ export default {
           {
             name: 'Assign Rooms',
             alt: 'Assign staffers to hotel rooms',
-            path: '/hotel/assign',
+            path: '/hotels/assign',
             icon: 'settings',
             permissions: [
               'hotelassignment.read',
