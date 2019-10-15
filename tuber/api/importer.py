@@ -30,15 +30,30 @@ def import_uber_staff():
     session.post(request.json['uber_url']+"/accounts/login", data={"email": request.json['email'], "password": request.json['password'], "original_location": "homepage"})
     attendees = get_uber_csv(session, "Attendee")
     num_staff = 0
+
+    role = db.session.query(Role).filter(Role.name == "Default Staff").one_or_none()
+    if not role:
+        role = Role(name="Default Staff", description="Automatically assigned to staff.")
+        db.session.add(role)
+        db.session.flush()
+        for perm in ['staff.search_names', 'hotel_request.create', 'event.read']:
+            permission = Permission(operation=perm, role=role.id)
+            db.session.add(permission)
+
     for attendee in attendees:
         if attendee['hotel_eligible'].lower() == "true":
             num_staff += 1
-            user_id = None
             user = db.session.query(User).filter(User.password == attendee['id']).one_or_none()
-            if user:
-                user_id = user.id
-            current = db.session.query(Badge).filter(Badge.event_id == request.json['event'], Badge.uber_id == attendee['id']).one_or_none()
-            if not current:
+            if not user:
+                user = User(username=attendee['id'], email=attendee['id'], password=attendee['id'], active=False)
+                db.session.add(user)
+                db.session.flush()
+            grant = db.session.query(Grant).filter(Grant.user == user.id, Grant.role == role.id).one_or_none()
+            if not grant:
+                grant = Grant(user=user.id, role=role.id)
+                db.session.add(grant)
+            badge = db.session.query(Badge).filter(Badge.event_id == request.json['event'], Badge.uber_id == attendee['id']).one_or_none()
+            if not badge:
                 badge = Badge(
                     uber_id = attendee['id'],
                     event_id = request.json['event'],
@@ -49,8 +64,8 @@ def import_uber_staff():
                     last_name = attendee['last_name'],
                     legal_name = attendee['legal_name'],
                     legal_name_matches = bool(attendee['legal_name']),
-                    email = attendee['email'],
-                    user_id = user_id
+                    email = user.email,
+                    user_id = user.id
                 )
                 db.session.add(badge)
     departments = get_uber_csv(session, "Department")

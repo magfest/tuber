@@ -109,14 +109,6 @@ export default {
     ],
     sleep_time: '12am-2am',
     departments: [
-      {
-        name: 'TechOps',
-        id: 0,
-      },
-      {
-        name: 'Swadges',
-        id: 1,
-      },
     ],
     room_nights: [
       {
@@ -156,6 +148,8 @@ export default {
   computed: {
     ...mapGetters([
       'logged_in',
+      'event',
+      'user',
     ]),
   },
   mounted() {
@@ -166,7 +160,6 @@ export default {
       }).then((resp) => {
         if (resp.success) {
           self.$store.dispatch('check_logged_in').then(() => {
-            self.$store.dispatch('get_events');
             self.$store.commit('open_snackbar', 'Login Successful');
           });
         } else {
@@ -175,11 +168,34 @@ export default {
       }).catch(() => {
         self.$store.commit('open_snackbar', 'Network error while logging in.');
       });
+    } else {
+      this.update_form();
     }
   },
   methods: {
+    update_form() {
+      console.log('Updating form');
+      const self = this;
+      self.$store.dispatch('get_events').then(() => {
+        if (self.event.id !== undefined) {
+          self.post('/api/hotels/department_membership', { event: self.event.id, user: self.user.id }).then((depts) => {
+            if (depts.success) {
+              self.departments = depts.departments;
+            }
+          });
+        }
+      });
+    },
     submitRequest() {
 
+    },
+  },
+  watch: {
+    logged_in() {
+      this.update_form();
+    },
+    event() {
+      this.update_form();
     },
   },
 };

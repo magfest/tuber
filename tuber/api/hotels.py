@@ -22,8 +22,6 @@ def staffer_auth():
     resp = requests.post(config['uber_api_url'], headers=headers, json=req)
     result = resp.json()['result'][0]
     id = result['id']
-    email = result['email']
-    username = id
     if id != request.json['token']:
         return {"success": False}
     if not result['staffing']:
@@ -33,21 +31,7 @@ def staffer_auth():
         session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()))
         db.session.add(session)
     else:
-        role = db.session.query(Role).filter(Role.name == "Default Staff").one_or_none()
-        if not role:
-            role = Role(name="Default Staff", description="Automatically assigned to staff.")
-            db.session.add(role)
-            db.session.flush()
-            for perm in ['staff.search_names', 'hotel_request.create', 'event.read']:
-                permission = Permission(operation=perm, role=role.id)
-                db.session.add(permission)
-        user = User(username=username, email=email, password=id, active=False)
-        db.session.add(user)
-        db.session.flush()
-        grant = Grant(user=user.id, role = role.id)
-        db.session.add(grant)
-        session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()))
-        db.session.add(session)
+        return jsonify({"success": False})
     db.session.commit()
     response = jsonify({"success": True, "session": session.secret})
     response.set_cookie('session', session.secret)
@@ -100,4 +84,25 @@ def department_names():
                 "name": dept.name,
                 "description": dept.description
             }
+        return jsonify({"success": True, "departments": filtered})
+
+@app.route("/api/hotels/department_membership", methods=["POST"])
+def department_membership():
+    event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
+    if not event:
+        return jsonify({"success": False})
+    if check_permission("staff.search_names", event=request.json['event']):
+        user = db.session.query(User).filter(User.id == request.json['user']).one()
+        print(user.id, event.id)
+        badge = db.session.query(Badge).filter(Badge.user_id == user.id, Badge.event_id == event.id).one_or_none()
+        if not badge:
+            return jsonify({"success": False})
+        membership = db.session.query(BadgeToDepartment).filter(BadgeToDepartment.badge == badge.id).all()
+        filtered = []
+        for dept in membership:
+            department = db.session.query(Department).filter(Department.id == dept.department).one()
+            filtered.append({
+                "name": department.name,
+                "id": department.id
+            })
         return jsonify({"success": True, "departments": filtered})
