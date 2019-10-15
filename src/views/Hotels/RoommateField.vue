@@ -58,11 +58,13 @@ export default {
   mounted() {
     this.roommates = this.value;
     const self = this;
-    this.post('/api/hotels/department_names', { event: this.event.id }).then((res) => {
-      if (res.success) {
-        self.departments = res.departments;
-      }
-    });
+    if (this.event.id) {
+      this.post('/api/hotels/department_names', { event: this.event.id }).then((res) => {
+        if (res.success) {
+          self.departments = res.departments;
+        }
+      });
+    }
   },
   methods: {
     makeSearch: (value, self) => {
@@ -108,6 +110,14 @@ export default {
     roommates(value) {
       this.search = '';
       this.$emit('input', value);
+    },
+    event() {
+      const self = this;
+      this.post('/api/hotels/department_names', { event: this.event.id }).then((res) => {
+        if (res.success) {
+          self.departments = res.departments;
+        }
+      });
     },
   },
 };

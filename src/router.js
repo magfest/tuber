@@ -94,6 +94,8 @@ router.beforeEach((to, from, next) => {
           if (to.name !== 'initialsetup') {
             next({ name: 'initialsetup' });
           }
+        } else if (to.name === 'hotelsrequest') {
+          next();
         } else if (to.name !== 'login') {
           next({ name: 'login' });
         }

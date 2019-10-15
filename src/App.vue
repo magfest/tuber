@@ -131,7 +131,7 @@ export default {
             icon: 'settings',
             path: '/event/settings',
             permissions: [
-              'event.read',
+              'event.write',
             ],
           },
           {

@@ -99,11 +99,11 @@ export default {
       }).then((resp) => {
         if (resp.success) {
           self.$store.dispatch('check_logged_in').then(() => {
-            self.$store.commit('open_snackbar', 'It worked!');
+            self.$store.dispatch('get_events');
+            self.$store.commit('open_snackbar', 'Login Successful');
           });
         } else {
-          // TODO: Push the user back to Uber?
-          // self.$store.commit('open_snackbar', 'Failed to log in. Are your credentials correct?');
+          self.$store.commit('open_snackbar', 'Failed to authenticate. Please contact STOPS for help.');
         }
       }).catch(() => {
         self.$store.commit('open_snackbar', 'Network error while logging in.');

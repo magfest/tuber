@@ -33,9 +33,19 @@ def staffer_auth():
         session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()))
         db.session.add(session)
     else:
+        role = db.session.query(Role).filter(Role.name == "Default Staff").one_or_none()
+        if not role:
+            role = Role(name="Default Staff", description="Automatically assigned to staff.")
+            db.session.add(role)
+            db.session.flush()
+            for perm in ['staff.search_names', 'hotel_request.create', 'event.read']:
+                permission = Permission(operation=perm, role=role.id)
+                db.session.add(permission)
         user = User(username=username, email=email, password=id, active=False)
         db.session.add(user)
         db.session.flush()
+        grant = Grant(user=user.id, role = role.id)
+        db.session.add(grant)
         session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()))
         db.session.add(session)
     db.session.commit()
@@ -46,7 +56,7 @@ def staffer_auth():
 
 @app.route("/api/hotels/request", methods=["POST"])
 def submit_hotels_request():
-    if check_permission("hotels.request.create"):
+    if check_permission("hotel_request.create"):
         #if request.json['name'] and request.json['description']:
         #    event = Event(name=request.json['name'], description=request.json['description'])
         #    db.session.add(event)
