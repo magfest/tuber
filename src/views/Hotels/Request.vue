@@ -108,8 +108,6 @@ export default {
       '6pm-8pm',
     ],
     sleep_time: '12am-2am',
-    departments: [
-    ],
     room_nights: [
       {
         name: 'Monday (Setup)',
@@ -152,51 +150,35 @@ export default {
       'user',
     ]),
   },
-  mounted() {
-    const self = this;
-    if (!this.logged_in) {
-      this.post('/api/hotels/staffer_auth', {
-        token: this.$route.query.id,
-      }).then((resp) => {
-        if (resp.success) {
-          self.$store.dispatch('check_logged_in').then(() => {
-            self.$store.commit('open_snackbar', 'Login Successful');
-          });
-        } else {
-          self.$store.commit('open_snackbar', 'Failed to authenticate. Please contact STOPS for help.');
-        }
-      }).catch(() => {
-        self.$store.commit('open_snackbar', 'Network error while logging in.');
-      });
-    } else {
-      this.update_form();
-    }
-  },
-  methods: {
-    update_form() {
-      console.log('Updating form');
+  asyncComputed: {
+    departments() {
       const self = this;
-      self.$store.dispatch('get_events').then(() => {
-        if (self.event.id !== undefined) {
-          self.post('/api/hotels/department_membership', { event: self.event.id, user: self.user.id }).then((depts) => {
+      return new Promise((resolve) => {
+        if (self.event.id) {
+          self.post('/api/hotels/department_membership', {
+            event: self.event.id,
+            user: self.user.id,
+          }).then((depts) => {
             if (depts.success) {
-              self.departments = depts.departments;
+              resolve(depts.departments);
+            } else {
+              resolve([]);
             }
           });
+        } else {
+          resolve({});
         }
       });
     },
+  },
+  mounted() {
+  },
+  methods: {
     submitRequest() {
 
     },
   },
   watch: {
-    logged_in() {
-      this.update_form();
-    },
-    event() {
-      this.update_form();
-    },
   },
 };
 </script>

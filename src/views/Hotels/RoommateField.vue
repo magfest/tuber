@@ -1,24 +1,24 @@
 <template>
-    <v-autocomplete
-        v-model="roommates"
-        :items="options"
-        :loading="optionsLoading"
-        :search-input.sync="search"
-        item-text="text"
-        item-value="id"
-        :label="label"
-        prepend-icon="person"
-        append-icon=""
-        :placeholder="placeholder"
-        :disabled="disabled"
-        multiple
-        chips
-        hide-selected
-        deletable-chips
-        return-object
-        auto-select-first
-        hide-no-data
-      ></v-autocomplete>
+  <v-autocomplete
+      v-model="roommates"
+      :items="options"
+      :loading="optionsLoading"
+      :search-input.sync="search"
+      item-text="text"
+      item-value="id"
+      :label="label"
+      prepend-icon="person"
+      append-icon=""
+      :placeholder="placeholder"
+      :disabled="disabled"
+      multiple
+      chips
+      hide-selected
+      deletable-chips
+      return-object
+      auto-select-first
+      hide-no-data
+    ></v-autocomplete>
 </template>
 
 <style>
@@ -53,23 +53,31 @@ export default {
     options: [],
     optionsLoading: false,
     search: '',
-    departments: {},
   }),
   computed: {
     ...mapGetters([
       'event',
     ]),
   },
-  mounted() {
-    this.roommates = this.value;
-    const self = this;
-    if (this.event.id) {
-      this.post('/api/hotels/department_names', { event: this.event.id }).then((res) => {
-        if (res.success) {
-          self.departments = res.departments;
+  asyncComputed: {
+    department_names() {
+      const self = this;
+      return new Promise((resolve) => {
+        if (self.event.id) {
+          self.post('/api/hotels/department_names', {
+            event: self.event.id,
+          }).then((res) => {
+            if (res.success) {
+              resolve(res.departments);
+            }
+            resolve({});
+          });
         }
       });
-    }
+    },
+  },
+  mounted() {
+    this.roommates = this.value;
   },
   methods: {
     makeSearch: (value, self) => {
@@ -87,8 +95,8 @@ export default {
         if (resp.success) {
           resp.results.forEach((el) => {
             for (let i = 0; i < el.departments.length; i += 1) {
-              if (Object.prototype.hasOwnProperty.call(self.departments, el.departments[i])) {
-                el.departments[i] = self.departments[el.departments[i]].name;
+              if (Object.prototype.hasOwnProperty.call(self.department_names, el.departments[i])) {
+                el.departments[i] = self.department_names[el.departments[i]].name;
               }
             }
             if (el.departments.length === 0) {
@@ -116,14 +124,6 @@ export default {
       this.search = '';
       this.options = value;
       this.$emit('input', value);
-    },
-    event() {
-      const self = this;
-      this.post('/api/hotels/department_names', { event: this.event.id }).then((res) => {
-        if (res.success) {
-          self.departments = res.departments;
-        }
-      });
     },
   },
 };

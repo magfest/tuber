@@ -83,8 +83,6 @@ export default {
   data: () => ({
     drawer: null,
     selected_event: {},
-    show_hotel: false,
-    show_event_settings: false,
     menu: [
       {
         name: 'Hotels',
@@ -204,26 +202,19 @@ export default {
         });
       },
     },
+    show_hotel() {
+      return this.checkPermission('hotels.read');
+    },
+    show_event_settings() {
+      return this.checkPermission('event.read', this.event.id);
+    },
   },
   mounted() {
     this.$vuetify.theme.dark = false;
   },
   methods: {
-    updateMenus() {
-      this.show_hotel = this.checkPermission('hotels.read');
-      this.show_event_settings = this.checkPermission('event.read', this.event.id);
-    },
   },
   watch: {
-    user() {
-      const self = this;
-      this.$store.dispatch('get_events').then(() => {
-        self.updateMenus();
-      });
-    },
-    event() {
-      this.updateMenus();
-    },
   },
 };
 </script>

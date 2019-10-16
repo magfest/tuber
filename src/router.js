@@ -77,34 +77,69 @@ const router = new Router({
   ],
 });
 
+function json(response) {
+  return response.json();
+}
+
+function post(url, data) {
+  data.csrf_token = window.$cookies.get('csrf_token');
+  const promise = new Promise(((resolve, reject) => {
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    }).then(json).then((data) => {
+      resolve(data);
+    }).catch((error) => {
+      reject(error);
+    });
+  }));
+  return promise;
+}
+
 router.beforeEach((to, from, next) => {
-  store.dispatch('check_logged_in').then(() => {
-    if (store.getters.logged_in) {
-      store.dispatch('get_events').then(() => {
-        if (store.getters.events.length === 0 && to.name !== 'eventcreate') {
-          next({ name: 'eventcreate' });
-        }
-        next();
-      }).catch(() => {
-        next();
-      });
-    } else {
-      store.dispatch('check_initial_setup').then(() => {
-        if (store.getters.initial_setup) {
-          if (to.name !== 'initialsetup') {
-            next({ name: 'initialsetup' });
+  if (to.name === 'hotelsrequest') {
+    post('/api/hotels/staffer_auth', {
+      token: to.query.id,
+    }).then((resp) => {
+      if (resp.success) {
+        store.dispatch('check_logged_in').then(() => {
+          store.dispatch('get_events').then(() => {
+            next();
+          });
+        });
+      }
+    });
+  } else {
+    store.dispatch('check_logged_in').then(() => {
+      if (store.getters.logged_in) {
+        store.dispatch('get_events').then(() => {
+          if (store.getters.events.length === 0 && to.name !== 'eventcreate') {
+            next({ name: 'eventcreate' });
           }
-        } else if (to.name === 'hotelsrequest') {
           next();
-        } else if (to.name !== 'login') {
-          next({ name: 'login' });
-        }
-        next();
-      }).catch(() => {
-        next();
-      });
-    }
-  });
+        }).catch(() => {
+          next();
+        });
+      } else {
+        store.dispatch('check_initial_setup').then(() => {
+          if (store.getters.initial_setup) {
+            if (to.name !== 'initialsetup') {
+              next({ name: 'initialsetup' });
+            }
+          } else if (to.name !== 'login') {
+            next({ name: 'login' });
+          }
+          next();
+        }).catch(() => {
+          next();
+        });
+      }
+    });
+  }
 });
 
 export default router;
