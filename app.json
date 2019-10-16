@@ -10,6 +10,16 @@
       "url": "heroku/nodejs"
     }
   ],
+  "env": {
+    "UBER_API_URL": {
+      "required": false,
+      "description": "JSONRPC Endpoint of the MAGFest Ubersystem you would like to connect to. (ex. https://super2020.reggie.magfest.org/jsonrpc/)"
+    }, 
+    "UBER_API_TOKEN": {
+      "required": false,
+      "description": "API Token of the MAGFest Ubersystem you would like to manage to."
+    }
+  },
   "formation": {
     "web": {
       "quantity": 1
@@ -20,5 +30,8 @@
     "test-setup": "make build",
     "test": "make test"
   },
+  "description": "Open source event management software, based on Flask and Vue.js.",
+  "repository": "https://github.com/magfest/tuber",
+  "keywords": ["vue", "flask", "python", "event management"],
   "stack": "heroku-18"
 }
