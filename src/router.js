@@ -102,17 +102,21 @@ function post(url, data) {
 
 router.beforeEach((to, from, next) => {
   if (to.name === 'hotelsrequest') {
-    post('/api/hotels/staffer_auth', {
-      token: to.query.id,
-    }).then((resp) => {
-      if (resp.success) {
-        store.dispatch('check_logged_in').then(() => {
-          store.dispatch('get_events').then(() => {
-            next();
+    if (Object.prototype.hasOwnProperty.call(to.query, 'id')) {
+      post('/api/hotels/staffer_auth', {
+        token: to.query.id,
+      }).then((resp) => {
+        if (resp.success) {
+          store.dispatch('check_logged_in').then(() => {
+            store.dispatch('get_events').then(() => {
+              next();
+            });
           });
-        });
-      }
-    });
+        }
+      });
+    } else {
+      next({ name: 'login' });
+    }
   } else {
     store.dispatch('check_logged_in').then(() => {
       if (store.getters.logged_in) {
