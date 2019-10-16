@@ -31,7 +31,8 @@ setup(
         'passlib',
         'flask',
         'gunicorn',
-        'psycopg2'
+        'psycopg2',
+        'flask-talisman'
     ],
     setup_requires=[
         'py2app'

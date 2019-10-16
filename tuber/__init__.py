@@ -1,6 +1,7 @@
 from flask import Flask, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_talisman import Talisman, DEFAULT_CSP_POLICY
 import json
 import sys
 import os
@@ -36,6 +37,7 @@ if 'UBER_API_TOKEN' in os.environ:
     config['uber_api_token'] = os.environ['UBER_API_TOKEN']
 
 app = Flask(__name__)
+talisman = Talisman(app, content_security_policy=os.environ.get("CSP_DIRECTIVES", DEFAULT_CSP_POLICY))
 app.static_folder = config['static_folder']
 
 if config['sql_connection'].startswith("sqlite://"):
