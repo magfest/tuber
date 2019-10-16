@@ -10,7 +10,7 @@ setup(
     version='0.0.1',
     description="It's a potato.",
     long_description="""Track shifts, sell badges, and more.""",
-    license="GPLv3",
+    license="MIT",
     author='Mark Murnane',
     author_email='mark@hackafe.net',
     url='https://github.com/magfest/tuber',
