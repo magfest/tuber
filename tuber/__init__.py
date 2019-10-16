@@ -44,6 +44,10 @@ if not config['development']:
             '\'unsafe-inline\' \'self\'',
             'fonts.googleapis.com',
             'use.fontawesome.com',
+        ],
+        'font-src': [
+            'fonts.gstatic.com',
+            'use.fontawesome.com',
         ]
     }
     talisman = Talisman(app, content_security_policy=os.environ.get("CSP_DIRECTIVES", csp))
