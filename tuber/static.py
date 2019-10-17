@@ -7,7 +7,7 @@ import os
 def home():
     if config['flask_env'] != "production":
         return requests.get(f'http://localhost:8081/').content
-    return send_file(os.path.join(config['static_folder'], "index.html"))
+    return send_file(os.path.join(config['static_path'], "index.html"))
 
 @app.route('/<path:path>')
 def files(path):
