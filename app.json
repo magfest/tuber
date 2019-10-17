@@ -1,7 +1,6 @@
 {
   "addons": [
     "heroku-postgresql",
-    "sentry",
     "timber-logging"
   ],
   "buildpacks": [
