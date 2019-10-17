@@ -15,7 +15,7 @@ config = {
     "flask_env": "production",
     "static_path": "../dist",
     "migrations_path": "migrations",
-    "database_url": "sqlite:///database.db",
+    "database_url": "sqlite:////tmp/database.db",
     "session_duration": 7200,
     "uber_api_token": "",
     "uber_api_url": "",
