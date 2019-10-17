@@ -1,6 +1,7 @@
 {
   "addons": [
     "heroku-postgresql",
+    "heroku-redis",
     "timber-logging"
   ],
   "buildpacks": [
