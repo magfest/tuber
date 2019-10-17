@@ -5,6 +5,8 @@ from flask_talisman import Talisman
 import json
 import sys
 import os
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
 
 config = {
     "development": False,
@@ -36,6 +38,12 @@ if 'UBER_API_URL' in os.environ:
 if 'UBER_API_TOKEN' in os.environ:
     config['uber_api_token'] = os.environ['UBER_API_TOKEN']
 
+if 'SENTRY_DSN' in os.environ:
+    sentry_sdk.init(
+        dsn=os.environ['SENTRY_DSN'],
+        integrations=[FlaskIntegration()]
+    )
+
 app = Flask(__name__)
 if not config['development']:
     csp = {
@@ -50,6 +58,7 @@ if not config['development']:
             'use.fontawesome.com',
         ]
     }
+    
     talisman = Talisman(app, content_security_policy=os.environ.get("CSP_DIRECTIVES", csp))
 app.static_folder = config['static_folder']
 

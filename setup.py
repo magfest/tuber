@@ -32,7 +32,8 @@ setup(
         'flask',
         'gunicorn',
         'psycopg2',
-        'flask-talisman'
+        'flask-talisman',
+        'sentry-sdk'
     ],
     setup_requires=[
         'py2app'
