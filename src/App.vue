@@ -5,8 +5,8 @@
       <v-toolbar-title>
         <span class="pr-md-10">Tuber</span>
       </v-toolbar-title>
-      <div class="hidden-md-and-down">
-        <v-menu class="px-md-1" offset-y v-for="navmenu in filtered_menus" :key="navmenu.name">
+      <div v-for="navmenu in filtered_menus" :key="navmenu.name" class="px-md-2 hidden-md-and-down">
+        <v-menu offset-y>
           <template v-slot:activator="{ on }">
             <v-btn v-on="on" :alt="navmenu.alt">
               <v-icon left>{{ navmenu.icon }}</v-icon>{{ navmenu.name }}
@@ -19,10 +19,10 @@
           </v-list>
         </v-menu>
       </div>
-      <div class="px-md-4 hidden-md-and-down">
-      <v-btn alt="Logout" @click="$router.push({name: 'logout'})" v-if="logged_in">
-        Logout
-      </v-btn>
+      <div class="px-md-2 hidden-md-and-down">
+        <v-btn alt="Logout" @click="$router.push({name: 'logout'})" v-if="logged_in">
+          <v-icon left>exit_to_app</v-icon>Logout
+        </v-btn>
       </div>
       <v-spacer></v-spacer>
       <div>
