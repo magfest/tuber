@@ -1,6 +1,6 @@
 {
-    "development": true,
-    "static_folder": "dist",
-    "migrations_folder": "migrations",
-    "sql_connection": "sqlite:////tmp/database.db"
+    "flask_env": "development",
+    "static_path": "dist",
+    "migrations_path": "migrations",
+    "database_url": "sqlite:////tmp/database.db"
 }
