@@ -7,6 +7,8 @@ import sys
 import os
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
 
 config = {
     "development": False,
@@ -41,7 +43,7 @@ if 'UBER_API_TOKEN' in os.environ:
 if 'SENTRY_DSN' in os.environ:
     sentry_sdk.init(
         dsn=os.environ['SENTRY_DSN'],
-        integrations=[FlaskIntegration()]
+        integrations=[FlaskIntegration(), SqlalchemyIntegration()]
     )
 
 app = Flask(__name__)
