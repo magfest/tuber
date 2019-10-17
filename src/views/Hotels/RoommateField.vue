@@ -15,8 +15,8 @@
       chips
       hide-selected
       deletable-chips
-      return-object
       auto-select-first
+      return-object
       hide-no-data
     ></v-autocomplete>
 </template>
@@ -49,7 +49,7 @@ export default {
     },
   },
   data: () => ({
-    roommates: null,
+    roommates: [],
     options: [],
     optionsLoading: false,
     search: '',
@@ -77,7 +77,27 @@ export default {
     },
   },
   mounted() {
-    this.roommates = this.value;
+    const self = this;
+    this.value.forEach((id) => {
+      self.post('/api/hotels/roommate_lookup', {
+        event: self.event.id,
+        badge: id,
+      }).then((res) => {
+        if (res.success) {
+          for (let i = 0; i < res.roommate.departments.length; i += 1) {
+            if (Object.prototype.hasOwnProperty.call(self.department_names, res.roommate.departments[i])) {
+              res.roommate.departments[i] = self.department_names[res.roommate.departments[i]].name;
+            }
+          }
+          if (res.roommate.departments.length === 0) {
+            res.roommate.text = res.roommate.name;
+          } else {
+            res.roommate.text = `${res.roommate.name} (${res.roommate.departments.join(', ')})`;
+          }
+          self.roommates.push(res.roommate);
+        }
+      });
+    });
   },
   methods: {
     makeSearch: (value, self) => {
@@ -123,7 +143,11 @@ export default {
     roommates(value) {
       this.search = '';
       this.options = value;
-      this.$emit('input', value);
+      const ret = [];
+      for (let i = 0; i < value.length; i += 1) {
+        ret.push(value[i].id);
+      }
+      this.$emit('input', ret);
     },
   },
 };

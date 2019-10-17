@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import { get } from '../../mixins/rest';
 
 const state = {
   events: [],
@@ -14,14 +15,10 @@ const getters = {
 // actions
 const actions = {
   get_events({ commit }) {
-    return new Promise((resolve, reject) => {
-      fetch('/api/events/list').then((response) => {
-        response.json().then((data) => {
-          commit('set_events', data.events);
-          resolve();
-        });
-      }).catch(() => {
-        reject();
+    return new Promise((resolve) => {
+      get('/api/events/list').then((response) => {
+        commit('set_events', response.events);
+        resolve();
       });
     });
   },

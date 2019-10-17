@@ -27,6 +27,7 @@ def handle_permission_denied(error):
 @app.before_request
 def get_user():
     g.user = None
+    g.badge = None
     g.perms = []
     if 'session' in request.cookies:
         session = db.session.query(Session).filter(Session.secret == request.cookies.get('session')).one_or_none()
@@ -39,15 +40,26 @@ def get_user():
                 for permission in permissions:
                     g.perms.append({"department": permission.department, "event": permission.event, "operation": permission.operation})
                 db.session.add(session)
+                event = None
+                if request.method == "GET":
+                    if "event" in request.args:
+                        event = request.args['event']
+                if request.method == "POST":
+                    if "event" in request.json:
+                        event = request.json['event']
+                if event:
+                    badge = db.session.query(Badge).filter(Badge.user_id == session.user, Badge.event_id == event).one_or_none()
+                    if badge:
+                        g.badge = badge.id
             else:
                 db.session.delete(session)
             db.session.commit()
 
-def check_permission(operation="", event="", department=""):
+def check_permission(operation="", event=0, department=0):
     for i in g.perms:
-        if event and (not i['event'] is None) and (i['event'] != event):
+        if int(event) and (not (i['event'] is None)) and (i['event'] != int(event)):
             continue
-        if department and (not i['department'] is None) and (i['department'] != department):
+        if int(department) and (not i['department'] is None) and (i['department'] != int(department)):
             continue
         perm_entity, perm_op = i['operation'].split(".")
         req_entity, req_op = operation.split(".")

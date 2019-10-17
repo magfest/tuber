@@ -33,7 +33,7 @@ def import_uber_staff():
 
     role = db.session.query(Role).filter(Role.name == "Default Staff").one_or_none()
     if not role:
-        role = Role(name="Default Staff", description="Automatically assigned to staff.")
+        role = Role(name="Default Staff", description="Automatically assigned to staff.", event=event.id)
         db.session.add(role)
         db.session.flush()
         for perm in ['staff.search_names', 'hotel_request.create', 'event.read']:

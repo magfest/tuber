@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import { get } from '../../mixins/rest';
 
 const state = {
   initial_setup: false,
@@ -19,38 +20,26 @@ const getters = {
 // actions
 const actions = {
   check_initial_setup({ commit }) {
-    return new Promise((resolve, reject) => {
-      fetch('/api/check_initial_setup').then((response) => {
-        response.json().then((data) => {
-          commit('update_initial_setup', data.initial_setup);
-          resolve();
-        });
-      }).catch(() => {
-        reject();
+    return new Promise((resolve) => {
+      get('/api/check_initial_setup').then((response) => {
+        commit('update_initial_setup', response.initial_setup);
+        resolve();
       });
     });
   },
   check_logged_in({ commit }) {
-    return new Promise((resolve, reject) => {
-      fetch('/api/check_login').then((response) => {
-        response.json().then((data) => {
-          if (data.success) {
-            fetch('/api/user/permissions').then((perms) => {
-              perms.json().then((permdata) => {
-                commit('set_perms', permdata.permissions);
-                commit('login', data);
-                resolve();
-              });
-            }).catch(() => {
-              reject();
-            });
-          } else {
-            commit('logout');
+    return new Promise((resolve) => {
+      get('/api/check_login').then((response) => {
+        if (response.success) {
+          get('/api/user/permissions').then((perms) => {
+            commit('set_perms', perms.permissions);
+            commit('login', response);
             resolve();
-          }
-        });
-      }).catch(() => {
-        reject();
+          });
+        } else {
+          commit('logout');
+          resolve();
+        }
       });
     });
   },

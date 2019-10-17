@@ -8,8 +8,8 @@ function post(url, data) {
   if (data === undefined) {
     data = {};
   }
-  data.csrf_token = window.$cookies.get('csrf_token');
   const promise = new Promise(((resolve, reject) => {
+    data.csrf_token = window.$cookies.get('csrf_token');
     fetch(url, {
       method: 'POST',
       headers: {
@@ -17,6 +17,7 @@ function post(url, data) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
+      credentials: 'include',
     }).then(json).then((data) => {
       resolve(data);
     }).catch((error) => {
@@ -26,6 +27,30 @@ function post(url, data) {
   return promise;
 }
 
-Vue.mixin({ methods: { post } });
+function get(url, data) {
+  if (data === undefined) {
+    data = {};
+  }
+  const promise = new Promise(((resolve, reject) => {
+    data.csrf_token = window.$cookies.get('csrf_token');
 
-export default { post };
+    const queryString = `?${Object.keys(data).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`).join('&')}`;
+    const fullUrl = url + queryString;
+    fetch(fullUrl, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+      credentials: 'include',
+    }).then(json).then((data) => {
+      resolve(data);
+    }).catch((error) => {
+      reject(error);
+    });
+  }));
+  return promise;
+}
+
+Vue.mixin({ methods: { post, get } });
+
+export { post, get };

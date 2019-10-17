@@ -1,7 +1,9 @@
 from tuber import app, config
 import argparse
 import tuber
+import json
 import sys
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-v", "--verbose", help="Increase Verbosity", action="store_true")
@@ -16,8 +18,14 @@ parser.add_argument("-c", "--config", help="Path to the tuber config file")
 
 def main():
     args = parser.parse_args()
+    if os.path.isfile(args.config):
+        with open(args.config, "r") as FILE:
+            configfile = json.loads(FILE.read())
+        config.update(configfile)
+
     for i in vars(args).keys():
         if getattr(args, i):
             config[i] = getattr(args, i)
+
     tuber.init_db()
     app.run(host='0.0.0.0', port=8080)

@@ -115,6 +115,7 @@ router.beforeEach((to, from, next) => {
         }
       });
     } else {
+      console.log('Going to login');
       next({ name: 'login' });
     }
   } else {

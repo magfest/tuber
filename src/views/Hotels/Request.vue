@@ -2,10 +2,10 @@
   <div>
     <div>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="700" :raised="true" class="mx-auto" v-if="!confirmation" :loading="loading || (request === null)">
         <v-card-title>Staff Hotel Room Request Form</v-card-title>
         <v-card-text>
-          <v-form>
+          <v-form v-if="request !== null">
             <p>These questions will help us find the best roommates for you. If you already have a group you'd like to room with the best way to be grouped
               together is to each request each other as roommates, and request the same nights. If this is your first time in staff housing or you don't
               know who you would like to room with then this form will help us match you with compatible roommates.</p>
@@ -13,45 +13,48 @@
             <p class="accent--text">Rooms are best-effort, we take your request details into consideration, but cannot guarantee assignments will perfectly match requests.</p><br>
 
             <p class="font-weight-black">Let us know if you don't want to apply for a room:</p>
-            <v-checkbox class="my-n5" v-model="decline" label="I do NOT want a staff room."></v-checkbox><br>
+            <v-checkbox class="my-n5" v-model="request.decline" label="I do NOT want a staff room."></v-checkbox><br>
 
             <p class="font-weight-black">Which nights would you like a room?</p>
             <p>Nights marked "Setup" or "Teardown" will require department head approval. Talk to your department head for details.</p>
-            <v-checkbox class="my-n5" v-for="night in room_nights" v-model="night.checked" :key="night.name" :label="night.name" :disabled="decline">
+            <v-checkbox class="my-n5" v-for="night in request.room_nights" v-model="night.checked" :key="night.name" :label="night.restricted ? night.name + ' (' + night.restriction_type + ')' : night.name" :disabled="request.decline">
             </v-checkbox><br>
 
+            <p class="font-weight-black" v-if="justification_required">Please privide justification for requesting restricted nights:</p>
+            <v-textarea v-model="request.justification" v-if="justification_required" :disabled="request.decline" outlined placeholder="I'm helping with setup in <department>."></v-textarea>
+
             <p class="font-weight-black">Who would you like to room with?</p>
-            <roommate-field label="Requested Roommates" v-model="requested_roommates" :disabled="decline"></roommate-field><br>
+            <roommate-field label="Requested Roommates" v-model="request.requested_roommates" :disabled="request.decline"></roommate-field><br>
 
             <p class="font-weight-black">Who would you <b>not</b> like to room with?</p>
-            <roommate-field label="Anti-requested Roommates" v-model="antirequested_roommates" :disabled="decline"></roommate-field><br>
+            <roommate-field label="Anti-requested Roommates" v-model="request.antirequested_roommates" :disabled="request.decline"></roommate-field><br>
 
             <p class="font-weight-black">Is there anything else we should know?</p>
-            <v-textarea v-model="notes" :disabled="decline" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></v-textarea>
+            <v-textarea v-model="request.notes" :disabled="request.decline" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></v-textarea>
 
             <v-divider></v-divider><br>
             <p class="accent--text">The following questions are optional, but will help us match you with roommates.
               Note that the above roommate requests and anti-requests will take precedence over the below preferences.</p><br>
 
             <p class="font-weight-black">Would you prefer to room with other people in your department?</p>
-            <v-checkbox class="my-n5" :disabled="decline" v-model="prefer_department" label="Yes, I would prefer to room with my department."></v-checkbox>
-            <p v-if="prefer_department && departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
-            <v-select :disabled="decline" :items="departments" v-if="prefer_department && departments.length > 1" item-text="name" item-value="id" v-model="preferred_department"></v-select>
-            <p v-if="prefer_department && departments.length == 1">We will try to put you with the {{ departments[0].name }} department.</p><br>
+            <v-checkbox class="my-n5" :disabled="request.decline" v-model="request.prefer_department" label="Yes, I would prefer to room with my department."></v-checkbox>
+            <p v-if="request.prefer_department && departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
+            <v-select :disabled="request.decline" :items="departments" v-if="request.prefer_department && departments.length > 1" item-text="name" item-value="id" v-model="request.preferred_department"></v-select>
+            <p v-if="request.prefer_department && departments.length == 1">We will try to put you with the {{ departments[0].name }} department.</p><br>
 
             <p class="font-weight-black">Would you prefer single gender rooming?</p>
-            <v-checkbox class="my-n5" :disabled="decline" v-model="single_gender" label="Yes, I would prefer a single-gender room."></v-checkbox>
-            <p v-if="single_gender">What gender would you like to room with?</p>
-            <v-text-field :disabled="decline" v-if="single_gender" v-model="gender" hint="We will do our best to group entries logically. I.E. males will be grouped with guys." label="Gender"></v-text-field><br>
+            <v-checkbox class="my-n5" :disabled="request.decline" v-model="request.single_gender" label="Yes, I would prefer a single-gender room."></v-checkbox>
+            <p v-if="request.single_gender">What gender would you like to room with?</p>
+            <v-text-field :disabled="request.decline" v-if="request.single_gender" v-model="request.gender" hint="We will do our best to group entries logically. I.e., males will be grouped with guys." label="Gender"></v-text-field><br>
 
             <p class="font-weight-black">What is your preferred noise level?</p>
-            <v-select :disabled="decline" v-model="noise_level" :items="noise_levels"></v-select><br>
+            <v-select :disabled="request.decline" v-model="request.noise_level" :items="noise_levels"></v-select><br>
 
             <p class="font-weight-black">Would you prefer non-smoking roommates?</p>
-            <v-checkbox class="my-n5" :disabled="decline" v-model="smoke_sensitive" label="Yes, I would prefer non-smoking roommates."></v-checkbox><br>
+            <v-checkbox class="my-n5" :disabled="request.decline" v-model="request.smoke_sensitive" label="Yes, I would prefer non-smoking roommates."></v-checkbox><br>
 
             <p class="font-weight-black">When do you plan to go to sleep?</p>
-            <v-select :disabled="decline" v-model="sleep_time" :items="sleep_times"></v-select><br>
+            <v-select :disabled="request.decline" v-model="request.sleep_time" :items="sleep_times"></v-select><br>
 
             <v-card-actions>
               <v-spacer></v-spacer>
@@ -59,6 +62,15 @@
             </v-card-actions>
           </v-form>
         </v-card-text>
+      </v-card>
+      <v-card max-width="700" :raised="true" class="mx-auto" v-else :loading="loading || (request === null)">
+        <v-card-title>Room Request Confirmation</v-card-title>
+        <v-card-text>
+          <p>Your room request has been received successfully. You may return to this page at any time until the request deadline to make changes.</p>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn outlined @click="confirmation = false">Go Back</v-btn>
+        </v-card-actions>
       </v-card>
     </div>
   </div>
@@ -77,22 +89,13 @@ export default {
     RoommateField,
   },
   data: () => ({
-    decline: false,
     loading: false,
-    requested_roommates: [],
-    antirequested_roommates: [],
-    prefer_department: false,
-    preferred_department: null,
-    notes: '',
-    single_gender: false,
-    gender: '',
+    confirmation: false,
     noise_levels: [
       'Quiet - I am quiet, and prefer quiet.',
       "Moderate - I don't make a lot of noise.",
       "Loud - I'm ok if someone snores or I snore.",
     ],
-    noise_level: "Moderate - I don't make a lot of noise.",
-    smoke_sensitive: false,
     sleep_times: [
       '8pm-10pm',
       '10pm-12am',
@@ -107,41 +110,6 @@ export default {
       '4pm-6pm',
       '6pm-8pm',
     ],
-    sleep_time: '12am-2am',
-    room_nights: [
-      {
-        name: 'Monday (Setup)',
-        checked: false,
-      },
-      {
-        name: 'Tuesday (Setup)',
-        checked: false,
-      },
-      {
-        name: 'Wednesday (Setup)',
-        checked: false,
-      },
-      {
-        name: 'Thursday',
-        checked: true,
-      },
-      {
-        name: 'Friday',
-        checked: true,
-      },
-      {
-        name: 'Saturday',
-        checked: true,
-      },
-      {
-        name: 'Sunday (Teardown)',
-        checked: false,
-      },
-      {
-        name: 'Monday (Teardown)',
-        checked: false,
-      },
-    ],
   }),
   computed: {
     ...mapGetters([
@@ -149,6 +117,14 @@ export default {
       'event',
       'user',
     ]),
+    justification_required() {
+      for (let i = 0; i < this.request.room_nights.length; i += 1) {
+        if (this.request.room_nights[i].restricted && this.request.room_nights[i].checked) {
+          return true;
+        }
+      }
+      return false;
+    },
   },
   asyncComputed: {
     departments() {
@@ -166,6 +142,25 @@ export default {
             }
           });
         } else {
+          resolve([]);
+        }
+      });
+    },
+    request() {
+      const self = this;
+      return new Promise((resolve, reject) => {
+        if (self.event.id && self.user.id) {
+          self.get('/api/hotels/request', {
+            event: self.event.id,
+            user: self.user.id,
+          }).then((res) => {
+            if (res.success) {
+              resolve(res.request);
+            } else {
+              reject(Error('Failed to retrieve request'));
+            }
+          });
+        } else {
           resolve({});
         }
       });
@@ -175,7 +170,20 @@ export default {
   },
   methods: {
     submitRequest() {
-
+      const self = this;
+      self.loading = true;
+      self.post('/api/hotels/request', {
+        request: self.request,
+        event: self.event.id,
+      }).then((res) => {
+        if (res.success) {
+          self.loading = false;
+          self.confirmation = true;
+        } else {
+          self.loading = false;
+          self.$store.commit('open_snackbar', 'Failed to submit hotel request.');
+        }
+      });
     },
   },
   watch: {
