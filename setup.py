@@ -33,7 +33,7 @@ setup(
         'gunicorn',
         'psycopg2',
         'flask-talisman',
-        'sentry-sdk'
+        'sentry-sdk[flask]'
     ],
     setup_requires=[
         'py2app'
