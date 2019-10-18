@@ -20,7 +20,7 @@
             <v-checkbox class="my-n5" v-for="night in request.room_nights" v-model="night.checked" :key="night.name" :label="night.restricted ? night.name + ' (' + night.restriction_type + ')' : night.name" :disabled="request.decline">
             </v-checkbox><br>
 
-            <p class="font-weight-black" v-if="justification_required">Please privide justification for requesting restricted nights:</p>
+            <p class="font-weight-black" v-if="justification_required">Please provide justification for requesting restricted nights:</p>
             <v-textarea v-model="request.justification" v-if="justification_required" :disabled="request.decline" outlined placeholder="I'm helping with setup in <department>."></v-textarea>
 
             <p class="font-weight-black">Who would you like to room with?</p>
