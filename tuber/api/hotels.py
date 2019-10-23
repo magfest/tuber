@@ -276,11 +276,12 @@ def hotel_approve():
             if not room_night:
                 return jsonify(success=False, reason="Could not find corresponding request.")
             approval = db.session.query(RoomNightApproval).filter(RoomNightApproval.room_night == room_night.id, RoomNightApproval.department == request.json['department']).one_or_none()
-            if not approval:
-                approval = RoomNightApproval()
             if request.json['approved'] is None:
-                db.session.delete(approval)
+                if approval:
+                    db.session.delete(approval)
             else:
+                if not approval:
+                    approval = RoomNightApproval()
                 approval.approved = request.json['approved']
                 approval.department = request.json['department']
                 approval.room_night = room_night.id
