@@ -49,6 +49,10 @@ def submit_hotels_request():
             return jsonify(success=False, reason="Badge does not exist.")
         if not check_permission('hotel_request.create', event=badge.event_id):
             return jsonify(success=False, reason="Permission denied.")
+        if badge.user_id != g.user:
+            if not check_permission('hotel_assignment.read'):
+                return jsonify(success=False, reason="Permission denied.")
+
         hotel_request = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
         if hotel_request:
             current_request = {
@@ -116,6 +120,9 @@ def submit_hotels_request():
             return jsonify(success=False, reason="Badge does not exist.")
         if not check_permission('hotel_request.create', event=badge.event_id):
             return jsonify(success=False, reason="Permission denied.")
+        if badge.user_id != g.user:
+            if not check_permission('hotel_assignment.read'):
+                return jsonify(success=False, reason="Permission denied.")
         req = request.json['request']
         hotel_request = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
         if not hotel_request:

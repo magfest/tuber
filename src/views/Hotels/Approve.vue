@@ -14,6 +14,16 @@
                 </div>
               </div>
             </template>
+            <template v-slot:item.name="{ item }">
+              <div v-if="checkPermission('hotel_assignment.read')">
+                <router-link :to="{name: 'hotelsrequestview', params: {badge: item.id}}">
+                  {{ item.name }}
+                </router-link>
+              </div>
+              <div v-else>
+                {{ item.name }}
+              </div>
+            </template>
           </v-data-table>
         </v-card-text>
       </v-card>
