@@ -9,9 +9,11 @@
     "test": "vue-cli-service test:unit"
   },
   "dependencies": {
+    "apexcharts": "^3.10.0",
     "core-js": "^2.6.10",
     "debounce": "^1.2.0",
     "vue": "^2.6.10",
+    "vue-apexcharts": "^1.5.0",
     "vue-async-computed": "^3.7.0",
     "vue-cookies": "^1.5.13",
     "vue-router": "^3.0.3",

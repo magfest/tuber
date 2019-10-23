@@ -71,14 +71,20 @@ def get_permissions():
 
 @app.route("/api/user/badge", methods=["POST"])
 def get_badge():
-    event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
-    if not event:
-        return jsonify({"success": False})
-    user = db.session.query(User).filter(User.id == request.json['user']).one_or_none()
-    if not user:
-        return jsonify({"success": False})
-    if check_permission("staff.search_names", event=request.json['event']):
-        badge = db.session.query(Badge).filter(Badge.user_id == user.id, Badge.event_id == event.id).one_or_none()
+    if 'badge' in request.json:
+        badge = db.session.query(Badge).filter(Badge.id == request.json['badge']).one_or_none()
         if badge:
-            return jsonify({"success": True, "badge": {"id": badge.id, "first_name": badge.first_name, "last_name": badge.last_name, "email": badge.email}})
+            if check_permission("staff.search_names", event=badge.event_id):
+                return jsonify(success=True, badge={"id": badge.id, "first_name": badge.first_name, "last_name": badge.last_name, "email": badge.email})
+    if 'event' in request.json and 'user' in request.json:
+        event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
+        if not event:
+            return jsonify({"success": False})
+        user = db.session.query(User).filter(User.id == request.json['user']).one_or_none()
+        if not user:
+            return jsonify({"success": False})
+        if check_permission("staff.search_names", event=request.json['event']):
+            badge = db.session.query(Badge).filter(Badge.user_id == user.id, Badge.event_id == event.id).one_or_none()
+            if badge:
+                return jsonify({"success": True, "badge": {"id": badge.id, "first_name": badge.first_name, "last_name": badge.last_name, "email": badge.email}})
     return jsonify({"success": False})

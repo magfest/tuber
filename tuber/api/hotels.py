@@ -2,6 +2,7 @@ from tuber import app, config, db
 from flask import send_from_directory, send_file, request, jsonify
 from tuber.models import *
 from tuber.permissions import *
+from sqlalchemy import and_
 import requests
 import datetime
 import uuid
@@ -20,6 +21,8 @@ def staffer_auth():
         ]
     }
     resp = requests.post(config['uber_api_url'], headers=headers, json=req)
+    if len(resp.json()['result']) == 0:
+        return jsonify({"success": False})
     result = resp.json()['result'][0]
     id = result['id']
     if id != request.json['token']:
@@ -41,9 +44,16 @@ def staffer_auth():
 @app.route("/api/hotels/request", methods=["GET", "POST"])
 def submit_hotels_request():
     if request.method == "GET":
-        if not check_permission('hotel_request.create', event=request.args['event']):
-            return jsonify(success=False)
-        hotel_request = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == g.badge).one_or_none()
+        badge = db.session.query(Badge).filter(Badge.id == request.args['badge']).one_or_none()
+        if not badge:
+            return jsonify(success=False, reason="Badge does not exist.")
+        if not check_permission('hotel_request.create', event=badge.event_id):
+            return jsonify(success=False, reason="Permission denied.")
+        if badge.user_id != g.user:
+            if not check_permission('hotel_assignment.read'):
+                return jsonify(success=False, reason="Permission denied.")
+
+        hotel_request = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
         if hotel_request:
             current_request = {
                 "decline": hotel_request.declined,
@@ -57,11 +67,11 @@ def submit_hotels_request():
                 "sleep_time": hotel_request.sleep_time,
                 "justification": hotel_request.room_night_justification
             }
-            requested_roommates = db.session.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == g.badge).all()
-            antirequested_roommates = db.session.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == g.badge).all()
+            requested_roommates = db.session.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == badge.id).all()
+            antirequested_roommates = db.session.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == badge.id).all()
             current_request['requested_roommates'] = [x.requested for x in requested_roommates]
             current_request['antirequested_roommates'] = [x.requested for x in antirequested_roommates]
-            room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == request.args['event']).all()
+            room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == badge.event_id).all()
             current_request['room_nights'] = []
             for room_night in room_nights:
                 rn = {
@@ -71,7 +81,7 @@ def submit_hotels_request():
                     "restricted": room_night.restricted,
                     "restriction_type": room_night.restriction_type
                 }
-                room_night_request = db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.badge == g.badge, BadgeToRoomNight.room_night == room_night.id).one_or_none()
+                room_night_request = db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.badge == badge.id, BadgeToRoomNight.room_night == room_night.id).one_or_none()
                 if room_night_request:
                     rn['checked'] = room_night_request.requested
                 current_request['room_nights'].append(rn)
@@ -91,7 +101,7 @@ def submit_hotels_request():
                 "sleep_time": '12am-2am',
                 "justification": ''
             }
-            room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == request.args['event']).all()
+            room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == badge.event_id).all()
             current_request['room_nights'] = []
             for room_night in room_nights:
                 rn = {
@@ -105,12 +115,18 @@ def submit_hotels_request():
             return jsonify(success=True, request=current_request)
 
     if request.method == "POST":
-        if not check_permission('hotel_request.create', event=request.json['event']):
-            return jsonify(success=False)
+        badge = db.session.query(Badge).filter(Badge.id == request.json['badge']).one_or_none()
+        if not badge:
+            return jsonify(success=False, reason="Badge does not exist.")
+        if not check_permission('hotel_request.create', event=badge.event_id):
+            return jsonify(success=False, reason="Permission denied.")
+        if badge.user_id != g.user:
+            if not check_permission('hotel_assignment.read'):
+                return jsonify(success=False, reason="Permission denied.")
         req = request.json['request']
-        hotel_request = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == g.badge).one_or_none()
+        hotel_request = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
         if not hotel_request:
-            hotel_request = HotelRoomRequest(badge=g.badge)
+            hotel_request = HotelRoomRequest(badge=badge.id)
             db.session.add(hotel_request)
             db.session.flush()
         hotel_request.declined = req['decline']
@@ -124,15 +140,17 @@ def submit_hotels_request():
         hotel_request.sleep_time = req['sleep_time']
         hotel_request.room_night_justification = req['justification']
         db.session.add(hotel_request)
-        db.session.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == g.badge).delete()
-        db.session.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == g.badge).delete()
+        db.session.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == badge.id).delete()
+        db.session.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == badge.id).delete()
         for roommate in req['requested_roommates']:
-            db.session.add(HotelRoommateRequest(requester=g.badge, requested=roommate))
+            db.session.add(HotelRoommateRequest(requester=badge.id, requested=roommate))
         for roommate in req['antirequested_roommates']:
-            db.session.add(HotelAntiRoommateRequest(requester=g.badge, requested=roommate))
-        db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.badge == g.badge).delete()
+            db.session.add(HotelAntiRoommateRequest(requester=badge.id, requested=roommate))
+        db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.badge == badge.id).delete()
         for room_night in req['room_nights']:
-            db.session.add(BadgeToRoomNight(badge=g.badge, requested=room_night['checked'], room_night=room_night['id']))
+            db.session.add(BadgeToRoomNight(badge=badge.id, requested=room_night['checked'], room_night=room_night['id']))
+        if [x for x in req['antirequested_roommates'] if x in req['requested_roommates']]:
+            return jsonify({"success": False, "reason": "You cannot request and antirequest a roommate."})
         db.session.commit()
         return jsonify({"success": True})
 
@@ -205,3 +223,126 @@ def department_membership():
                 "id": department.id
             })
         return jsonify({"success": True, "departments": filtered})
+
+@app.route("/api/hotels/statistics", methods=["GET"])
+def hotel_statistics():
+    if check_permission("hotel_statistics.read", event=request.args['event']):
+        num_badges = db.session.query(Badge).filter(Badge.event_id == request.args['event']).count()
+        num_requests = db.session.query(Badge, HotelRoomRequest).filter(Badge.id == HotelRoomRequest.badge, Badge.event_id == request.args['event']).count()
+        return jsonify(success=True, num_badges=num_badges, num_requests=num_requests)
+    return jsonify(success=False)
+
+@app.route("/api/hotels/requests", methods=["GET", "POST"])
+def hotel_requests():
+    if request.method == "GET":
+        if check_permission("hotel_request.approve", event=request.args['event']):
+            requests = db.session.query(Department, Badge, HotelRoomRequest).join(BadgeToDepartment, BadgeToDepartment.department == Department.id).join(HotelRoomRequest, HotelRoomRequest.badge == BadgeToDepartment.badge).join(Badge, Badge.id == BadgeToDepartment.badge).all()
+            departments = {}
+            for req in requests:
+                dept, badge, roomrequest = req
+                if not check_permission("hotel_request.approve", event=request.args['event'], department=dept.id):
+                    continue
+                if not dept.id in departments:
+                    departments[dept.id] = {
+                        "id": dept.id,
+                        "name": dept.name,
+                        "requests": []
+                    }
+                room_nights = db.session.query(BadgeToRoomNight, RoomNightApproval).join(RoomNightApproval, and_(RoomNightApproval.room_night == BadgeToRoomNight.id, RoomNightApproval.department == dept.id), isouter=True).filter(BadgeToRoomNight.badge == badge.id).all()
+                departments[dept.id]['requests'].append({
+                    "id": badge.id,
+                    "name": badge.first_name + " " + badge.last_name,
+                    "justification": roomrequest.room_night_justification,
+                    "room_nights": {
+                        btr.room_night: {
+                        "id": btr.id,
+                        "requested": btr.requested,
+                        "room_night": btr.room_night,
+                        "approved": rna.approved if rna else None
+                    } for btr, rna in room_nights}
+                })
+            res = []
+            for i in departments:
+                res.append(departments[i])
+            return jsonify(success=True, departments=res)
+        return jsonify(success=False, reason="Permission Denied.")
+    return jsonify(success=False)
+            
+@app.route("/api/hotels/approve", methods=["POST"])
+def hotel_approve():
+    if request.method == "POST":
+        if check_permission("hotel_request.approve", event=request.json['event'], department=request.json['department']):
+            room_night = db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.id == request.json['room_night_request']).one_or_none()
+            if not room_night:
+                return jsonify(success=False, reason="Could not find corresponding request.")
+            approval = db.session.query(RoomNightApproval).filter(RoomNightApproval.room_night == room_night.id, RoomNightApproval.department == request.json['department']).one_or_none()
+            if not approval:
+                approval = RoomNightApproval()
+            if request.json['approved'] is None:
+                db.session.delete(approval)
+            else:
+                approval.approved = request.json['approved']
+                approval.department = request.json['department']
+                approval.room_night = room_night.id
+                db.session.add(approval)
+            db.session.commit()
+            return jsonify(success=True)
+    return jsonify(success=False, reason="Permission denied.")
+
+@app.route("/api/hotels/room_nights", methods=["GET"])
+def hotel_room_nights():
+    if request.method == "GET":
+        if check_permission("hotel_request.approve", event=request.args['event']):
+            room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == request.args['event']).all()
+            res = []
+            for rn in room_nights:
+                res.append({
+                    "id": rn.id,
+                    "name": rn.name,
+                    "restricted": rn.restricted,
+                    "restriction_type": rn.restriction_type
+                })
+            return jsonify(success=True, room_nights=res)
+    return jsonify(success=False)
+        
+@app.route("/api/hotels/settings", methods=["GET", "POST"])
+def hotel_settings():
+    if request.method == "GET":
+        if check_permission("hotel_settings.*", event=request.args['event']):
+            room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == request.args['event']).all()
+            res = []
+            for rn in room_nights:
+                res.append({
+                    "id": rn.id,
+                    "name": rn.name,
+                    "restricted": rn.restricted,
+                    "restriction_type": rn.restriction_type
+                })
+            return jsonify(success=True, room_nights=res)
+    if request.method == "POST":
+        if check_permission("hotel_settings.write", event=request.json['event']):
+            room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == request.json['event']).all()
+            for i in room_nights:
+                if [x for x in request.json['room_nights'] if 'id' in x and x['id'] == i.id]:
+                    continue
+                for j in db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.room_night == i.id).all():
+                    db.session.delete(i)
+                db.session.delete(i)
+                        
+            for i in request.json['room_nights']:
+                room_night = None
+                if 'id' in i:
+                    room_night = db.session.query(HotelRoomNight).filter(HotelRoomNight.id == i['id']).one_or_none()
+                if not room_night:
+                    room_night = HotelRoomNight()
+                room_night.name = i['name']
+                room_night.event = request.json['event']
+                room_night.restricted = i['restricted']
+                if room_night.restricted:
+                    room_night.restriction_type = i['restriction_type']
+                else:
+                    room_night.restriction_type = ""
+                db.session.add(room_night)
+            db.session.commit()
+            return jsonify(success=True)
+    return jsonify(success=False)

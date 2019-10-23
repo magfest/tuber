@@ -21,6 +21,7 @@ def get_uber_csv(session, model):
 
 @app.route("/api/importer/uber_staff", methods=["POST"])
 def import_uber_staff():
+    print("Importing staff...")
     event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
     if not event:
         return jsonify({"success": False})
@@ -30,6 +31,7 @@ def import_uber_staff():
     session.post(request.json['uber_url']+"/accounts/login", data={"email": request.json['email'], "password": request.json['password'], "original_location": "homepage"})
     attendees = get_uber_csv(session, "Attendee")
     num_staff = 0
+    print("Retrieved export")
 
     role = db.session.query(Role).filter(Role.name == "Default Staff").one_or_none()
     if not role:
@@ -40,6 +42,16 @@ def import_uber_staff():
             permission = Permission(operation=perm, role=role.id)
             db.session.add(permission)
 
+    dh_role = db.session.query(Role).filter(Role.name == "Department Head").one_or_none()
+    if not dh_role:
+        dh_role = Role(name="Department Head", description="Automatically assigned to department heads.", event=event.id)
+        db.session.add(dh_role)
+        db.session.flush()
+        for perm in ['department.write', 'hotel_request.approve']:
+            permission = Permission(operation=perm, role=dh_role.id)
+            db.session.add(permission)
+
+    print("Adding attendees...")
     for attendee in attendees:
         if attendee['hotel_eligible'].lower() == "true":
             num_staff += 1
@@ -68,6 +80,8 @@ def import_uber_staff():
                     user_id = user.id
                 )
                 db.session.add(badge)
+
+    print("Adding departments...")
     departments = get_uber_csv(session, "Department")
     for department in departments:
         current = db.session.query(Department).filter(Department.event_id == request.json['event'], Department.uber_id == department['id']).one_or_none()
@@ -79,6 +93,7 @@ def import_uber_staff():
                 event_id = request.json['event']
             )
             db.session.add(dept)
+    print("Adding staffers to departments...")
     deptmembers = get_uber_csv(session, "DeptMembership")
     for dm in deptmembers:
         badge = db.session.query(Badge).filter(Badge.event_id == request.json['event'], Badge.uber_id == dm['attendee_id']).one_or_none()
@@ -96,5 +111,12 @@ def import_uber_staff():
                 department = department.id
             )
             db.session.add(department_member)
+        if dm['is_dept_head'].lower() == "true":
+            grant = db.session.query(Grant).filter(Grant.user == badge.user_id, Grant.role == dh_role.id, Grant.department==department.id).one_or_none()
+            if not grant:
+                grant = Grant(user=badge.user_id, role=dh_role.id, department=department.id)
+                db.session.add(grant)
+    print("Committing changes...")
     db.session.commit()
+    print("Done.")
     return jsonify({"success": True, "num_staff": num_staff})

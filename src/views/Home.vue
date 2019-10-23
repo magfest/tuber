@@ -1,8 +1,17 @@
 <template>
   <div>
-    <div>
-      <p>Welcome {{ user.username }}! This is the event management system for {{ event.name }}.</p>
-    </div>
+    <v-container>
+      <v-row>
+        <v-col>
+          <v-card max-width="350" :raised="true" class="mx-auto">
+            <v-card-title>Hotel Request Completion</v-card-title>
+            <v-card-text>
+              <apexchart type="donut" width="320" :series="series || []" :options="{legend: {show: false}, labels: ['completed', 'pending']}"></apexchart>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
   </div>
 </template>
 
@@ -23,6 +32,16 @@ export default {
       'event',
       'user',
     ]),
+  },
+  asyncComputed: {
+    series() {
+      const self = this;
+      return new Promise((resolve) => {
+        self.get('/api/hotels/statistics', { event: self.event.id }).then((resp) => {
+          resolve([resp.num_requests, resp.num_badges - resp.num_requests]);
+        });
+      });
+    },
   },
 };
 </script>
