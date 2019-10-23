@@ -11,6 +11,7 @@
       <v-card max-width="700" :raised="true" class="mx-auto" v-else-if="!confirmation" :loading="loading || (request === null)">
         <v-card-title>Staff Hotel Room Request Form</v-card-title>
         <v-card-text>
+          <p><b>You are filling out this form as {{ badge.first_name }} {{ badge.last_name }}.</b></p>
           <v-form v-if="request !== null">
             <p>These questions will help us find the best roommates for you. If you already have a group you'd like to room with the best way to be grouped
               together is to each request each other as roommates, and request the same nights. If this is your first time in staff housing or you don't
@@ -124,6 +125,9 @@ export default {
       'user',
     ]),
     justification_required() {
+      if (!this.request.room_nights) {
+        return false;
+      }
       for (let i = 0; i < this.request.room_nights.length; i += 1) {
         if (this.request.room_nights[i].restricted && this.request.room_nights[i].checked) {
           return true;
@@ -155,10 +159,9 @@ export default {
     request() {
       const self = this;
       return new Promise((resolve, reject) => {
-        if (self.event.id && self.user.id) {
+        if (self.badge) {
           self.get('/api/hotels/request', {
-            event: self.event.id,
-            user: self.user.id,
+            badge: self.badge.id,
           }).then((res) => {
             if (res.success) {
               resolve(res.request);
@@ -174,7 +177,15 @@ export default {
     badge() {
       const self = this;
       return new Promise((resolve) => {
-        if (self.event.id && self.user.id) {
+        if (self.$route.params.badge) {
+          self.post('/api/user/badge', { badge: self.$route.params.badge }).then((res) => {
+            if (res.success) {
+              resolve(res.badge);
+            } else {
+              resolve(null);
+            }
+          });
+        } else if (self.event.id && self.user.id) {
           self.post('/api/user/badge', { event: self.event.id, user: self.user.id }).then((res) => {
             if (res.success) {
               resolve(res.badge);
@@ -193,8 +204,8 @@ export default {
       const self = this;
       self.loading = true;
       self.post('/api/hotels/request', {
+        badge: self.badge.id,
         request: self.request,
-        event: self.event.id,
       }).then((res) => {
         if (res.success) {
           self.loading = false;

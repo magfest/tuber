@@ -116,6 +116,15 @@ export default {
               'hotel_assignment.read',
             ],
           },
+          {
+            name: 'Settings',
+            alt: 'Configure the hotel system',
+            path: '/hotels/settings',
+            icon: 'settings',
+            permissions: [
+              'hotel.settings',
+            ],
+          },
         ],
       },
       {

@@ -13,6 +13,7 @@ import InitialSetup from './views/InitialSetup.vue';
 import ImportStaff from './views/Importer/Staff.vue';
 import RequestApprove from './views/Hotels/Approve.vue';
 import HotelAssign from './views/Hotels/Assign.vue';
+import HotelSettings from './views/Hotels/Settings.vue';
 import EventSettings from './views/Events/Settings.vue';
 import store from './store/store';
 
@@ -68,9 +69,19 @@ const router = new Router({
       component: HotelRequest,
     },
     {
+      path: '/hotels/request/:badge',
+      name: 'hotelsrequestview',
+      component: HotelRequest,
+    },
+    {
       path: '/hotels/approve',
       name: 'hotelsapprove',
       component: RequestApprove,
+    },
+    {
+      path: '/hotels/settings',
+      name: 'hotelssettings',
+      component: HotelSettings,
     },
     {
       path: '/hotels/assign',
