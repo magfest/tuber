@@ -12,7 +12,7 @@ from sentry_sdk.integrations.redis import RedisIntegration
 
 config = {
     "verbose": False,
-    "flask_env": "production",
+    "flask_env": "development",
     "static_path": "../dist",
     "migrations_path": "migrations",
     "database_url": "sqlite:////tmp/database.db",

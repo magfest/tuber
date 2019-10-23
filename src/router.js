@@ -11,6 +11,9 @@ import HotelRequest from './views/Hotels/Request.vue';
 import EventCreate from './views/Events/Create.vue';
 import InitialSetup from './views/InitialSetup.vue';
 import ImportStaff from './views/Importer/Staff.vue';
+import RequestApprove from './views/Hotels/Approve.vue';
+import HotelAssign from './views/Hotels/Assign.vue';
+import EventSettings from './views/Events/Settings.vue';
 import store from './store/store';
 
 Vue.use(Router);
@@ -65,9 +68,24 @@ const router = new Router({
       component: HotelRequest,
     },
     {
-      path: '/events/create',
+      path: '/hotels/approve',
+      name: 'hotelsapprove',
+      component: RequestApprove,
+    },
+    {
+      path: '/hotels/assign',
+      name: 'hotelsassign',
+      component: HotelAssign,
+    },
+    {
+      path: '/event/create',
       name: 'eventcreate',
       component: EventCreate,
+    },
+    {
+      path: '/event/settings',
+      name: 'eventsettings',
+      component: EventSettings,
     },
     {
       path: '/import/staff',
@@ -115,8 +133,7 @@ router.beforeEach((to, from, next) => {
         }
       });
     } else {
-      console.log('Going to login');
-      next({ name: 'login' });
+      next();
     }
   } else {
     store.dispatch('check_logged_in').then(() => {

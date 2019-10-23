@@ -2,7 +2,13 @@
   <div>
     <div>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" v-if="!confirmation" :loading="loading || (request === null)">
+      <v-card max-width="700" :raised="true" class="mx-auto" v-if="badge === null">
+        <v-card-title>Staff Hotel Room Request Form</v-card-title>
+        <v-card-text>
+          <p>Your current user does not have a badge. You must have a badge assigned to request a staff hotel room.</p>
+        </v-card-text>
+      </v-card>
+      <v-card max-width="700" :raised="true" class="mx-auto" v-else-if="!confirmation" :loading="loading || (request === null)">
         <v-card-title>Staff Hotel Room Request Form</v-card-title>
         <v-card-text>
           <v-form v-if="request !== null">
@@ -162,6 +168,20 @@ export default {
           });
         } else {
           resolve({});
+        }
+      });
+    },
+    badge() {
+      const self = this;
+      return new Promise((resolve) => {
+        if (self.event.id && self.user.id) {
+          self.post('/api/user/badge', { event: self.event.id, user: self.user.id }).then((res) => {
+            if (res.success) {
+              resolve(res.badge);
+            } else {
+              resolve(null);
+            }
+          });
         }
       });
     },

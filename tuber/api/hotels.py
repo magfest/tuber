@@ -205,3 +205,11 @@ def department_membership():
                 "id": department.id
             })
         return jsonify({"success": True, "departments": filtered})
+
+@app.route("/api/hotels/statistics", methods=["GET"])
+def hotel_statistics():
+    if check_permission("hotel_statistics.read", event=request.args['event']):
+        num_badges = db.session.query(Badge).filter(Badge.event_id == request.args['event']).count()
+        num_requests = db.session.query(Badge, HotelRoomRequest).filter(Badge.id == HotelRoomRequest.badge, Badge.event_id == request.args['event']).count()
+        return jsonify(success=True, num_badges=num_badges, num_requests=num_requests)
+    return jsonify(success=False)

@@ -3,7 +3,7 @@
     <v-app-bar app clipped-left>
       <v-app-bar-nav-icon  @click.stop="drawer = !drawer" class="hidden-lg-and-up"></v-app-bar-nav-icon>
       <v-toolbar-title>
-        <span class="pr-md-10">Tuber</span>
+        <span @click="$router.push({name: 'home'})" style="cursor: pointer" class="pr-md-10">Tuber</span>
       </v-toolbar-title>
       <div v-for="navmenu in filtered_menus" :key="navmenu.name" class="px-md-2 hidden-md-and-down">
         <v-menu offset-y>
@@ -93,27 +93,27 @@ export default {
             name: 'Room Request',
             alt: 'Request a hotel room for yourself',
             path: '/hotels/request',
-            icon: 'settings',
+            icon: 'single_bed',
             permissions: [
-              'hotelrequest.read',
+              'hotel_request.create',
             ],
           },
           {
             name: 'Approve Requests',
             alt: 'Approve hotel requests from staffers in your department',
             path: '/hotels/approve',
-            icon: 'settings',
+            icon: 'done',
             permissions: [
-              'hotelrequest.write',
+              'hotel_request.approve',
             ],
           },
           {
             name: 'Assign Rooms',
             alt: 'Assign staffers to hotel rooms',
             path: '/hotels/assign',
-            icon: 'settings',
+            icon: 'low_priority',
             permissions: [
-              'hotelassignment.read',
+              'hotel_assignment.read',
             ],
           },
         ],
