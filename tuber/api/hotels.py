@@ -20,6 +20,8 @@ def staffer_auth():
         ]
     }
     resp = requests.post(config['uber_api_url'], headers=headers, json=req)
+    if len(resp.json()['result']) == 0:
+        return jsonify({"success": False})
     result = resp.json()['result'][0]
     id = result['id']
     if id != request.json['token']:
