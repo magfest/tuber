@@ -271,10 +271,13 @@ def hotel_approve():
             approval = db.session.query(RoomNightApproval).filter(RoomNightApproval.room_night == room_night.id, RoomNightApproval.department == request.json['department']).one_or_none()
             if not approval:
                 approval = RoomNightApproval()
-            approval.approved = request.json['approved']
-            approval.department = request.json['department']
-            approval.room_night = room_night.id
-            db.session.add(approval)
+            if request.json['approved'] is None:
+                db.session.delete(approval)
+            else:
+                approval.approved = request.json['approved']
+                approval.department = request.json['department']
+                approval.room_night = room_night.id
+                db.session.add(approval)
             db.session.commit()
             return jsonify(success=True)
     return jsonify(success=False, reason="Permission denied.")
