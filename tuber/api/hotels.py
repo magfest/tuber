@@ -42,7 +42,7 @@ def staffer_auth():
 def submit_hotels_request():
     if request.method == "GET":
         if not check_permission('hotel_request.create', event=request.args['event']):
-            return jsonify(success=False)
+            return jsonify(success=False, reason="Permission denied.")
         hotel_request = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == g.badge).one_or_none()
         if hotel_request:
             current_request = {
@@ -106,7 +106,7 @@ def submit_hotels_request():
 
     if request.method == "POST":
         if not check_permission('hotel_request.create', event=request.json['event']):
-            return jsonify(success=False)
+            return jsonify(success=False, reason="Permission denied.")
         req = request.json['request']
         hotel_request = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == g.badge).one_or_none()
         if not hotel_request:
@@ -133,6 +133,8 @@ def submit_hotels_request():
         db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.badge == g.badge).delete()
         for room_night in req['room_nights']:
             db.session.add(BadgeToRoomNight(badge=g.badge, requested=room_night['checked'], room_night=room_night['id']))
+        if [x for x in req['antirequested_roommates'] if x in req['requested_roommates']]:
+            return jsonify({"success": False, "reason": "You cannot request and antirequest a roommate."})
         db.session.commit()
         return jsonify({"success": True})
 

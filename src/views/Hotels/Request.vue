@@ -201,7 +201,7 @@ export default {
           self.confirmation = true;
         } else {
           self.loading = false;
-          self.$store.commit('open_snackbar', 'Failed to submit hotel request.');
+          self.$store.commit('open_snackbar', `Failed to submit hotel request: ${res.reason}`);
         }
       });
     },
