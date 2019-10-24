@@ -6,9 +6,9 @@
           <v-card max-width="350" :raised="true" class="mx-auto">
             <v-card-title>Hotel Request Completion</v-card-title>
             <v-card-text>
-              <h1 class="text-center" style="position: relative; top: 125px">{{ series[0] }}</h1>
-              <h1 class="text-center" style="position: relative; top: 150px">Completed</h1>
-              <apexchart type="donut" width="320" :series="series || []" :options="{legend: {show: false}, labels: ['completed', 'pending']}"></apexchart>
+              <h1 class="text-center" style="position: relative; top: 90px; height: 0px">{{ series[0] }}</h1>
+              <h1 class="text-center" style="position: relative; top: 130px; height: 0px">Completed</h1>
+              <apexchart type="donut" width="320" :series="series" :options="{legend: {show: false}, labels: ['completed', 'pending']}"></apexchart>
             </v-card-text>
           </v-card>
         </v-col>
@@ -36,13 +36,16 @@ export default {
     ]),
   },
   asyncComputed: {
-    series() {
-      const self = this;
-      return new Promise((resolve) => {
-        self.get('/api/hotels/statistics', { event: self.event.id }).then((resp) => {
-          resolve([resp.num_requests, resp.num_badges - resp.num_requests]);
+    series: {
+      get() {
+        const self = this;
+        return new Promise((resolve) => {
+          self.get('/api/hotels/statistics', { event: self.event.id }).then((resp) => {
+            resolve([resp.num_requests, resp.num_badges - resp.num_requests]);
+          });
         });
-      });
+      },
+      default: [0, 0],
     },
   },
 };
