@@ -10,7 +10,7 @@ import DepartmentDetail from './views/DepartmentDetail.vue';
 import HotelRequest from './views/Hotels/Request.vue';
 import EventCreate from './views/Events/Create.vue';
 import InitialSetup from './views/InitialSetup.vue';
-import ImportStaff from './views/Importer/Staff.vue';
+import DataImport from './views/Events/Import.vue';
 import RequestApprove from './views/Hotels/Approve.vue';
 import HotelAssign from './views/Hotels/Assign.vue';
 import HotelSettings from './views/Hotels/Settings.vue';
@@ -99,9 +99,9 @@ const router = new Router({
       component: EventSettings,
     },
     {
-      path: '/import/staff',
-      name: 'importstaff',
-      component: ImportStaff,
+      path: '/event/import',
+      name: 'eventimport',
+      component: DataImport,
     },
   ],
 });

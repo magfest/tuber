@@ -142,12 +142,12 @@ export default {
             ],
           },
           {
-            name: 'Import Staff',
-            alt: 'Import staff from Uber',
+            name: 'Import',
+            alt: 'Import Data',
             icon: 'import_export',
-            path: '/import/staff',
+            path: '/event/import',
             permissions: [
-              'import.staff',
+              'import.*',
             ],
           },
         ],
