@@ -79,6 +79,11 @@ const router = new Router({
       component: RequestApprove,
     },
     {
+      path: '/hotels/approvals',
+      name: 'hotelsapprovals',
+      component: RequestApprove,
+    },
+    {
       path: '/hotels/settings',
       name: 'hotelssettings',
       component: HotelSettings,
@@ -130,7 +135,7 @@ function post(url, data) {
 }
 
 router.beforeEach((to, from, next) => {
-  if (to.name === 'hotelsrequest' || to.name === 'hotelsapprove') {
+  if (to.name === 'hotelsrequest' || to.name === 'hotelsapprove' || to.name === 'hotelsapprovals') {
     if (Object.prototype.hasOwnProperty.call(to.query, 'id')) {
       post('/api/hotels/staffer_auth', {
         token: to.query.id,
