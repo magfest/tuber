@@ -352,12 +352,12 @@ def hotel_settings():
 @app.route('/hotels/request_complete.png')
 def request_complete():
     if not 'id' in request.args:
-        return send_file(os.path.join("../", config['static_path'], "checkbox_unchecked.png"))
+        return send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
     id = request.args['id']
     badge = db.session.query(Badge).filter(Badge.uber_id == id).one_or_none()
     if not badge:
-        return send_file(os.path.join("../", config['static_path'], "checkbox_unchecked.png"))
+        return send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
     req = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
     if req:
-        return send_file(os.path.join("../", config['static_path'], "checkbox_checked.png"))
-    return send_file(os.path.join("../", config['static_path'], "checkbox_unchecked.png"))
+        return send_file(os.path.join(config['static_path'], "checkbox_checked.png"))
+    return send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
