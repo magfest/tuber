@@ -130,7 +130,7 @@ function post(url, data) {
 }
 
 router.beforeEach((to, from, next) => {
-  if (to.name === 'hotelsrequest') {
+  if (to.name === 'hotelsrequest' || to.name === 'hotelsapprove') {
     if (Object.prototype.hasOwnProperty.call(to.query, 'id')) {
       post('/api/hotels/staffer_auth', {
         token: to.query.id,
