@@ -20,6 +20,11 @@
     "UBER_API_TOKEN": {
       "required": false,
       "description": "API Token of the MAGFest Ubersystem you would like to manage to."
+    },
+    "STATIC_PATH": {
+      "required": false,
+      "description": "The relative location of the webroot.",
+      "value": "../dist"
     }
   },
   "formation": {
