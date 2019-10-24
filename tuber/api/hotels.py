@@ -147,9 +147,16 @@ def submit_hotels_request():
             db.session.add(HotelRoommateRequest(requester=badge.id, requested=roommate))
         for roommate in req['antirequested_roommates']:
             db.session.add(HotelAntiRoommateRequest(requester=badge.id, requested=roommate))
-        db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.badge == badge.id).delete()
-        for room_night in req['room_nights']:
-            db.session.add(BadgeToRoomNight(badge=badge.id, requested=room_night['checked'], room_night=room_night['id']))
+        nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == badge.event_id).all()
+        for night in nights:
+            btrn = db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.badge == badge.id, BadgeToRoomNight.room_night == night.id).one_or_none()
+            if not btrn:
+                btrn = BadgeToRoomNight(badge=badge.id, room_night=night.id)
+            for room_night in req['room_nights']:
+                if room_night['id'] == night.id:
+                    btrn.requested = room_night['checked']
+                    break
+            db.session.add(btrn)
         if [x for x in req['antirequested_roommates'] if x in req['requested_roommates']]:
             return jsonify({"success": False, "reason": "You cannot request and antirequest a roommate."})
         db.session.commit()

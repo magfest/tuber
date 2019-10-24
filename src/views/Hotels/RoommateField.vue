@@ -53,6 +53,7 @@ export default {
     options: [],
     optionsLoading: false,
     search: '',
+    initialized: false,
   }),
   computed: {
     ...mapGetters([
@@ -77,27 +78,6 @@ export default {
     },
   },
   mounted() {
-    const self = this;
-    this.value.forEach((id) => {
-      self.post('/api/hotels/roommate_lookup', {
-        event: self.event.id,
-        badge: id,
-      }).then((res) => {
-        if (res.success) {
-          for (let i = 0; i < res.roommate.departments.length; i += 1) {
-            if (Object.prototype.hasOwnProperty.call(self.department_names, res.roommate.departments[i])) {
-              res.roommate.departments[i] = self.department_names[res.roommate.departments[i]].name;
-            }
-          }
-          if (res.roommate.departments.length === 0) {
-            res.roommate.text = res.roommate.name;
-          } else {
-            res.roommate.text = `${res.roommate.name} (${res.roommate.departments.join(', ')})`;
-          }
-          self.roommates.push(res.roommate);
-        }
-      });
-    });
   },
   methods: {
     makeSearch: (value, self) => {
@@ -148,6 +128,32 @@ export default {
         ret.push(value[i].id);
       }
       this.$emit('input', ret);
+    },
+    value() {
+      const self = this;
+      if (!self.initialized) {
+        self.initialized = true;
+        self.value.forEach((id) => {
+          self.post('/api/hotels/roommate_lookup', {
+            event: self.event.id,
+            badge: id,
+          }).then((res) => {
+            if (res.success) {
+              for (let i = 0; i < res.roommate.departments.length; i += 1) {
+                if (Object.prototype.hasOwnProperty.call(self.department_names, res.roommate.departments[i])) {
+                  res.roommate.departments[i] = self.department_names[res.roommate.departments[i]].name;
+                }
+              }
+              if (res.roommate.departments.length === 0) {
+                res.roommate.text = res.roommate.name;
+              } else {
+                res.roommate.text = `${res.roommate.name} (${res.roommate.departments.join(', ')})`;
+              }
+              self.roommates.push(res.roommate);
+            }
+          });
+        });
+      }
     },
   },
 };
