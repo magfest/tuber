@@ -6,6 +6,8 @@
           <v-card max-width="350" :raised="true" class="mx-auto">
             <v-card-title>Hotel Request Completion</v-card-title>
             <v-card-text>
+              <h1 class="text-center" style="position: relative; top: 125px">{{ series[0] }}</h1>
+              <h1 class="text-center" style="position: relative; top: 150px">Completed</h1>
               <apexchart type="donut" width="320" :series="series || []" :options="{legend: {show: false}, labels: ['completed', 'pending']}"></apexchart>
             </v-card-text>
           </v-card>
