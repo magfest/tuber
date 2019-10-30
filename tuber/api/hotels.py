@@ -14,28 +14,33 @@ headers = {
 
 @app.route("/api/hotels/staffer_auth", methods=["POST"])
 def staffer_auth():
-    req = {
-        "method": "attendee.search",
-        "params": [
-            request.json['token'],
-            "full"
-        ]
-    }
-    resp = requests.post(config['uber_api_url'], headers=headers, json=req)
-    if len(resp.json()['result']) == 0:
-        return jsonify({"success": False})
+    try:
+        req = {
+            "method": "attendee.search",
+            "params": [
+                request.json['token'],
+                "full"
+            ]
+        }
+        resp = requests.post(config['uber_api_url'], headers=headers, json=req)
+        if len(resp.json()['result']) == 0:
+            return jsonify(success=False)
+    except:
+        return jsonify(success=False)
     result = resp.json()['result'][0]
+    if not 'id' in result:
+        return jsonify(success=False)
     id = result['id']
     if id != request.json['token']:
-        return {"success": False}
+        return jsonify(success=False)
     if not result['staffing']:
-        return {"success": False}
+        return jsonify(success=False)
     user = db.session.query(User).filter(User.password == id).one_or_none()
     if user:
         session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()))
         db.session.add(session)
     else:
-        return jsonify({"success": False})
+        return jsonify(success=False)
     db.session.commit()
     response = jsonify({"success": True, "session": session.secret})
     response.set_cookie('session', session.secret)
@@ -130,6 +135,12 @@ def submit_hotels_request():
             hotel_request = HotelRoomRequest(badge=badge.id)
             db.session.add(hotel_request)
             db.session.flush()
+        if len(req['notes']) > HotelRoomRequest.notes.type.length:
+            return jsonify(success=False, reason="Notes field is too long.")
+        if len(req['gender']) > HotelRoomRequest.preferred_gender.type.length:
+            return jsonify(success=False, reason="Preferred Gender field is too long.")
+        if len(req['justification']) > HotelRoomRequest.room_night_justification.type.length:
+            return jsonify(success=False, reason="Notes field is too long.")
         hotel_request.declined = req['decline']
         hotel_request.prefer_department = req['prefer_department']
         hotel_request.preferred_department = req['preferred_department']
@@ -157,6 +168,10 @@ def submit_hotels_request():
                     btrn.requested = room_night['checked']
                     break
             db.session.add(btrn)
+        if badge.id in req['antirequested_roommates']:
+            return jsonify(success=False, reason="You cannot anti-request yourself as a roommate. What does that even mean?")
+        if badge.id in req['requested_roommates']:
+            return jsonify(success=False, reason="You cannot request yourself as a roommate.")
         if [x for x in req['antirequested_roommates'] if x in req['requested_roommates']]:
             return jsonify({"success": False, "reason": "You cannot request and antirequest a roommate."})
         db.session.commit()
@@ -181,6 +196,7 @@ def roommate_search():
                 "departments": filtered_departments
             })
         return jsonify({"success": True, "results": filtered_results})
+    return jsonify(success=False)
 
 @app.route("/api/hotels/roommate_lookup", methods=["POST"])
 def roommate_lookup():
@@ -359,12 +375,18 @@ def hotel_settings():
 @app.route('/hotels/request_complete.png')
 def request_complete():
     if not 'id' in request.args:
-        return send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
+        resp = send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
+        resp.cache_control.max_age = 10
+        return resp
     id = request.args['id']
     badge = db.session.query(Badge).filter(Badge.uber_id == id).one_or_none()
     if not badge:
-        return send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
+        resp = send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
+        resp.cache_control.max_age = 10
+        return resp
     req = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
     if req:
         return send_file(os.path.join(config['static_path'], "checkbox_checked.png"))
-    return send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
+    resp = send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
+    resp.cache_control.max_age = 10
+    return resp

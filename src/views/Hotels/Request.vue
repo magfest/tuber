@@ -28,7 +28,7 @@
             </v-checkbox><br>
 
             <p class="font-weight-black" v-if="justification_required">Please provide justification for requesting restricted nights:</p>
-            <v-textarea v-model="request.justification" v-if="justification_required" :disabled="request.decline" outlined placeholder="I'm helping with setup in <department>."></v-textarea>
+            <v-textarea v-model="request.justification" counter="512" v-if="justification_required" :disabled="request.decline" outlined placeholder="I'm helping with setup in <department>."></v-textarea>
 
             <p class="font-weight-black">Who would you like to room with?</p>
             <roommate-field label="Requested Roommates" v-model="request.requested_roommates" :disabled="request.decline"></roommate-field><br>
@@ -37,7 +37,7 @@
             <roommate-field label="Anti-requested Roommates" v-model="request.antirequested_roommates" :disabled="request.decline"></roommate-field><br>
 
             <p class="font-weight-black">Is there anything else we should know?</p>
-            <v-textarea v-model="request.notes" :disabled="request.decline" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></v-textarea>
+            <v-textarea v-model="request.notes" counter="512" :disabled="request.decline" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></v-textarea>
 
             <v-divider></v-divider><br>
             <p class="accent--text">The following questions are optional, but will help us match you with roommates.
@@ -52,7 +52,7 @@
             <p class="font-weight-black">Would you prefer single gender rooming?</p>
             <v-checkbox class="my-n5" :disabled="request.decline" v-model="request.single_gender" label="Yes, I would prefer a single-gender room."></v-checkbox>
             <p v-if="request.single_gender">What gender would you like to room with?</p>
-            <v-text-field :disabled="request.decline" v-if="request.single_gender" v-model="request.gender" hint="We will do our best to group entries logically. I.e., males will be grouped with guys." label="Gender"></v-text-field><br>
+            <v-text-field :disabled="request.decline" counter="64" v-if="request.single_gender" v-model="request.gender" hint="We will do our best to group entries logically. I.e., males will be grouped with guys." label="Gender"></v-text-field><br>
 
             <p class="font-weight-black">What is your preferred noise level?</p>
             <v-select :disabled="request.decline" v-model="request.noise_level" :items="noise_levels"></v-select><br>
@@ -116,6 +116,7 @@ export default {
       '2pm-4pm',
       '4pm-6pm',
       '6pm-8pm',
+      'I have no idea.',
     ],
   }),
   computed: {
@@ -159,6 +160,7 @@ export default {
     request() {
       const self = this;
       return new Promise((resolve, reject) => {
+        console.log('Update request', self.badge);
         if (self.badge) {
           self.get('/api/hotels/request', {
             badge: self.badge.id,

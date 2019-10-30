@@ -76,6 +76,37 @@ export default {
         }
       });
     },
+    roommates() {
+      const resRoommates = [];
+      const self = this;
+      return new Promise((resolve) => {
+        self.value.forEach((id) => {
+          self.post('/api/hotels/roommate_lookup', {
+            event: self.event.id,
+            badge: id,
+          }).then((res) => {
+            if (res.success) {
+              for (let i = 0; i < res.roommate.departments.length; i += 1) {
+                if (Object.prototype.hasOwnProperty.call(self.department_names, res.roommate.departments[i])) {
+                  res.roommate.departments[i] = self.department_names[res.roommate.departments[i]].name;
+                }
+              }
+              if (res.roommate.departments.length === 0) {
+                res.roommate.text = res.roommate.name;
+              } else {
+                res.roommate.text = `${res.roommate.name} (${res.roommate.departments.join(', ')})`;
+              }
+              resRoommates.push(res.roommate);
+              if (self.value.length === resRoommates.length) {
+                resolve(resRoommates);
+              }
+            } else {
+              resolve([]);
+            }
+          });
+        });
+      });
+    },
   },
   mounted() {
   },
@@ -105,7 +136,9 @@ export default {
               el.text = `${el.name} (${el.departments.join(', ')})`;
             }
           });
-          resp.results.push(...self.roommates);
+          if (self.roommates) {
+            resp.results.push(...self.roommates);
+          }
           self.options = resp.results;
           self.optionsLoading = false;
         }
@@ -126,33 +159,9 @@ export default {
       const ret = [];
       for (let i = 0; i < value.length; i += 1) {
         ret.push(value[i].id);
-      }
-      this.$emit('input', ret);
-    },
-    value() {
-      const self = this;
-      if (!self.initialized) {
-        self.initialized = true;
-        self.value.forEach((id) => {
-          self.post('/api/hotels/roommate_lookup', {
-            event: self.event.id,
-            badge: id,
-          }).then((res) => {
-            if (res.success) {
-              for (let i = 0; i < res.roommate.departments.length; i += 1) {
-                if (Object.prototype.hasOwnProperty.call(self.department_names, res.roommate.departments[i])) {
-                  res.roommate.departments[i] = self.department_names[res.roommate.departments[i]].name;
-                }
-              }
-              if (res.roommate.departments.length === 0) {
-                res.roommate.text = res.roommate.name;
-              } else {
-                res.roommate.text = `${res.roommate.name} (${res.roommate.departments.join(', ')})`;
-              }
-              self.roommates.push(res.roommate);
-            }
-          });
-        });
+        if (this.value[i] !== ret[i]) {
+          this.$emit('input', ret);
+        }
       }
     },
   },

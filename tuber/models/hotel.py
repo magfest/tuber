@@ -12,7 +12,7 @@ class HotelRoomRequest(db.Model):
     noise_level = db.Column(db.String(64), nullable=True)
     smoke_sensitive = db.Column(db.Boolean, nullable=True)
     sleep_time = db.Column(db.String(64), nullable=True)
-    room_night_justification = db.Column(db.String(128), nullable=True)
+    room_night_justification = db.Column(db.String(512), nullable=True)
 
 class HotelRoomBlock(db.Model):
     id = db.Column(db.Integer, primary_key=True)
