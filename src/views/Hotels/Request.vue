@@ -28,7 +28,7 @@
             </v-checkbox><br>
 
             <p class="font-weight-black" v-if="justification_required">Please provide justification for requesting restricted nights:</p>
-            <v-textarea v-model="request.justification" counter="512" v-if="justification_required" :disabled="request.decline" outlined placeholder="I'm helping with setup in <department>."></v-textarea>
+            <v-textarea v-model="request.justification" @input="blah" counter="200" v-if="justification_required" :disabled="request.decline" outlined placeholder="I'm helping with setup in <department>."></v-textarea>
 
             <p class="font-weight-black">Who would you like to room with?</p>
             <roommate-field label="Requested Roommates" v-model="request.requested_roommates" :disabled="request.decline"></roommate-field><br>
@@ -160,7 +160,6 @@ export default {
     request() {
       const self = this;
       return new Promise((resolve, reject) => {
-        console.log('Update request', self.badge);
         if (self.badge) {
           self.get('/api/hotels/request', {
             badge: self.badge.id,
@@ -202,6 +201,17 @@ export default {
   mounted() {
   },
   methods: {
+    blah() {
+      const len = this.request.justification.length;
+      const max = 200;
+      if (len > max) {
+        this.request.justification = this.request.justification.slice(0, max);
+        this.request.justification += 'blah '.repeat(Math.floor((len - max) / 5));
+        if (this.request.justification.length < len) {
+          this.request.justification += 'blah '.slice(0, (len % 5));
+        }
+      }
+    },
     submitRequest() {
       const self = this;
       self.loading = true;
