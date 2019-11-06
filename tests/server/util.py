@@ -16,7 +16,10 @@ def client():
 def csrf(rv):
     for cookie in rv.headers.getlist('Set-Cookie'):
         if cookie.startswith('csrf_token='):
-            return cookie.split("; ")[0].split("=")[1]
+            print(cookie)
+            token = cookie.split("; ")[0].split("=")[1]
+            print(token)
+            return token
     
 db = sqlite3.connect(filename)
 
