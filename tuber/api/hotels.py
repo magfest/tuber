@@ -247,6 +247,7 @@ def department_membership():
                 "id": department.id
             })
         return jsonify({"success": True, "departments": filtered})
+    return jsonify(success=False)
 
 @app.route("/api/hotels/statistics", methods=["GET"])
 def hotel_statistics():
