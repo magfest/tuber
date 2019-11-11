@@ -64,9 +64,9 @@ if config['database_url'].startswith("sqlite://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = config['database_url']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+db = SQLAlchemy(app)
 def init_db():
     global db
-    db = SQLAlchemy(app)
 
     import tuber.csrf
     import tuber.models
