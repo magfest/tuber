@@ -102,7 +102,7 @@ export default {
         event: this.event.id,
       }).then((resp) => {
         if (resp.success) {
-          self.$store.commit('open_snackbar', `${resp.num_staff} Staff imported successfully!`);
+          self.$store.commit('open_snackbar', 'Import started successfully. It will complete in the background.');
           self.loading = false;
         } else {
           self.$store.commit('open_snackbar', 'Failed to import staff.');
