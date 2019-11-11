@@ -34,7 +34,8 @@ setup(
         'psycopg2',
         'flask-talisman',
         'sentry-sdk[flask]',
-        'redis'
+        'redis',
+        'rq'
     ],
     setup_requires=[
         'py2app'

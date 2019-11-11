@@ -2,7 +2,9 @@ from tuber import app, config, db
 from flask import send_from_directory, send_file, request, jsonify
 from tuber.models import *
 from tuber.permissions import *
+from tuber.worker import worker_conn
 from sqlalchemy import or_
+from rq import Queue
 import requests
 import datetime
 import uuid
@@ -13,29 +15,24 @@ headers = {
     'X-Auth-Token': config['uber_api_token']
 }
 
-def get_uber_csv(session, model):
-    data = session.post(request.json['uber_url']+"/devtools/export_model", data={"selected_model": model}).text
+worker_queue = Queue(connection=worker_conn)
+
+def get_uber_csv(session, model, url):
+    data = session.post(url+"/devtools/export_model", data={"selected_model": model}).text
     stream = io.StringIO(data)
     reader = csv.DictReader(stream)
     return list(reader)
 
-@app.route("/api/importer/uber_staff", methods=["POST"])
-def import_uber_staff():
-    print("Importing staff...")
-    event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
-    if not event:
-        return jsonify({"success": False})
-    if not check_permission("import.staff", event=request.json['event']):
-        return jsonify({"success": False})
+def run_staff_import(email, password, url, event):
     session = requests.Session()
-    session.post(request.json['uber_url']+"/accounts/login", data={"email": request.json['email'], "password": request.json['password'], "original_location": "homepage"})
-    attendees = get_uber_csv(session, "Attendee")
+    session.post(url+"/accounts/login", data={"email": email, "password": password, "original_location": "homepage"})
+    attendees = get_uber_csv(session, "Attendee", url)
     num_staff = 0
     print("Retrieved export")
 
     role = db.session.query(Role).filter(Role.name == "Default Staff").one_or_none()
     if not role:
-        role = Role(name="Default Staff", description="Automatically assigned to staff.", event=event.id)
+        role = Role(name="Default Staff", description="Automatically assigned to staff.", event=event)
         db.session.add(role)
         db.session.flush()
         for perm in ['staff.search_names', 'hotel_request.create', 'event.read']:
@@ -44,7 +41,7 @@ def import_uber_staff():
 
     dh_role = db.session.query(Role).filter(Role.name == "Department Head").one_or_none()
     if not dh_role:
-        dh_role = Role(name="Department Head", description="Automatically assigned to department heads.", event=event.id)
+        dh_role = Role(name="Department Head", description="Automatically assigned to department heads.", event=event)
         db.session.add(dh_role)
         db.session.flush()
         for perm in ['department.write', 'hotel_request.approve']:
@@ -64,11 +61,11 @@ def import_uber_staff():
             if not grant:
                 grant = Grant(user=user.id, role=role.id)
                 db.session.add(grant)
-            badge = db.session.query(Badge).filter(Badge.event_id == request.json['event'], Badge.uber_id == attendee['id']).one_or_none()
+            badge = db.session.query(Badge).filter(Badge.event_id == event, Badge.uber_id == attendee['id']).one_or_none()
             if not badge:
                 badge = Badge(
                     uber_id = attendee['id'],
-                    event_id = request.json['event'],
+                    event_id = event,
                     printed_number = attendee['badge_num'],
                     printed_name = attendee['badge_printed_name'],
                     search_name = "{} {}".format(attendee['first_name'].lower(), attendee['last_name'].lower()),
@@ -82,25 +79,25 @@ def import_uber_staff():
                 db.session.add(badge)
 
     print("Adding departments...")
-    departments = get_uber_csv(session, "Department")
+    departments = get_uber_csv(session, "Department", url)
     for department in departments:
-        current = db.session.query(Department).filter(Department.event_id == request.json['event'], Department.uber_id == department['id']).one_or_none()
+        current = db.session.query(Department).filter(Department.event_id == event, Department.uber_id == department['id']).one_or_none()
         if not current:
             dept = Department(
                 uber_id = department['id'],
                 name = department['name'],
                 description = department['description'],
-                event_id = request.json['event']
+                event_id = event
             )
             db.session.add(dept)
     print("Adding staffers to departments...")
-    deptmembers = get_uber_csv(session, "DeptMembership")
+    deptmembers = get_uber_csv(session, "DeptMembership", url)
     for dm in deptmembers:
-        badge = db.session.query(Badge).filter(Badge.event_id == request.json['event'], Badge.uber_id == dm['attendee_id']).one_or_none()
+        badge = db.session.query(Badge).filter(Badge.event_id == event, Badge.uber_id == dm['attendee_id']).one_or_none()
         if not badge:
             print("Could not find badge {} to place in department {}.".format(dm['attendee_id'], dm['department_id']))
             continue
-        department = db.session.query(Department).filter(Department.event_id == request.json['event'], Department.uber_id == dm['department_id']).one_or_none()
+        department = db.session.query(Department).filter(Department.event_id == event, Department.uber_id == dm['department_id']).one_or_none()
         if not department:
             print("Could not find department {} for attendee {}.".format(dm['department_id'], dm['attendee_id']))
             continue
@@ -119,4 +116,19 @@ def import_uber_staff():
     print("Committing changes...")
     db.session.commit()
     print("Done.")
-    return jsonify({"success": True, "num_staff": num_staff})
+
+@app.route("/api/importer/uber_staff", methods=["POST"])
+def import_uber_staff():
+    print("Importing staff...")
+    event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
+    if not event:
+        return jsonify({"success": False})
+    if not check_permission("import.staff", event=request.json['event']):
+        return jsonify({"success": False})
+
+    email = request.json['email']
+    password = request.json['password']
+    url = request.json['uber_url']
+
+    worker_queue.enqueue(run_staff_import, email, password, url, event.id)
+    return jsonify({"success": True})
