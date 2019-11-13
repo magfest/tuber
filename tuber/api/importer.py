@@ -15,8 +15,6 @@ headers = {
     'X-Auth-Token': config['uber_api_token']
 }
 
-worker_queue = Queue(connection=worker_conn)
-
 def get_uber_csv(session, model, url):
     data = session.post(url+"/devtools/export_model", data={"selected_model": model}).text
     stream = io.StringIO(data)
@@ -130,5 +128,9 @@ def import_uber_staff():
     password = request.json['password']
     url = request.json['uber_url']
 
-    worker_queue.enqueue(run_staff_import, email, password, url, event.id, job_timeout=1800)
+    if config['background_tasks']:
+        worker_queue = Queue(connection=worker_conn)
+        worker_queue.enqueue(run_staff_import, email, password, url, event.id, job_timeout=1800)
+    else:
+        run_staff_import(email, password, url, event)
     return jsonify({"success": True})

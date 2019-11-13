@@ -20,6 +20,7 @@ config = {
     "uber_api_token": "",
     "uber_api_url": "",
     "config": "/etc/tuber/tuber.json",
+    "background_tasks": False,
 }
 
 for i in config.keys():
