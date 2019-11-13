@@ -34,9 +34,9 @@ Configuration is in /etc/tuber/tuber.json. The main configuration required is fo
 After cloning this repository you will need the following dependencies:
 
 ```bash
-dnf install npm python3 # Fedora/RHEL/CentOS
-apt install npm python3 # Debian/Ubuntu
-brew install npm python # MacOS
+dnf install npm python3 python3-devel postgresql-devel # Fedora/RHEL/CentOS
+apt install npm python3 python3-dev postgresql-dev# Debian/Ubuntu
+brew install npm python postgresql # MacOS
 ```
 
 Once you have the dependencies you can simply run make to build, then make develop to run the test server:
