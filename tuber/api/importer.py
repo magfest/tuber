@@ -88,6 +88,7 @@ def run_staff_import(email, password, url, event):
                 event_id = event
             )
             db.session.add(dept)
+            
     print("Adding staffers to departments...")
     deptmembers = get_uber_csv(session, "DeptMembership", url)
     for dm in deptmembers:
@@ -106,11 +107,13 @@ def run_staff_import(email, password, url, event):
                 department = department.id
             )
             db.session.add(department_member)
-        if dm['is_dept_head'].lower() == "true":
-            grant = db.session.query(Grant).filter(Grant.user == badge.user_id, Grant.role == dh_role.id, Grant.department==department.id).one_or_none()
+        grant = db.session.query(Grant).filter(Grant.user == badge.user_id, Grant.role == dh_role.id, Grant.department==department.id).one_or_none()
+        if (dm['is_dept_head'].lower() == "true") or (dm['is_checklist_admin'].lower() == "true"):
             if not grant:
                 grant = Grant(user=badge.user_id, role=dh_role.id, department=department.id)
                 db.session.add(grant)
+        elif grant:
+            db.session.delete(grant)
     print("Committing changes...")
     db.session.commit()
     print("Done.")
