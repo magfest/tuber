@@ -76,6 +76,8 @@ export default {
             } else {
               resolve({});
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to fetch user.');
           });
         });
       },
@@ -92,6 +94,8 @@ export default {
             } else {
               resolve([]);
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to retrieve list of events.');
           });
         });
       },
@@ -114,6 +118,8 @@ export default {
             } else {
               resolve({});
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to retrieve list of departments.');
           });
         });
       },

@@ -43,6 +43,8 @@ export default {
         if (resp.success) {
           self.$store.dispatch('check_initial_setup').then(() => {
             self.$router.push({ name: 'home' });
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to check if server is in initial setup mode.');
           });
           self.$store.commit('open_snackbar', 'Created admin account successfully!');
         } else {

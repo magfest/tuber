@@ -42,6 +42,8 @@ export default {
         if (resp.success) {
           self.$store.dispatch('check_logged_in').then(() => {
             self.$router.push({ name: 'home' });
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to check if you are logged in.');
           });
           self.$store.commit('open_snackbar', 'Logged in successfully!');
         } else {

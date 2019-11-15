@@ -84,6 +84,8 @@ export default {
               } else {
                 resolve(res.sources);
               }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to load existing email sources.');
             });
           }
         });
@@ -118,6 +120,9 @@ export default {
         } else {
           self.$store.commit('open_snackbar', res.reason);
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to update email source.');
+        self.loading = false;
       });
     },
   },

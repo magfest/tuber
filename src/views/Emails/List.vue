@@ -120,6 +120,8 @@ export default {
               } else {
                 resolve(res.emails);
               }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to retrieve emails.');
             });
           }
         });
@@ -140,6 +142,8 @@ export default {
               } else {
                 resolve(res.sources);
               }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to load available email sources.');
             });
           }
         });

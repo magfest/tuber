@@ -44,6 +44,8 @@ export default {
             } else {
               resolve([]);
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to load requests.');
           });
         } else {
           resolve([]);

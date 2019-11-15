@@ -92,6 +92,8 @@ export default {
               } else {
                 resolve([]);
               }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to retrieve hotel settings.');
             });
           } else {
             resolve([]);
@@ -120,6 +122,8 @@ export default {
         } else {
           self.$store.commit('open_snackbar', `Failed to add Room Night: ${res.reason}`);
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to update hotel settings.');
       });
     },
     delete_room_nights() {
@@ -139,6 +143,8 @@ export default {
           self.$store.commit('open_snackbar', 'Failed to delete Room Nights.');
           self.$asyncComputed.room_nights.update();
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to check update hotel settings.');
       });
     },
   },
