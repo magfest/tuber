@@ -1,1 +1,43 @@
-##TODO
+# 
+
+version: "3.7"
+
+services:
+  nginx:
+    image: nginx
+    ports:
+      - "8080:8080"
+    networks:
+      - tuber
+    environment: 
+      - "TUBERHOST:tuber"
+      - "TUBERPORT:8080"
+
+  tuber:
+    build: ./
+    ports:
+      - "8080"
+    networks:
+      - tuber
+
+  postgres:
+    image: postgres:10.4
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - tuber
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379"
+    networks:
+      - tuber
+
+networks:
+  tuber:
+
+volumes:
+  db-data:

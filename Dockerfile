@@ -23,7 +23,10 @@ COPY ./contrib/nginx.conf /etc/nginx/nginx.conf
 COPY . .
 RUN pip install .
 RUN pip install gunicorn
+RUN echo "daemon off;" >> /etc/nginx/nginx.conf
+RUN rm /etc/nginx/conf.d/default.conf
+EXPOSE 80
 CMD gunicorn -b 0.0.0.0:8080 tuber.wsgi:app --daemon && \
-      sed -i -e 's/$PORT/'"$PORT"'/g' /etc/nginx/conf.d/default.conf && \
+      sed -i -e 's/$TUBERHOST/'"$TUBERHOST"'/g' /etc/nginx/nginx.conf && \
       nginx -g 'daemon off;'
 ##TODO
