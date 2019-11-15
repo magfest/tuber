@@ -15,6 +15,10 @@ import RequestApprove from './views/Hotels/Approve.vue';
 import HotelAssign from './views/Hotels/Assign.vue';
 import HotelSettings from './views/Hotels/Settings.vue';
 import EventSettings from './views/Events/Settings.vue';
+import UserSettings from './views/Users/Settings.vue';
+import UserEdit from './views/Users/Edit.vue';
+import EmailList from './views/Emails/List.vue';
+import EmailSourceList from './views/Emails/SourceList.vue';
 import store from './store/store';
 
 Vue.use(Router);
@@ -107,6 +111,26 @@ const router = new Router({
       path: '/event/import',
       name: 'eventimport',
       component: DataImport,
+    },
+    {
+      path: '/users',
+      name: 'usersettings',
+      component: UserSettings,
+    },
+    {
+      path: '/user/:id',
+      name: 'useredit',
+      component: UserEdit,
+    },
+    {
+      path: '/emails',
+      name: 'emaillist',
+      component: EmailList,
+    },
+    {
+      path: '/emailsources',
+      name: 'emailsourcelist',
+      component: EmailSourceList,
     },
   ],
 });

@@ -17,9 +17,8 @@ def check_initial_setup():
 def initial_setup():
     if User.query.first():
         raise PermissionDenied("Initial setup has already completed.")
-    print(request.json)
     if request.json['username'] and request.json['email'] and request.json['password']:
-        user = User(username=request.json['username'], email=request.json['email'], password=sha256_crypt.encrypt(request.json['password']))
+        user = User(username=request.json['username'], email=request.json['email'], password=sha256_crypt.encrypt(request.json['password']), active=True)
         role = Role(name="Server Admin", description="Allowed to do anything.")
         db.session.add(user)
         db.session.add(role)
@@ -67,6 +66,14 @@ def test_permission():
 
 @app.route("/api/user/permissions")
 def get_permissions():
+    if 'user' in request.args:
+        if check_permission("user.read"):
+            perms = []
+            permissions = db.session.query(Grant.department, Role.event, Permission.operation).filter(Grant.user == request.args['user']).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
+            for permission in permissions:
+                perms.append({"department": permission.department, "event": permission.event, "operation": permission.operation})
+            return jsonify(success=True, permissions=perms)
+        return jsonify(success=False)
     return jsonify({"success": True, "permissions": g.perms})
 
 @app.route("/api/user/badge", methods=["POST"])
@@ -88,3 +95,30 @@ def get_badge():
             if badge:
                 return jsonify({"success": True, "badge": {"id": badge.id, "first_name": badge.first_name, "last_name": badge.last_name, "email": badge.email}})
     return jsonify({"success": False})
+
+@app.route("/api/users", methods=["GET"])
+def get_users():
+    if check_permission("user.read"):
+        users = db.session.query(User).all()
+        filtered = []
+        for user in users:
+            filtered.append({
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "active": user.active
+            })
+        return jsonify(success=True, users=filtered)
+    return jsonify(success=False)
+
+@app.route("/api/user", methods=["GET"])
+def get_user():
+    if check_permission("user.read"):
+        user = db.session.query(User).filter(User.id == request.args['user']).one_or_none()
+        if user:
+            rows = db.session.query(Grant, Role).filter(Grant.user == request.args['user']).join(Role, Grant.role == Role.id).all()
+            roles = []
+            for row in rows:
+                grant, role = row
+                roles.append({"description": role.description, "department": grant.department, "event": role.event, "name": role.name})
+            return jsonify(success=True, user={"id": user.id, "username": user.username, "email": user.email, "active": user.active, "roles": roles})
