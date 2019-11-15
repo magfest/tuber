@@ -330,9 +330,29 @@ def hotel_room_nights():
                 })
             return jsonify(success=True, room_nights=res)
     return jsonify(success=False)
-        
-@app.route("/api/hotels/settings", methods=["GET", "POST"])
-def hotel_settings():
+
+@app.route("/api/hotels/hotel_room", methods=["GET", "POST"])
+def hotel_room():
+    if request.method == "GET":
+        if check_permission("hotel_settings.*", event=request.args['event']):
+            hotel_rooms = db.session.query(HotelRoom).all() #.filter(HotelRoom.event == request.args['event']).all() #Needed for multiple events
+            res = []
+            for rn in hotel_rooms:
+                res.append({
+                    "id": rn.id,
+                    "name": rn.name
+                })
+            return jsonify(success=True, hotel_rooms=res)
+    if request.method == "POST":
+        if check_permission("hotel_settings.write", event=request.json['event']):
+            if request.json['name']:
+                room = HotelRoom(name=request.json['name'], description=request.json['description'])
+                resp = {"id": room.id, "name": room.name}
+                return jsonify({"success": True, "event": resp})
+    return jsonify(success=False)
+
+@app.route("/api/hotels/settings/room_night", methods=["GET", "POST"])
+def hotel_room_night_settings():
     if request.method == "GET":
         if check_permission("hotel_settings.*", event=request.args['event']):
             room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == request.args['event']).all()
@@ -369,6 +389,44 @@ def hotel_settings():
                 else:
                     room_night.restriction_type = ""
                 db.session.add(room_night)
+            db.session.commit()
+            return jsonify(success=True)
+    return jsonify(success=False)
+
+@app.route("/api/hotels/settings/room_block", methods=["GET", "POST"])
+def hotel_room_block_settings():
+    if request.method == "GET":
+        if check_permission("hotel_settings.*", event=request.args['event']):
+            room_blocks = db.session.query(HotelRoomBlock).filter(HotelRoomBlock.event == request.args['event']).all()
+            res = []
+            for rn in room_blocks:
+                res.append({
+                    "id": rn.id,
+                    "name": rn.name,
+                    "description": rn.description
+                })
+            return jsonify(success=True, room_blocks=res)
+    if request.method == "POST":
+        if check_permission("hotel_settings.write", event=request.json['event']):
+            room_blocks = db.session.query(HotelRoomBlock).filter(HotelRoomBlock.event == request.json['event']).all()
+            for i in room_blocks:
+                if [x for x in request.json['room_blocks'] if 'id' in x and x['id'] == i.id]:
+                    continue
+                #Need to add later
+                #for j in db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.room_night == i.id).all():
+                #    db.session.delete(i)
+                db.session.delete(i)
+                        
+            for i in request.json['room_blocks']:
+                room_block = None
+                if 'id' in i:
+                    room_block = db.session.query(HotelRoomBlock).filter(HotelRoomBlock.id == i['id']).one_or_none()
+                if not room_block:
+                    room_block = HotelRoomBlock()
+                room_block.name = i['name']
+                room_block.description = i['description']
+                room_block.event = request.json['event']
+                db.session.add(room_block)
             db.session.commit()
             return jsonify(success=True)
     return jsonify(success=False)
