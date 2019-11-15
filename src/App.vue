@@ -153,7 +153,7 @@ export default {
           {
             name: 'Email Source Settings',
             alt: 'Edit Email Providers',
-            icon: 'email',
+            icon: 'dns',
             path: '/emailsources',
             permissions: [
               'emailsource.read',

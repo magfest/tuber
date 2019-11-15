@@ -24,6 +24,8 @@ const actions = {
       get('/api/check_initial_setup').then((response) => {
         commit('update_initial_setup', response.initial_setup);
         resolve();
+      }).catch(() => {
+        commit('open_snackbar', 'Failed to check if server is in initial setup mode.');
       });
     });
   },
@@ -35,11 +37,15 @@ const actions = {
             commit('set_perms', perms.permissions);
             commit('login', response);
             resolve();
+          }).catch(() => {
+            commit('open_snackbar', 'Failed to retrieve user permissions.');
           });
         } else {
           commit('logout');
           resolve();
         }
+      }).catch(() => {
+        commit('open_snackbar', 'Failed to check if logged in.');
       });
     });
   },

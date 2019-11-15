@@ -2,7 +2,7 @@
   <div>
     <div>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="login_loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="login_loading">
         <v-card-title>Welcome to Tuber!</v-card-title>
         <v-card-text>
           <v-form>

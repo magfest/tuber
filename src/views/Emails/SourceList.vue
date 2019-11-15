@@ -25,7 +25,7 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>Email Sources</v-card-title>
         <v-card-text>
           <v-data-table :headers="headers" :items="sources"></v-data-table>

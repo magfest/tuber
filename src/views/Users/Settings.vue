@@ -2,7 +2,7 @@
   <div>
     <div>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>Users</v-card-title>
         <v-card-text>
             <v-data-table item-key="id" :headers="headers" :items="users">
@@ -62,9 +62,11 @@ export default {
           self.get('/api/users').then((res) => {
             if (res.success) {
               resolve(res.users);
-            } else {
-              resolve(res.users);
             }
+            resolve(res.users);
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to retrieve users');
+            resolve([]);
           });
         });
       },

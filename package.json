@@ -32,6 +32,7 @@
     "babel-eslint": "^10.0.1",
     "chai": "^4.1.2",
     "eslint": "^5.16.0",
+    "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-vue": "^5.0.0",
     "kill-port": "^1.6.0",
     "null-loader": "^3.0.0",
@@ -43,18 +44,25 @@
   },
   "eslintConfig": {
     "root": true,
+    "plugins": [
+      "promise"
+    ],
     "env": {
       "node": true
     },
     "extends": [
       "plugin:vue/essential",
-      "@vue/airbnb"
+      "@vue/airbnb",
+      "plugin:promise/recommended"
     ],
     "rules": {
       "max-len": 0,
       "no-param-reassign": 0,
       "no-shadow": 0,
-      "no-continue": 0
+      "no-continue": 0,
+      "promise/always-return": 0,
+      "promise/no-callback-in-promise": 0,
+      "promise/no-nesting": 0
     },
     "parserOptions": {
       "parser": "babel-eslint"

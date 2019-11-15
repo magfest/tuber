@@ -168,9 +168,15 @@ router.beforeEach((to, from, next) => {
           store.dispatch('check_logged_in').then(() => {
             store.dispatch('get_events').then(() => {
               next();
+            }).catch(() => {
+              store.commit('open_snackbar', 'Failed to retrieve events from server.');
             });
+          }).catch(() => {
+            store.commit('open_snackbar', 'Failed to check whether currently logged in.');
           });
         }
+      }).catch(() => {
+        store.commit('open_snackbar', 'Failed to verify uber authentication.');
       });
     } else {
       next();
@@ -200,6 +206,8 @@ router.beforeEach((to, from, next) => {
           next();
         });
       }
+    }).catch(() => {
+      store.commit('open_snackbar', 'Failed to check if currently logged in.');
     });
   }
 });

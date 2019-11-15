@@ -2,7 +2,7 @@
   <div>
     <div>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>Hotel Settings</v-card-title>
         <v-card-text>
             <h3>Room Nights</h3>
@@ -19,7 +19,7 @@
         </v-card-actions>
       </v-card>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
           <v-card-title>
               Create new room night
           </v-card-title>
