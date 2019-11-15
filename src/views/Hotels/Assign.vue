@@ -7,7 +7,7 @@
 
       </v-card>
       <br>
-      <div v-for="hotelRoom in hotelrooms" :key="hotelRoom.id">
+      <div v-for="hotelRoom in hotel_rooms" :key="hotelRoom.id">
         <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
           <v-card-title>{{ hotelRoom.name }}</v-card-title>
 
@@ -29,6 +29,7 @@ export default {
   },
   data: () => ({
     loading: false,
+
   }),
   computed: {
     ...mapGetters([
@@ -37,24 +38,90 @@ export default {
     ]),
   },
   asyncComputed: {
-    hotelrooms() {
-      const self = this;
-      return new Promise((resolve) => {
-        if (self.event.id && self.user.id) {
-          self.get('/api/hotels/hotel_room', {
-            event: self.event.id,
-            user: self.user.id,
-          }).then((hotelRooms) => {
-            if (hotelRooms.success) {
-              resolve(hotelRooms.departments);
-            } else {
-              resolve([]);
-            }
-          });
-        } else {
-          resolve([]);
-        }
-      });
+    hotel_rooms: {
+      get() {
+        const self = this;
+        return new Promise((resolve) => {
+          if (self.event.id && self.user.id) {
+            self.get('/api/hotels/hotel_room', {
+              event: self.event.id,
+              user: self.user.id,
+            }).then((res) => {
+              if (res.success) {
+                resolve(res.hotel_rooms);
+              } else {
+                resolve([]);
+              }
+            });
+          } else {
+            resolve([]);
+          }
+        });
+      },
+      default: [],
+    },
+    room_nights: {
+      get() {
+        const self = this;
+        return new Promise((resolve) => {
+          if (self.event.id) {
+            self.get('/api/hotels/settings/room_night', {
+              event: self.event.id,
+            }).then((res) => {
+              if (res.success) {
+                resolve(res.room_nights);
+              } else {
+                resolve([]);
+              }
+            });
+          } else {
+            resolve([]);
+          }
+        });
+      },
+      default: [],
+    },
+    room_blocks: {
+      get() {
+        const self = this;
+        return new Promise((resolve) => {
+          if (self.event.id) {
+            self.get('/api/hotels/settings/room_block', {
+              event: self.event.id,
+            }).then((res) => {
+              if (res.success) {
+                resolve(res.room_blocks);
+              } else {
+                resolve([]);
+              }
+            });
+          } else {
+            resolve([]);
+          }
+        });
+      },
+      default: [],
+    },
+    room_locations: {
+      get() {
+        const self = this;
+        return new Promise((resolve) => {
+          if (self.event.id) {
+            self.get('/api/hotels/settings/room_location', {
+              event: self.event.id,
+            }).then((res) => {
+              if (res.success) {
+                resolve(res.room_locations);
+              } else {
+                resolve([]);
+              }
+            });
+          } else {
+            resolve([]);
+          }
+        });
+      },
+      default: [],
     },
   },
   mounted() {

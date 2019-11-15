@@ -335,18 +335,23 @@ def hotel_room_nights():
 def hotel_room():
     if request.method == "GET":
         if check_permission("hotel_settings.*", event=request.args['event']):
-            hotel_rooms = db.session.query(HotelRoom).all() #.filter(HotelRoom.event == request.args['event']).all() #Needed for multiple events
+            hotel_rooms = db.session.query(HotelRoom).all() #.filter(HotelRoomBlock.event == request.args['event']).all() #Needed for multiple events
             res = []
             for rn in hotel_rooms:
                 res.append({
                     "id": rn.id,
-                    "name": rn.name
+                    "name": rn.name,
+                    "description": rn.description,
+                    "disable_autofill": rn.disable_autofill,
+                    "hotel_block": rn.hotel_block,
+                    "hotel_location": rn.hotel_location,
+
                 })
             return jsonify(success=True, hotel_rooms=res)
     if request.method == "POST":
         if check_permission("hotel_settings.write", event=request.json['event']):
             if request.json['name']:
-                room = HotelRoom(name=request.json['name'], description=request.json['description'])
+                room = HotelRoom(name=request.json['name'], description=request.json['description'], disable_autofill=request.json['disable_autofill'])
                 resp = {"id": room.id, "name": room.name}
                 return jsonify({"success": True, "event": resp})
     return jsonify(success=False)
