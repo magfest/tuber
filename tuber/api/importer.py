@@ -7,6 +7,8 @@ from sqlalchemy import or_
 from rq import Queue
 import requests
 import datetime
+import random
+import names
 import uuid
 import csv
 import io
@@ -137,3 +139,142 @@ def import_uber_staff():
     else:
         run_staff_import(email, password, url, event.id)
     return jsonify({"success": True})
+
+@app.route("/api/importer/mock", methods=["POST"])
+def import_mock():
+    if not 'event' in request.json:
+        return jsonify(success=False, reason="Event is a required parament.")
+    event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
+    if not event:
+        return jsonify(success=False, reason="Could not locate event {}".format(request.json['event']))
+    badges = db.session.query(Badge).filter(Badge.event_id == event.id).all()
+    if badges:
+        return jsonify(success=False, reason="You cannot generate mock data if there are already badges. Please delete the badges first if you really want junk data.")
+    staff_badge_type = db.session.query(BadgeType).filter(BadgeType.name == "Staff").one_or_none()
+    if not staff_badge_type:
+        staff_badge_type = BadgeType(name="Staff", description="Helps run the show")
+        db.session.add(staff_badge_type)
+    attendee_badge_type = db.session.query(BadgeType).filter(BadgeType.name == "Attendee").one_or_none()
+    if not attendee_badge_type:
+        attendee_badge_type = BadgeType(name="Attendee", description="Come to see the show")
+        db.session.add(attendee_badge_type)
+    db.session.flush()
+    if 'attendees' in request.json:
+        print("Generating {} attendees".format(request.json['attendees']))
+        for i in range(request.json['attendees']):
+            if i % 1000 == 0:
+                print("  ...{}/{}".format(i, request.json['attendees']))
+            first_name = names.get_first_name()
+            last_name = names.get_last_name()
+            legal_name = "{} {}".format(first_name, last_name)
+            full_name = legal_name
+            legal_name_matches = True
+            printed_name = legal_name
+            if random.random() > 0.95:
+                legal_name = names.get_full_name()
+                legal_name_matches = False
+            if random.random() > 0.75:
+                printed_name = names.get_last_name()
+            provider = random.choice(["verizon", "gmail", "yahoo", "aol", "magfest"])
+            site = random.choice(["net", "com", "org", "co.uk"])
+            email="{}.{}@{}.{}".format(first_name, last_name, provider, site)
+            badge = Badge(
+                event_id=event.id,
+                badge_type=attendee_badge_type.id,
+                printed_number=(((i + request.json['staffers']) // 1000 + 1) * 1000) if 'staffers' in request.json else i,
+                printed_name=printed_name,
+                search_name=printed_name.lower(),
+                first_name=first_name,
+                last_name=last_name,
+                legal_name=legal_name,
+                legal_name_matches=legal_name_matches,
+                email=email
+            )
+            db.session.add(badge)
+
+    departments = []
+    if 'departments' in request.json:
+        print("Generating {} departments...".format(request.json['departments']))
+        dept_names = {}
+        while len(dept_names.keys()) < request.json['departments']:
+            name = random.choice(["Tech", "Staff", "Arcade", "Game", "Medical", "Hotel", "Cat", "Concert", "Music", "Security", "Food", "Rescue", "Warehouse", "Logistics", "Truck", "Management"])
+            name += random.choice([" Ops", " Management", " Wranglers", " Herders", "", " Chasers", " Fixers", " Breakers", " Managers", " Destroyers", " Cleaners"])
+            name = ''.join([x.upper() if random.random() < 0.05 else x for x in name])
+            dept_names[name] = None
+        for name in dept_names.keys():
+            description = "The {} department.".format(name)
+            department = Department(name=name, description=description, event_id=event.id)
+            db.session.add(department)
+            departments.append(department)
+    
+    staffers = []
+    if 'staffers' in request.json:
+        print("Generating {} staffers...".format(request.json['staffers']))
+        for i in range(request.json['staffers']):
+            if i % 1000 == 0:
+                print("  ...{}/{}".format(i, request.json['staffers']))
+            first_name = names.get_first_name()
+            last_name = names.get_last_name()
+            legal_name = "{} {}".format(first_name, last_name)
+            full_name = legal_name
+            legal_name_matches = True
+            printed_name = legal_name
+            if random.random() > 0.95:
+                legal_name = names.get_full_name()
+                legal_name_matches = False
+            if random.random() > 0.75:
+                printed_name = names.get_last_name()
+            provider = random.choice(["verizon", "gmail", "yahoo", "aol", "magfest"])
+            site = random.choice(["net", "com", "org", "co.uk"])
+            email="{}.{}@{}.{}".format(first_name, last_name, provider, site)
+            badge = Badge(
+                event_id=event.id,
+                badge_type=staff_badge_type.id,
+                printed_number=i,
+                printed_name=printed_name,
+                search_name=printed_name.lower(),
+                first_name=first_name,
+                last_name=last_name,
+                legal_name=legal_name,
+                legal_name_matches=legal_name_matches,
+                email=email
+            )
+            db.session.add(badge)
+            staffers.append(badge)
+        print("Flushing database...")
+        db.session.flush()
+        print("Adding staffers to departments...")
+        for staffer in staffers:
+            staffer_depts = list(departments)
+            hotel_requested = False
+            declined = False
+            
+            preferred_department=None
+            for i in range(int(random.random()/0.3)):
+                staffer_dept = random.choice(staffer_depts)
+                staffer_depts.remove(staffer_dept)
+                assignment = BadgeToDepartment(badge=staffer.id, department=staffer_dept.id)
+                db.session.add(assignment)
+                preferred_department = staffer_dept.id
+        
+            if random.random() > 0.3:
+                hotel_requested = True
+                if random.random() > 0.1:
+                    declined = True
+                hotel_request = HotelRoomRequest(
+                    badge=staffer.id,
+                    declined=declined,
+                    prefer_department=random.random() > 0.1,
+                    preferred_department=preferred_department,
+                    notes="Please give room.",
+                    prefer_single_gender=random.random() > 0.3,
+                    preferred_gender=random.choice(['male', 'female', 'other']),
+                    noise_level=random.choice(['Quiet - I am quiet, and prefer quiet.', "Moderate - I don't make a lot of noise.", "Loud - I'm ok if someone snores or I snore.",]),
+                    smoke_sensitive=random.choice([True, False]),
+                    sleep_time=random.choice(['2am-4am', '4am-6am', '6am-8am', '8am-10am']),
+                )
+                db.session.add(hotel_request)
+    print("Committing...")
+    db.session.commit()
+    print("Done!")
+    return jsonify(success=True)

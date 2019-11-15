@@ -38,7 +38,8 @@ setup(
         'rq',
         'lupa',
         'boto3',
-        'jinja2'
+        'jinja2',
+        'names',
     ],
     setup_requires=[
         'py2app'

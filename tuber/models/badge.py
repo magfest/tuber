@@ -3,6 +3,7 @@ from tuber import db
 class Badge(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    badge_type = db.Column(db.Integer, db.ForeignKey('badge_type.id'), nullable=False)
     printed_number = db.Column(db.String(32), unique=False, nullable=True)
     printed_name = db.Column(db.String(256), nullable=False)
     search_name = db.Column(db.String(256), nullable=False)

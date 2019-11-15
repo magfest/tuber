@@ -108,12 +108,10 @@ export default {
           self.get('/api/departments/list').then((res) => {
             if (res.success) {
               const keys = Object.keys(res.departments);
-              console.log(keys);
               for (let i = 0; i < keys.length; i += 1) {
                 res.departments[keys[i]].push({ id: null, name: 'All' });
               }
               res.departments.null = [{ id: null, name: 'All' }];
-              console.log(res.departments);
               resolve(res.departments);
             } else {
               resolve({});

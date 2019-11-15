@@ -43,9 +43,9 @@
               <v-form>
                 <p>This tool generates testing data.</p>
                 <p>How much test data should be generated?</p>
-                <v-text-field label="Number of Attendees" v-model="attendees" outlined></v-text-field>
-                <v-text-field label="Number of Staffers" v-model="staffers" outlined></v-text-field>
-                <v-text-field label="Number of Departments" v-model="departments" outlined></v-text-field>
+                <v-text-field label="Number of Attendees" type="number" v-model="attendees" outlined></v-text-field>
+                <v-text-field label="Number of Staffers" type="number" v-model="staffers" outlined></v-text-field>
+                <v-text-field label="Number of Departments" type="number" v-model="departments" outlined></v-text-field>
                 <v-card-actions>
                   <v-spacer></v-spacer>
                   <v-btn outlined type="submit" @click.prevent="generateMock">Generate</v-btn>
@@ -117,7 +117,25 @@ export default {
 
     },
     generateMock() {
-
+      this.loading = true;
+      const self = this;
+      this.post('/api/importer/mock', {
+        attendees: parseInt(self.attendees, 10),
+        departments: parseInt(self.departments, 10),
+        staffers: parseInt(self.staffers, 10),
+        event: self.event.id,
+      }).then((resp) => {
+        if (resp.success) {
+          self.$store.commit('open_snackbar', 'Mock data generated successfully.');
+          self.loading = false;
+        } else {
+          self.$store.commit('open_snackbar', 'Failed to generate mock data.');
+          self.loading = false;
+        }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Network error while generating mock data.');
+        self.loading = false;
+      });
     },
   },
 };
