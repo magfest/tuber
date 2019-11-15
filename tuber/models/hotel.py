@@ -42,6 +42,7 @@ class HotelLocation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(32), nullable=False)
     address = db.Column(db.String(128), nullable=False)
+    event = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
 
 class HotelRoomNight(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -64,6 +64,35 @@
             <v-btn type="submit" @click.prevent="add_room_block">Add</v-btn>
         </v-card-actions>
       </v-card>
+      <br>
+      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+        <v-card-title>Room Location Settings</v-card-title>
+        <v-card-text>
+          <v-data-table show-select item-key="id" v-model="selected" :headers="room_locations_headers" :items="room_locations">
+
+          </v-data-table>
+          <br>
+        </v-card-text>
+        <v-card-actions>
+            <v-btn @click="delete_room_locations">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+      <br>
+      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+          <v-card-title>
+              Create new room location
+          </v-card-title>
+          <v-card-text>
+            <v-form>
+              <v-text-field label="Name" v-model="room_location.name"></v-text-field>
+              <v-text-field label="Address" v-model="room_location.address"></v-text-field>
+              <v-btn type="submit" @click.prevent="add_room_location" hidden="true"></v-btn>
+            </v-form>
+        </v-card-text>
+        <v-card-actions>
+            <v-btn type="submit" @click.prevent="add_room_location">Add</v-btn>
+        </v-card-actions>
+      </v-card>
     </div>
   </div>
 </template>
@@ -90,6 +119,10 @@ export default {
       name: '',
       description: '',
     },
+    room_location: {
+      name: '',
+      address: '',
+    },
     room_nights_headers: [
       {
         text: 'Name',
@@ -113,6 +146,16 @@ export default {
       {
         text: 'Description',
         value: 'description',
+      },
+    ],
+    room_locations_headers: [
+      {
+        text: 'Name',
+        value: 'name',
+      },
+      {
+        text: 'Address',
+        value: 'address',
       },
     ],
   }),
@@ -153,6 +196,27 @@ export default {
             }).then((res) => {
               if (res.success) {
                 resolve(res.room_blocks);
+              } else {
+                resolve([]);
+              }
+            });
+          } else {
+            resolve([]);
+          }
+        });
+      },
+      default: [],
+    },
+    room_locations: {
+      get() {
+        const self = this;
+        return new Promise((resolve) => {
+          if (self.event.id) {
+            self.get('/api/hotels/settings/room_location', {
+              event: self.event.id,
+            }).then((res) => {
+              if (res.success) {
+                resolve(res.room_locations);
               } else {
                 resolve([]);
               }
@@ -240,6 +304,44 @@ export default {
         } else {
           self.$store.commit('open_snackbar', `Failed to delete Room Blocks: ${res.reason}`);
           self.$asyncComputed.room_blocks.update();
+        }
+      });
+    },
+    add_room_location() {
+      const self = this;
+      self.loading = true;
+      self.room_locations.push(self.room_location);
+      self.post('/api/hotels/settings/room_location', {
+        event: self.event.id,
+        room_locations: self.room_locations,
+      }).then((res) => {
+        self.loading = false;
+        if (res.success) {
+          self.room_location.name = '';
+          self.room_location.address = '';
+          self.$store.commit('open_snackbar', 'Room Location Added.');
+          self.$asyncComputed.room_location.update();
+        } else {
+          self.$store.commit('open_snackbar', `Failed to add Room Location: ${res.reason}`);
+        }
+      });
+    },
+    delete_room_locations() {
+      const self = this;
+      this.selected.forEach((item) => {
+        const idx = self.room_locations.indexOf(item);
+        self.room_locations.splice(idx, 1);
+      });
+      self.post('/api/hotels/settings/room_location', {
+        event: self.event.id,
+        room_locations: self.room_locations,
+      }).then((res) => {
+        if (res.success) {
+          self.$store.commit('open_snackbar', 'Room Location Deleted.');
+          self.$asyncComputed.room_locations.update();
+        } else {
+          self.$store.commit('open_snackbar', `Failed to delete Room Location: ${res.reason}`);
+          self.$asyncComputed.room_locations.update();
         }
       });
     },

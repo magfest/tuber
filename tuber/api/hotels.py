@@ -431,6 +431,44 @@ def hotel_room_block_settings():
             return jsonify(success=True)
     return jsonify(success=False)
 
+@app.route("/api/hotels/settings/room_location", methods=["GET", "POST"])
+def hotel_room_location_settings():
+    if request.method == "GET":
+        if check_permission("hotel_settings.*", event=request.args['event']):
+            room_locations = db.session.query(HotelLocation).filter(HotelLocation.event == request.args['event']).all()
+            res = []
+            for rn in room_locations:
+                res.append({
+                    "id": rn.id,
+                    "name": rn.name,
+                    "address": rn.address
+                })
+            return jsonify(success=True, room_locations=res)
+    if request.method == "POST":
+        if check_permission("hotel_settings.write", event=request.json['event']):
+            room_locations = db.session.query(HotelLocation).filter(HotelLocation.event == request.json['event']).all()
+            for i in room_locations:
+                if [x for x in request.json['room_locations'] if 'id' in x and x['id'] == i.id]:
+                    continue
+                #Need to add later
+                #for j in db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.room_night == i.id).all():
+                #    db.session.delete(i)
+                db.session.delete(i)
+                        
+            for i in request.json['room_locations']:
+                room_location = None
+                if 'id' in i:
+                    room_location = db.session.query(HotelLocation).filter(HotelLocation.id == i['id']).one_or_none()
+                if not room_location:
+                    room_location = HotelLocation()
+                room_location.name = i['name']
+                room_location.address = i['address']
+                room_location.event = request.json['event']
+                db.session.add(room_location)
+            db.session.commit()
+            return jsonify(success=True)
+    return jsonify(success=False)
+
 @app.route('/hotels/request_complete.png')
 def request_complete():
     if not 'id' in request.args:
