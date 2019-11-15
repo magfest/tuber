@@ -71,7 +71,7 @@ def run_staff_import(email, password, url, event):
                     last_name = attendee['last_name'],
                     legal_name = attendee['legal_name'],
                     legal_name_matches = bool(attendee['legal_name']),
-                    email = user.email,
+                    email = attendee['email'],
                     user_id = user.id
                 )
                 db.session.add(badge)
