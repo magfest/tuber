@@ -12,6 +12,7 @@
           <v-card-title>{{ hotelRoom.name }}</v-card-title>
 
         </v-card>
+        <br>
       </div>
     </div>
   </div>
