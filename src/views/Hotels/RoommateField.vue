@@ -72,6 +72,8 @@ export default {
               resolve(res.departments);
             }
             resolve({});
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to retrieve department names.');
           });
         }
       });
@@ -103,6 +105,8 @@ export default {
             } else {
               resolve([]);
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to lookup roommates.');
           });
         });
       });
@@ -142,6 +146,8 @@ export default {
           self.options = resp.results;
           self.optionsLoading = false;
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to search for roommate names.');
       });
       self.optionsLoading = false;
     },

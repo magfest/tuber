@@ -1,7 +1,7 @@
 <template>
   <div>
     <br>
-    <v-card max-width="700" :raised="true" class="mx-auto" :loading="initial_setup_loading">
+    <v-card max-width="1000" :raised="true" class="mx-auto" :loading="initial_setup_loading">
       <v-card-title>Welcome to Tuber!</v-card-title>
       <v-card-text>
         <v-form>
@@ -43,6 +43,8 @@ export default {
         if (resp.success) {
           self.$store.dispatch('check_initial_setup').then(() => {
             self.$router.push({ name: 'home' });
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to check if server is in initial setup mode.');
           });
           self.$store.commit('open_snackbar', 'Created admin account successfully!');
         } else {

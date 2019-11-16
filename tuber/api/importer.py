@@ -135,5 +135,5 @@ def import_uber_staff():
         worker_queue = Queue(connection=worker_conn)
         worker_queue.enqueue(run_staff_import, email, password, url, event.id, job_timeout=1800)
     else:
-        run_staff_import(email, password, url, event)
+        run_staff_import(email, password, url, event.id)
     return jsonify({"success": True})

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-card max-width="700" :raised="true" class="mx-auto">
+    <v-card max-width="1000" :raised="true" class="mx-auto">
         <v-card-title>Room Night Approvals</v-card-title>
         <v-card-text>
           <p>This page lists each department for which you are permitted to approve edge night requests.</p>
@@ -20,7 +20,7 @@
     </v-card>
     <div v-for="department in departments" :key="department.id">
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>{{ department.name }}</v-card-title>
         <v-card-text>
           <v-data-table :headers="headers" :items="department.requests">
@@ -104,6 +104,8 @@ export default {
             } else {
               resolve([]);
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to load hotel request.');
           });
         } else {
           resolve([]);
@@ -122,6 +124,8 @@ export default {
             } else {
               resolve([]);
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to load room nights.');
           });
         } else {
           resolve([]);
@@ -150,6 +154,8 @@ export default {
         if (!res.success) {
           self.$store.commit('open_snackbar', `Could not approve room night: ${res.reason}`);
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to approve room night.');
       });
     },
     approve_all(person, department) {

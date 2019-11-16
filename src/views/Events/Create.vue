@@ -1,7 +1,7 @@
 <template>
   <div>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="event_loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="event_loading">
         <v-card-title>Create an event</v-card-title>
         <v-card-text>
           <v-form>

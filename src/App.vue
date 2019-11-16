@@ -142,12 +142,46 @@ export default {
             ],
           },
           {
+            name: 'Email Settings',
+            alt: 'Edit Automated Emails',
+            icon: 'email',
+            path: '/emails',
+            permissions: [
+              'emails.read',
+            ],
+          },
+          {
+            name: 'Email Source Settings',
+            alt: 'Edit Email Providers',
+            icon: 'dns',
+            path: '/emailsources',
+            permissions: [
+              'emailsource.read',
+            ],
+          },
+          {
             name: 'Import',
             alt: 'Import Data',
             icon: 'import_export',
             path: '/event/import',
             permissions: [
               'import.*',
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Global Settings',
+        alt: 'Change Settings for Tuber',
+        icon: 'settings_applications',
+        items: [
+          {
+            name: 'Users',
+            alt: 'Add or Edit Users',
+            icon: 'group',
+            path: '/users',
+            permissions: [
+              'user.read',
             ],
           },
         ],

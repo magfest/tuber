@@ -15,6 +15,10 @@ import RequestApprove from './views/Hotels/Approve.vue';
 import HotelAssign from './views/Hotels/Assign.vue';
 import HotelSettings from './views/Hotels/Settings.vue';
 import EventSettings from './views/Events/Settings.vue';
+import UserSettings from './views/Users/Settings.vue';
+import UserEdit from './views/Users/Edit.vue';
+import EmailList from './views/Emails/List.vue';
+import EmailSourceList from './views/Emails/SourceList.vue';
 import store from './store/store';
 
 Vue.use(Router);
@@ -108,6 +112,26 @@ const router = new Router({
       name: 'eventimport',
       component: DataImport,
     },
+    {
+      path: '/users',
+      name: 'usersettings',
+      component: UserSettings,
+    },
+    {
+      path: '/user/:id',
+      name: 'useredit',
+      component: UserEdit,
+    },
+    {
+      path: '/emails',
+      name: 'emaillist',
+      component: EmailList,
+    },
+    {
+      path: '/emailsources',
+      name: 'emailsourcelist',
+      component: EmailSourceList,
+    },
   ],
 });
 
@@ -144,9 +168,15 @@ router.beforeEach((to, from, next) => {
           store.dispatch('check_logged_in').then(() => {
             store.dispatch('get_events').then(() => {
               next();
+            }).catch(() => {
+              store.commit('open_snackbar', 'Failed to retrieve events from server.');
             });
+          }).catch(() => {
+            store.commit('open_snackbar', 'Failed to check whether currently logged in.');
           });
         }
+      }).catch(() => {
+        store.commit('open_snackbar', 'Failed to verify uber authentication.');
       });
     } else {
       next();
@@ -176,6 +206,8 @@ router.beforeEach((to, from, next) => {
           next();
         });
       }
+    }).catch(() => {
+      store.commit('open_snackbar', 'Failed to check if currently logged in.');
     });
   }
 });
