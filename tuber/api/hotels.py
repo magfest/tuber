@@ -349,6 +349,28 @@ def hotel_room():
             return jsonify(success=True, hotel_rooms=res)
     if request.method == "POST":
         if check_permission("hotel_settings.write", event=request.json['event']):
+            room_blocks = db.session.query(HotelRoom).filter(HotelRoom.event == request.json['event']).all()
+            for i in room_blocks:
+                if [x for x in request.json['room_blocks'] if 'id' in x and x['id'] == i.id]:
+                    continue
+                #Need to add later
+                #for j in db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.room_night == i.id).all():
+                #    db.session.delete(i)
+                db.session.delete(i)
+                        
+            for i in request.json['hotel_rooms']:
+                room = None
+                if 'id' in i:
+                    room = db.session.query(HotelRoom).filter(HotelRoom.id == i['id']).one_or_none()
+                if not room:
+                    room = HotelRoom(
+                        name=request.json['name'], 
+                        description=request.json['description'], 
+                    )
+                db.session.add(room)
+            db.session.commit()
+
+
             if request.json['name']:
                 room = HotelRoom(
                     name=request.json['name'], 

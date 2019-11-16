@@ -10,7 +10,12 @@
       <div v-for="hotelRoom in hotel_rooms" :key="hotelRoom.id">
         <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
           <v-card-title>{{ hotelRoom.name }}</v-card-title>
-
+          <v-card-text>
+            {{ hotelRoom.description }}
+          </v-card-text>
+          <v-card-actions>
+            <v-btn @click="delete_hotel_room">Delete</v-btn>
+          </v-card-actions>
         </v-card>
         <br>
       </div>
@@ -151,7 +156,7 @@ export default {
     add_hotel_room() {
       const self = this;
       self.loading = true;
-      self.hotel_rooms.push(self.room_night);
+      self.hotel_rooms.push(self.hotel_room);
       self.post('/api/hotels/hotel_room', {
         event: self.event.id,
         hotel_rooms: self.hotel_rooms,
@@ -159,12 +164,16 @@ export default {
         self.loading = false;
         if (res.success) {
           self.hotel_room.name = '';
+          self.hotel_room.description = '';
           self.$store.commit('open_snackbar', 'Room Added.');
           self.$asyncComputed.hotel_rooms.update();
         } else {
           self.$store.commit('open_snackbar', `Failed to add Room: ${res.reason}`);
         }
       });
+    },
+    delete_hotel_room() {
+
     },
   },
 };
