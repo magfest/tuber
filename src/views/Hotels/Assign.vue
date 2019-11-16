@@ -14,6 +14,24 @@
         </v-card>
         <br>
       </div>
+      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+          <v-card-title>
+              Create new room
+          </v-card-title>
+          <v-card-text>
+            <v-form>
+              <v-text-field label="Name" v-model="hotel_room.name"></v-text-field>
+              <v-text-field label="Description" v-model="hotel_room.description"></v-text-field>
+              <v-checkbox label="Disable Autofill?" v-model="hotel_room.disable_autofill"></v-checkbox>
+              <!-- Room Block -->
+              <!-- Room Location -->
+              <v-btn type="submit" @click.prevent="add_hotel_room" hidden="true"></v-btn>
+            </v-form>
+        </v-card-text>
+        <v-card-actions>
+            <v-btn type="submit" @click.prevent="add_hotel_room">Add</v-btn>
+        </v-card-actions>
+      </v-card>
     </div>
   </div>
 </template>
@@ -30,7 +48,11 @@ export default {
   },
   data: () => ({
     loading: false,
-
+    hotel_room: {
+      name: '',
+      description: '',
+      disable_autofill: false,
+    },
   }),
   computed: {
     ...mapGetters([
@@ -128,6 +150,24 @@ export default {
   mounted() {
   },
   methods: {
+    add_hotel_room() {
+      const self = this;
+      self.loading = true;
+      self.hotel_rooms.push(self.room_night);
+      self.post('/api/hotels/hotel_room', {
+        event: self.event.id,
+        hotel_rooms: self.hotel_rooms,
+      }).then((res) => {
+        self.loading = false;
+        if (res.success) {
+          self.hotel_room.name = '';
+          self.$store.commit('open_snackbar', 'Room Added.');
+          self.$asyncComputed.hotel_rooms.update();
+        } else {
+          self.$store.commit('open_snackbar', `Failed to add Room: ${res.reason}`);
+        }
+      });
+    },
   },
 };
 </script>
