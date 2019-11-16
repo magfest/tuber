@@ -342,7 +342,6 @@ def hotel_room():
                     "id": rn.id,
                     "name": rn.name,
                     "description": rn.description,
-                    "disable_autofill": rn.disable_autofill,
                     "hotel_block": rn.hotel_block,
                     "hotel_location": rn.hotel_location,
 
@@ -351,7 +350,10 @@ def hotel_room():
     if request.method == "POST":
         if check_permission("hotel_settings.write", event=request.json['event']):
             if request.json['name']:
-                room = HotelRoom(name=request.json['name'], description=request.json['description'], disable_autofill=request.json['disable_autofill'])
+                room = HotelRoom(
+                    name=request.json['name'], 
+                    description=request.json['description'], 
+                )
                 resp = {"id": room.id, "name": room.name}
                 return jsonify({"success": True, "event": resp})
     return jsonify(success=False)

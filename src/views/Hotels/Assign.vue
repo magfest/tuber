@@ -22,7 +22,6 @@
             <v-form>
               <v-text-field label="Name" v-model="hotel_room.name"></v-text-field>
               <v-text-field label="Description" v-model="hotel_room.description"></v-text-field>
-              <v-checkbox label="Disable Autofill?" v-model="hotel_room.disable_autofill"></v-checkbox>
               <!-- Room Block -->
               <!-- Room Location -->
               <v-btn type="submit" @click.prevent="add_hotel_room" hidden="true"></v-btn>
@@ -51,7 +50,6 @@ export default {
     hotel_room: {
       name: '',
       description: '',
-      disable_autofill: false,
     },
   }),
   computed: {

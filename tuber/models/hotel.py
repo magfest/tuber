@@ -24,7 +24,6 @@ class HotelRoom(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=True)
     description = db.Column(db.String(256), nullable=True)
-    disable_autofill = db.Column(db.Boolean, nullable=False, default=True)
     hotel_block = db.Column(db.Integer, db.ForeignKey('hotel_room_block.id'), nullable=False)
     hotel_location = db.Column(db.Integer, db.ForeignKey('hotel_location.id'), nullable=False)
 
