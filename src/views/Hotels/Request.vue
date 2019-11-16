@@ -2,13 +2,13 @@
   <div>
     <div>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" v-if="badge === null">
+      <v-card max-width="1000" :raised="true" class="mx-auto" v-if="badge === null">
         <v-card-title>Staff Hotel Room Request Form</v-card-title>
         <v-card-text>
           <p>Your current user does not have a badge. You must have a badge assigned to request a staff hotel room.</p>
         </v-card-text>
       </v-card>
-      <v-card max-width="700" :raised="true" class="mx-auto" v-else-if="!confirmation" :loading="loading || (request === null)">
+      <v-card max-width="1000" :raised="true" class="mx-auto" v-else-if="!confirmation" :loading="loading || (request === null)">
         <v-card-title>Staff Hotel Room Request Form</v-card-title>
         <v-card-text>
           <p><b>You are filling out this form as {{ badge.first_name }} {{ badge.last_name }}.</b></p>
@@ -70,7 +70,7 @@
           </v-form>
         </v-card-text>
       </v-card>
-      <v-card max-width="700" :raised="true" class="mx-auto" v-else :loading="loading || (request === null)">
+      <v-card max-width="1000" :raised="true" class="mx-auto" v-else :loading="loading || (request === null)">
         <v-card-title>Room Request Confirmation</v-card-title>
         <v-card-text>
           <p>Your room request has been received successfully. You may return to this page at any time until the request deadline to make changes.</p>
@@ -151,6 +151,8 @@ export default {
             } else {
               resolve([]);
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to retrieve department membership.');
           });
         } else {
           resolve([]);
@@ -169,6 +171,8 @@ export default {
             } else {
               reject(Error('Failed to retrieve request'));
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to fetch your request.');
           });
         } else {
           resolve({});
@@ -185,6 +189,8 @@ export default {
             } else {
               resolve(null);
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to retrieve badge.');
           });
         } else if (self.event.id && self.user.id) {
           self.post('/api/user/badge', { event: self.event.id, user: self.user.id }).then((res) => {
@@ -193,6 +199,8 @@ export default {
             } else {
               resolve(null);
             }
+          }).catch(() => {
+            self.$store.commit('open_snackbar', 'Failed to retrieve badge.');
           });
         }
       });
@@ -226,6 +234,9 @@ export default {
           self.loading = false;
           self.$store.commit('open_snackbar', `Failed to submit hotel request: ${res.reason}`);
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to submit hotel request.');
+        self.loading = false;
       });
     },
   },

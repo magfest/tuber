@@ -234,7 +234,6 @@ def department_membership():
         return jsonify({"success": False})
     if check_permission("staff.search_names", event=request.json['event']):
         user = db.session.query(User).filter(User.id == request.json['user']).one()
-        print(user.id, event.id)
         badge = db.session.query(Badge).filter(Badge.user_id == user.id, Badge.event_id == event.id).one_or_none()
         if not badge:
             return jsonify({"success": False})
@@ -256,6 +255,34 @@ def hotel_statistics():
         num_requests = db.session.query(Badge, HotelRoomRequest).filter(Badge.id == HotelRoomRequest.badge, Badge.event_id == request.args['event']).count()
         return jsonify(success=True, num_badges=num_badges, num_requests=num_requests)
     return jsonify(success=False)
+
+@app.route("/api/hotels/all_requests", methods=["GET"])
+def hotel_all_requests():
+    if request.method == "GET":
+        if not check_permission("hotel_request.assign", event=request.args['event']):
+            return jsonify(success=False)
+        room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == request.args['event']).all()
+        room_night_ids = [x.id for x in room_nights]
+        requests = db.session.query(Badge, HotelRoomRequest).join(HotelRoomRequest, Badge.id == HotelRoomRequest.badge).all()
+        results = []
+        for req in requests:
+            badge, roomrequest = req
+            approved = db.session.query(RoomNightApproval).filter(RoomNightApproval.approved == True, RoomNightApproval.room_night.in_(room_night_ids)).all()
+            approved_room_nights = []
+            for i in approved:
+                if not i.room_night in approved_room_nights:
+                    approved_room_nights.append(i.room_night)
+            requested_roommates = db.session.query(HotelRoommateRequest.requested).filter(HotelRoommateRequest.requester == badge.id).all()
+            antirequested_roommates = db.session.query(HotelAntiRoommateRequest.requested).filter(HotelAntiRoommateRequest.requester == badge.id).all()
+            results.append({
+                "id": badge.id,
+                "name": "{} {}".format(badge.first_name, badge.last_name),
+                "justification": roomrequest.room_night_justification,
+                "room_nights": approved_room_nights,
+                "requested_roommates": requested_roommates,
+                "antirequested_roommates": antirequested_roommates
+            })
+        return jsonify(success=True, requests=results)
 
 @app.route("/api/hotels/requests", methods=["GET", "POST"])
 def hotel_requests():

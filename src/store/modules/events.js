@@ -19,6 +19,8 @@ const actions = {
       get('/api/events/list').then((response) => {
         commit('set_events', response.events);
         resolve();
+      }).catch(() => {
+        commit('open_snackbar', 'Failed to retrieve list of events.');
       });
     });
   },

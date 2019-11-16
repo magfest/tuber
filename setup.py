@@ -35,7 +35,10 @@ setup(
         'flask-talisman',
         'sentry-sdk[flask]',
         'redis',
-        'rq'
+        'rq',
+        'lupa',
+        'boto3',
+        'jinja2'
     ],
     setup_requires=[
         'py2app'

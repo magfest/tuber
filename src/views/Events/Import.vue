@@ -2,7 +2,7 @@
   <div>
     <div>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>Import Data</v-card-title>
         <v-card-text>
           <v-tabs>

@@ -2,7 +2,7 @@
   <div>
     <div>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>Room Night Settings</v-card-title>
         <v-card-text>
           <v-data-table show-select item-key="id" v-model="selected" :headers="room_nights_headers" :items="room_nights">
@@ -19,7 +19,7 @@
         </v-card-actions>
       </v-card>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
           <v-card-title>
               Create new room night
           </v-card-title>
@@ -178,6 +178,8 @@ export default {
               } else {
                 resolve([]);
               }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to retrieve hotel settings.');
             });
           } else {
             resolve([]);
@@ -248,6 +250,8 @@ export default {
         } else {
           self.$store.commit('open_snackbar', `Failed to add Room Night: ${res.reason}`);
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to update hotel settings.');
       });
     },
     delete_room_nights() {
@@ -267,6 +271,8 @@ export default {
           self.$store.commit('open_snackbar', 'Failed to delete Room Nights.');
           self.$asyncComputed.room_nights.update();
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to check update hotel settings.');
       });
     },
     add_room_block() {
