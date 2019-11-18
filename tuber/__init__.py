@@ -22,11 +22,17 @@ config = {
     "uber_api_url": "",
     "config": "/etc/tuber/tuber.json",
     "background_tasks": False,
+    "force_https": False,
 }
 
 for i in config.keys():
     if i.upper() in os.environ:
-        config[i] = os.environ[i.upper()]
+        if type(config[i]) is bool:
+            config[i] = os.environ[i.upper()].upper() == "TRUE"
+        elif type(config[i]) is int:
+            config[i] = int(os.environ[i.upper()])
+        else:
+            config[i] = os.environ[i.upper()]
 
 if os.path.isfile(config['config']):
     with open(config['config'], "r") as FILE:
@@ -55,7 +61,7 @@ if config['flask_env'] == "production":
         ]
     }
     
-    talisman = Talisman(app, content_security_policy=os.environ.get("CSP_DIRECTIVES", csp))
+    talisman = Talisman(app, content_security_policy=os.environ.get("CSP_DIRECTIVES", csp), force_https=config['force_https'])
 app.static_folder = config['static_path']
 
 if config['database_url'].startswith("sqlite://"):
