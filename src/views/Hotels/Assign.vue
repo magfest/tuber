@@ -78,6 +78,8 @@ export default {
               } else {
                 resolve([]);
               }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to get hotel rooms.');
             });
           } else {
             resolve([]);
@@ -199,6 +201,8 @@ export default {
         } else {
           self.$store.commit('open_snackbar', `Failed to add Room: ${res.reason}`);
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to add hotel room.');
       });
     },
     delete_hotel_room() {

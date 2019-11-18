@@ -276,7 +276,7 @@ export default {
           self.$asyncComputed.room_nights.update();
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Failed to check update hotel settings.');
+        self.$store.commit('open_snackbar', 'Failed to delete hotel room nights.');
       });
     },
     add_room_block() {
@@ -296,6 +296,8 @@ export default {
         } else {
           self.$store.commit('open_snackbar', `Failed to add Room Block: ${res.reason}`);
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to add hotel block.');
       });
     },
     delete_room_blocks() {
@@ -315,6 +317,8 @@ export default {
           self.$store.commit('open_snackbar', `Failed to delete Room Blocks: ${res.reason}`);
           self.$asyncComputed.room_blocks.update();
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to delete hotel room blocks.');
       });
     },
     add_room_location() {
@@ -334,6 +338,8 @@ export default {
         } else {
           self.$store.commit('open_snackbar', `Failed to add Room Location: ${res.reason}`);
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to add hotel room location.');
       });
     },
     delete_room_locations() {
@@ -353,6 +359,8 @@ export default {
           self.$store.commit('open_snackbar', `Failed to delete Room Location: ${res.reason}`);
           self.$asyncComputed.room_locations.update();
         }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Failed to delete hotel room location.');
       });
     },
   },
