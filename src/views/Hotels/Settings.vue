@@ -201,6 +201,8 @@ export default {
               } else {
                 resolve([]);
               }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to get hotel room blocks.');
             });
           } else {
             resolve([]);
@@ -222,6 +224,8 @@ export default {
               } else {
                 resolve([]);
               }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to get hotel room locations.');
             });
           } else {
             resolve([]);
