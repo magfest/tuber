@@ -263,25 +263,30 @@ def hotel_all_requests():
             return jsonify(success=False)
         room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == request.args['event']).all()
         room_night_ids = [x.id for x in room_nights]
-        requests = db.session.query(Badge, HotelRoomRequest).join(HotelRoomRequest, Badge.id == HotelRoomRequest.badge).all()
-        results = []
-        for req in requests:
-            badge, roomrequest = req
-            approved = db.session.query(RoomNightApproval).filter(RoomNightApproval.approved == True, RoomNightApproval.room_night.in_(room_night_ids)).all()
-            approved_room_nights = []
-            for i in approved:
-                if not i.room_night in approved_room_nights:
-                    approved_room_nights.append(i.room_night)
-            requested_roommates = db.session.query(HotelRoommateRequest.requested).filter(HotelRoommateRequest.requester == badge.id).all()
-            antirequested_roommates = db.session.query(HotelAntiRoommateRequest.requested).filter(HotelAntiRoommateRequest.requester == badge.id).all()
-            results.append({
+        requests = db.session.query(Badge, HotelRoomRequest).join(HotelRoomRequest, Badge.id == HotelRoomRequest.badge).filter(HotelRoomRequest.declined != True).all()
+        badges = [x[0].id for x in requests]
+        default_room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == request.args['event'], HotelRoomNight.restricted != True).all()
+        default_room_nights = [x.id for x in default_room_nights]
+        approvals = db.session.query(BadgeToRoomNight).join(RoomNightApproval, RoomNightApproval.room_night == BadgeToRoomNight.id).filter(BadgeToRoomNight.badge.in_(badges), RoomNightApproval.approved == True).all()
+        requested_roommates = db.session.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester.in_(badges)).all()
+        antirequested_roommates = db.session.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester.in_(badges)).all()
+        results = {}
+        for badge, req in requests:
+            results[badge.id] = {
                 "id": badge.id,
                 "name": "{} {}".format(badge.first_name, badge.last_name),
-                "justification": roomrequest.room_night_justification,
-                "room_nights": approved_room_nights,
-                "requested_roommates": requested_roommates,
-                "antirequested_roommates": antirequested_roommates
-            })
+                "justification": req.room_night_justification,
+                "room_nights": list(default_room_nights),
+                "requested_roommates": [],
+                "antirequested_roommates": []
+            }
+        for btrn in approvals:
+            if not btrn.room_night in results[btrn.badge]["room_nights"]:
+                results[btrn.badge]["room_nights"].append(btrn.room_night)
+        for req in requested_roommates:
+            results[req.requester]['requested_roommates'].append(req.requested)
+        for req in antirequested_roommates:
+            results[req.requester]['antirequested_roommates'].append(req.requested)
         return jsonify(success=True, requests=results)
 
 @app.route("/api/hotels/requests", methods=["GET", "POST"])

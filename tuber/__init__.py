@@ -16,7 +16,7 @@ config = {
     "static_path": os.path.abspath("../dist"),
     "migrations_path": "migrations",
     "database_url": "sqlite:////tmp/database.db",
-    #"database_url": "postgres://rqujlvztampfcp:18a6cc420692408975c78e1bdbdf386bc1ff44559a3ac9893141088c319ca08f@ec2-54-83-52-191.compute-1.amazonaws.com:5432/df1qv9c743ph6i",
+    #"database_url": "postgres://tuber:tuber@127.0.0.1:5432/tuber",
     "session_duration": 7200,
     "uber_api_token": "",
     "uber_api_url": "",
