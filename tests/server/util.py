@@ -6,6 +6,8 @@ import tuber.config
 fd, filename = tempfile.mkstemp()
 tuber.config.database_url = "sqlite:///" + filename
 import tuber
+tuber.init()
+tuber.migrate()
 
 @pytest.fixture
 def client():
