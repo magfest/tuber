@@ -27,7 +27,7 @@ setup(
     install_requires=[
         'requests',
         'Flask-SQLAlchemy',
-        'Flask-Migrate',
+        'alembic',
         'passlib',
         'flask',
         'gunicorn',

@@ -1,6 +1,5 @@
 from flask import Flask, g
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import upgrade, Migrate
 from flask_talisman import Talisman
 import tuber.config
 import json
@@ -10,10 +9,13 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
+import alembic
+from alembic.config import Config as AlembicConfig
 
 db = None
 app = None
 initialized = False
+alembic_config = None
 
 def init():
     global initialized
@@ -22,6 +24,7 @@ def init():
     initialized = True
     global db
     global app
+    global alembic_config
     if config.sentry_dsn:
         sentry_sdk.init(
             dsn=config.sentry_dsn,
@@ -60,22 +63,20 @@ def init():
     app.config['SQLALCHEMY_DATABASE_URI'] = config.database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    alembic_config = AlembicConfig(os.path.join(config.migrations_path, "alembic.ini"))
+
     db = SQLAlchemy(app)
     import tuber.csrf
     import tuber.models
     import tuber.static
     import tuber.api
+    
     if oneshot_db_create:
         # To avoid running migrations on sqlite dev databases just create the current
         # tables and stamp them as being up to date so that migrations won't run.
         # This should only run if there is not an existing db.
         db.create_all()
-        from alembic.config import Config
-        from alembic import command
-        alembic_cfg = Config(os.path.join(config.migrations_path, "alembic.ini"))
-        command.stamp(alembic_cfg, "head")
+        alembic.command.stamp(alembic_config, "head")
 
 def migrate():
-    Migrate(app, db)
-    with app.app_context():
-        upgrade()
+    alembic.command.upgrade(alembic_config, "head")
