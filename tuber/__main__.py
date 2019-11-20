@@ -1,4 +1,3 @@
-from tuber import app, config
 import argparse
 import tuber
 import json
@@ -18,14 +17,17 @@ parser.add_argument("-c", "--config", help="Path to the tuber config file")
 
 def main():
     args = parser.parse_args()
-    if os.path.isfile(args.config):
+    configfile = {}
+    if args.config and os.path.isfile(args.config):
         with open(args.config, "r") as FILE:
             configfile = json.loads(FILE.read())
-        config.update(configfile)
 
     for i in vars(args).keys():
         if getattr(args, i):
-            config[i] = getattr(args, i)
+            configfile[i] = getattr(args, i)
+    for i in configfile:
+        setattr(tuber.config, i, configfile[i])
 
-    tuber.init_db()
-    app.run(host='0.0.0.0', port=8080)
+    tuber.init()
+    tuber.migrate()
+    tuber.app.run(host='0.0.0.0', port=8080)

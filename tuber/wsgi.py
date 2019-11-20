@@ -1,4 +1,4 @@
-from tuber import app, config
 import tuber
-
-tuber.init_db()
+tuber.init()
+tuber.migrate()
+app = tuber.app

@@ -12,7 +12,7 @@ import csv
 import io
 
 headers = {
-    'X-Auth-Token': config['uber_api_token']
+    'X-Auth-Token': config.uber_api_token
 }
 
 def get_uber_csv(session, model, url):
@@ -131,7 +131,7 @@ def import_uber_staff():
     password = request.json['password']
     url = request.json['uber_url']
 
-    if config['background_tasks']:
+    if config.background_tasks:
         worker_queue = Queue(connection=worker_conn)
         worker_queue.enqueue(run_staff_import, email, password, url, event.id, job_timeout=1800)
     else:

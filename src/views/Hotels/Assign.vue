@@ -223,7 +223,6 @@ export default {
             }
           }
         }
-        console.log(self.edges);
       }
 
       function searchRequests(badges) {

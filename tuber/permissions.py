@@ -32,7 +32,7 @@ def get_user():
     if 'session' in request.cookies:
         session = db.session.query(Session).filter(Session.secret == request.cookies.get('session')).one_or_none()
         if session:
-            if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config['session_duration']):
+            if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config.session_duration):
                 session.last_active = datetime.datetime.now()
                 g.user = session.user
                 g.session = session.secret

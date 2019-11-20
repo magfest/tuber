@@ -9,7 +9,7 @@ import uuid
 import os
 
 headers = {
-    'X-Auth-Token': config['uber_api_token']
+    'X-Auth-Token': config.uber_api_token
 }
 
 @app.route("/api/hotels/staffer_auth", methods=["POST"])
@@ -22,7 +22,7 @@ def staffer_auth():
                 "full"
             ]
         }
-        resp = requests.post(config['uber_api_url'], headers=headers, json=req)
+        resp = requests.post(config.uber_api_url, headers=headers, json=req)
         if len(resp.json()['result']) == 0:
             return jsonify(success=False)
     except:
@@ -533,18 +533,18 @@ def hotel_room_location_settings():
 @app.route('/hotels/request_complete.png')
 def request_complete():
     if not 'id' in request.args:
-        resp = send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
+        resp = send_file(os.path.join(config.static_path, "checkbox_unchecked.png"))
         resp.cache_control.max_age = 10
         return resp
     id = request.args['id']
     badge = db.session.query(Badge).filter(Badge.uber_id == id).one_or_none()
     if not badge:
-        resp = send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
+        resp = send_file(os.path.join(config.static_path, "checkbox_unchecked.png"))
         resp.cache_control.max_age = 10
         return resp
     req = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
     if req:
-        return send_file(os.path.join(config['static_path'], "checkbox_checked.png"))
-    resp = send_file(os.path.join(config['static_path'], "checkbox_unchecked.png"))
+        return send_file(os.path.join(config.static_path, "checkbox_checked.png"))
+    resp = send_file(os.path.join(config.static_path, "checkbox_unchecked.png"))
     resp.cache_control.max_age = 10
     return resp
