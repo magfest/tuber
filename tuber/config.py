@@ -6,8 +6,8 @@ conf = {
     "flask_env": "development",
     "static_path": os.path.abspath("../dist"),
     "migrations_path": "migrations",
+    "alembic_ini": "alembic.ini",
     "database_url": "sqlite:////tmp/database.db",
-    #"database_url": "postgres://tuber:tuber@127.0.0.1:5432/tuber",
     "session_duration": 7200,
     "uber_api_token": "",
     "uber_api_url": "",
@@ -23,6 +23,7 @@ for i in conf.keys():
         environment[i] = os.environ[i.upper()]
 
 if os.path.isfile(conf['config']):
+    print("Reading from config file: {}".format(conf['config']))
     with open(conf['config'], "r") as FILE:
         configfile = json.loads(FILE.read())
     configfile.update(environment)
@@ -30,3 +31,4 @@ if os.path.isfile(conf['config']):
 
 for i in conf:
     vars()[i] = conf[i]
+    print("{}: {}".format(i, conf[i]))

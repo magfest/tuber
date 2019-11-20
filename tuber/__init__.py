@@ -1,7 +1,7 @@
 from flask import Flask, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_talisman import Talisman
-import tuber.config
+import tuber.config as config
 import json
 import sys
 import os
@@ -61,16 +61,17 @@ def init():
             oneshot_db_create = True
 
     app.config['SQLALCHEMY_DATABASE_URI'] = config.database_url
+    print("Connecting to database {}".format(config.database_url))
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    alembic_config = AlembicConfig(os.path.join(config.migrations_path, "alembic.ini"))
+    alembic_config = AlembicConfig(config.alembic_ini)
 
     db = SQLAlchemy(app)
     import tuber.csrf
     import tuber.models
     import tuber.static
     import tuber.api
-    
+
     if oneshot_db_create:
         # To avoid running migrations on sqlite dev databases just create the current
         # tables and stamp them as being up to date so that migrations won't run.

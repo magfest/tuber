@@ -270,15 +270,75 @@ def hotel_all_requests():
         approvals = db.session.query(BadgeToRoomNight).join(RoomNightApproval, RoomNightApproval.room_night == BadgeToRoomNight.id).filter(BadgeToRoomNight.badge.in_(badges), RoomNightApproval.approved == True).all()
         requested_roommates = db.session.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester.in_(badges)).all()
         antirequested_roommates = db.session.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester.in_(badges)).all()
+        department_membership = db.session.query(BadgeToDepartment).filter(BadgeToDepartment.badge.in_(badges)).all()
         results = {}
+        genders = {
+            "male": 0,
+            "guy": 0,
+            "bro": 0,
+            "boys": 0,
+            "males": 0,
+            "female": 1,
+            "females": 1,
+            "woman": 1,
+            "women": 1,
+            "he/him": 0,
+            "she/her": 1,
+            "m": 0,
+            "f": 1,
+        }
+        noise_levels = {
+            'Quiet - I am quiet, and prefer quiet.': 0,
+            "Moderate - I don't make a lot of noise.": 1,
+            "Loud - I'm ok if someone snores or I snore.": 2,
+        }
+        sleep_times = {
+            '8pm-10pm': 0,
+            '10pm-12am': 1,
+            '12am-2am': 2,
+            '2am-4am': 3,
+            '4am-6am': 4,
+            '6am-8am': 5,
+            '8am-10am': 6,
+            '10am-12pm': 7,
+            '12pm-2pm': 8,
+            '2pm-4pm': 9,
+            '4pm-6pm': 10,
+            '6pm-8pm': 11,
+        }
         for badge, req in requests:
+            notes = req.notes
+            preferred_gender = None
+            if req.preferred_gender:
+                if req.preferred_gender.lower().strip() in genders.keys():
+                    preferred_gender = genders[req.preferred_gender.lower().strip()]
+                elif "trans" in req.preferred_gender.lower():
+                    preferred_gender = 2
+                else:
+                    print("Unhandled gender preference: {}".format(req.preferred_gender))
+                    notes += "\nRequested to be roomed with ({}) gender.".format(req.preferred_gender)
+            noise_level = None
+            if req.noise_level in noise_levels:
+                noise_level = noise_levels[req.noise_level]
+            sleep_time = None
+            if req.sleep_time in sleep_times:
+                sleep_time = sleep_times[req.sleep_time]
             results[badge.id] = {
                 "id": badge.id,
                 "name": "{} {}".format(badge.first_name, badge.last_name),
                 "justification": req.room_night_justification,
                 "room_nights": list(default_room_nights),
+                "prefer_department": req.prefer_department,
+                "preferred_department": req.preferred_department,
+                "notes": notes,
+                "prefer_single_gender": req.prefer_single_gender,
+                "preferred_gender": preferred_gender,
+                "noise_level": noise_level,
+                "smoke_sensitive": req.smoke_sensitive,
+                "sleep_time": sleep_time,
                 "requested_roommates": [],
-                "antirequested_roommates": []
+                "antirequested_roommates": [],
+                "departments": []
             }
         for btrn in approvals:
             if not btrn.room_night in results[btrn.badge]["room_nights"]:
@@ -287,6 +347,8 @@ def hotel_all_requests():
             results[req.requester]['requested_roommates'].append(req.requested)
         for req in antirequested_roommates:
             results[req.requester]['antirequested_roommates'].append(req.requested)
+        for membership in department_membership:
+            results[membership.badge]['departments'].append(membership.department)
         return jsonify(success=True, requests=results)
 
 @app.route("/api/hotels/requests", methods=["GET", "POST"])
