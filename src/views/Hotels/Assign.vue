@@ -109,6 +109,13 @@ export default {
     },
     filtered_matches() {
       const results = [];
+      if (this.selected_roommates.length > 0) {
+        for (let i = 0; i < this.selected_roommates.length; i += 1) {
+          results.push({
+            id: this.selected_roommates[i],
+          });
+        }
+      }
       let search = '';
       if (this.roommate_search !== null) {
         search = this.roommate_search.toLowerCase();
@@ -118,16 +125,17 @@ export default {
           let found = false;
           const roomIDs = Object.keys(this.rooms);
           for (let j = 0; j < roomIDs.length; j += 1) {
-            console.log(this.rooms[roomIDs[j]].roommates, this.matches[i].id);
             if (this.rooms[roomIDs[j]].roommates.includes(this.matches[i].id)) {
               found = true;
               break;
             }
           }
           if (!found) {
-            results.push(this.matches[i]);
-            if (results.length >= 10) {
-              return results;
+            if (!this.selected_roommates.includes(this.matches[i].id)) {
+              results.push(this.matches[i]);
+              if (results.length >= 10) {
+                return results;
+              }
             }
           }
         }
