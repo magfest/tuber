@@ -36,7 +36,7 @@
         </v-card-actions>
       </v-card>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>Room Block Settings</v-card-title>
         <v-card-text>
           <v-data-table show-select item-key="id" v-model="selected" :headers="room_blocks_headers" :items="room_blocks">
@@ -49,7 +49,7 @@
         </v-card-actions>
       </v-card>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
           <v-card-title>
               Create new room block
           </v-card-title>
@@ -65,7 +65,7 @@
         </v-card-actions>
       </v-card>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>Room Location Settings</v-card-title>
         <v-card-text>
           <v-data-table show-select item-key="id" v-model="selected" :headers="room_locations_headers" :items="room_locations">
@@ -78,7 +78,7 @@
         </v-card-actions>
       </v-card>
       <br>
-      <v-card max-width="700" :raised="true" class="mx-auto" :loading="loading">
+      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
           <v-card-title>
               Create new room location
           </v-card-title>
