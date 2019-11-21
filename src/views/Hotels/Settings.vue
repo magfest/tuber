@@ -11,6 +11,11 @@
                 {{ item.restricted ? "check_box" : "check_box_outline_blank" }}
               </v-icon>
             </template>
+            <template v-slot:item.hidden="{ item }">
+              <v-icon>
+                {{ item.hidden ? "check_box" : "check_box_outline_blank" }}
+              </v-icon>
+            </template>
           </v-data-table>
           <br>
         </v-card-text>
@@ -28,6 +33,7 @@
                 <v-text-field label="Name" v-model="room_night.name"></v-text-field>
                 <v-checkbox label="Restricted" v-model="room_night.restricted"></v-checkbox>
                 <v-text-field label="Restriction Type" v-if="room_night.restricted" v-model="room_night.restriction_type"></v-text-field>
+                <v-checkbox label="Hidden" v-model="room_night.hidden"></v-checkbox>
                 <v-btn type="submit" @click.prevent="add_room_night" hidden="true"></v-btn>
             </v-form>
         </v-card-text>
@@ -114,6 +120,7 @@ export default {
       name: '',
       restricted: false,
       restriction_type: '',
+      hidden: false,
     },
     room_block: {
       name: '',
@@ -136,6 +143,11 @@ export default {
       {
         text: 'Restriction Type',
         value: 'restriction_type',
+      },
+      {
+        text: 'Hidden',
+        value: 'hidden',
+        align: 'center',
       },
     ],
     room_blocks_headers: [

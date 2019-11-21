@@ -85,7 +85,8 @@ def submit_hotels_request():
                     "name": room_night.name,
                     "checked": False,
                     "restricted": room_night.restricted,
-                    "restriction_type": room_night.restriction_type
+                    "restriction_type": room_night.restriction_type,
+                    "hidden": room_night.hidden
                 }
                 room_night_request = db.session.query(BadgeToRoomNight).filter(BadgeToRoomNight.badge == badge.id, BadgeToRoomNight.room_night == room_night.id).one_or_none()
                 if room_night_request:
@@ -115,7 +116,8 @@ def submit_hotels_request():
                     "name": room_night.name,
                     "checked": False,
                     "restricted": room_night.restricted,
-                    "restriction_type": room_night.restriction_type
+                    "restriction_type": room_night.restriction_type,
+                    "hidden": room_night.hidden
                 }
                 current_request['room_nights'].append(rn)
             return jsonify(success=True, request=current_request)
@@ -420,7 +422,8 @@ def hotel_room_nights():
                     "id": rn.id,
                     "name": rn.name,
                     "restricted": rn.restricted,
-                    "restriction_type": rn.restriction_type
+                    "restriction_type": rn.restriction_type,
+                    "hidden": rn.hidden
                 })
             return jsonify(success=True, room_nights=res)
     return jsonify(success=False)
@@ -485,7 +488,8 @@ def hotel_room_night_settings():
                     "id": rn.id,
                     "name": rn.name,
                     "restricted": rn.restricted,
-                    "restriction_type": rn.restriction_type
+                    "restriction_type": rn.restriction_type,
+                    "hidden": rn.hidden
                 })
             return jsonify(success=True, room_nights=res)
     if request.method == "POST":
@@ -511,6 +515,7 @@ def hotel_room_night_settings():
                     room_night.restriction_type = i['restriction_type']
                 else:
                     room_night.restriction_type = ""
+                room_night.hidden = i['hidden']
                 db.session.add(room_night)
             db.session.commit()
             return jsonify(success=True)

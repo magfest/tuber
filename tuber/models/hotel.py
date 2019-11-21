@@ -50,6 +50,7 @@ class HotelRoomNight(db.Model):
     event = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     restricted = db.Column(db.Boolean, nullable=False, default=False)
     restriction_type = db.Column(db.String(64), nullable=True)
+    hidden = db.Column(db.Boolean, nullable=False, default=False)
 
 class BadgeToRoomNight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
