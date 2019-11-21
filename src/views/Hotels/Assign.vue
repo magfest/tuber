@@ -496,8 +496,15 @@ export default {
             continue;
           }
           let weight = 1;
+          let antirequest = false;
           for (j = 0; j < badges.length; j += 1) {
-            weight *= self.edges[all[i]][badges[j]];
+            if (self.edges[all[i]][badges[j]] === 0) {
+              antirequest = true;
+            }
+            weight += self.edges[all[i]][badges[j]];
+          }
+          if (antirequest) {
+            weight = 0;
           }
           results.push({ id: parseInt(all[i], 10), weight });
         }
