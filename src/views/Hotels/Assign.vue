@@ -518,7 +518,7 @@ export default {
       } else if (event.key === 'a' && event.altKey) {
         this.assign_to_room(null, null, null);
       } else if (event.key === 'Delete') {
-        this.delete_room();
+        this.delete_room(this.selected_rooms);
       } else if (event.key === 'n' && event.altKey) {
         this.add_room();
       } else if ('!@#$%^&*()-+'.includes(event.key) && event.shiftKey && event.ctrlKey) {
@@ -543,7 +543,23 @@ export default {
         });
       }
     },
-    delete_room() {
+    delete_room(rooms) {
+      const self = this;
+      if (self.event.id) {
+        self.dodelete('/api/hotels/hotel_room', {
+          event: self.event.id,
+          rooms,
+        }).then((res) => {
+          if (res.success) {
+            self.$asyncComputed.rooms.update();
+            self.$asyncComputed.assignments.update();
+          } else {
+            self.$store.commit('open_snackbar', 'Failed to delete hotel room.');
+          }
+        }).catch(() => {
+          self.$store.commit('open_snackbar', 'Failed to delete hotel room.');
+        });
+      }
     },
     save_room(room) {
       const self = this;

@@ -484,6 +484,9 @@ def hotel_room():
         if not check_permission("hotel_settings.write", event=request.json['event']):
             return jsonify(success=False, reason="Permission Denied")
         for room in request.json['rooms']:
+            rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.hotel_room == room).all()
+            for rna in rnas:
+                db.session.delete(rna)
             rn = db.session.query(HotelRoom).filter(HotelRoom.id == room).one_or_none()
             if not rn:
                 return jsonify(success=False, reason="Could not find hotel room {}".format(room))
