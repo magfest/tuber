@@ -688,10 +688,10 @@ def hotel_room_assignments():
             return jsonify(success=True, room_assignments=res)
         if 'badges' in request.json:
             for badge in request.json['badges']:
-                rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.badge==badge, RoomNightAssignment.hotel_room==request.json['hotel_room']).all()
+                rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.badge==badge, RoomNightAssignment.hotel_room==int(request.json['hotel_room'])).all()
                 for rna in rnas:
                     db.session.delete(rna)
-                if request.json['room_nights']:
+                if type(request.json['room_nights']) is list:
                     for room_night in request.json['room_nights']:
                         rna = RoomNightAssignment(badge=badge, room_night=room_night, hotel_room=request.json['hotel_room'])
                         db.session.add(rna)

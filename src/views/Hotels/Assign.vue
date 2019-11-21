@@ -24,12 +24,15 @@
         <v-card-title class="headline grey lighten-2" primary-title>Edit {{ active_roommate.name }}</v-card-title>
         <v-card-text>
           <v-form>
+            <router-link :to="{name: 'hotelsrequestview', params: {badge: active_roommate.id}}">
+              Edit {{ active_roommate.name }} Here (Real dialog pending...)
+            </router-link>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn left @click="open_roommate_modal = false">Close</v-btn>
-          <v-btn color="primary" text @click="save_roommate(active_roommate)">Save</v-btn>
+          <v-btn color="primary" disabled="true" text @click="save_roommate(active_roommate)">Save</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -59,7 +62,7 @@
             <p>{{ room.notes }}</p>
             <v-card v-for="(nights, roommate) in roommates[room.id]" :key="roommate" @click.stop="select_roommate(roommate)" :color="selected_roommates.includes(roommate.toString()) ? '#BBDEFB' : ''">
               <v-card-text v-if="requests.hasOwnProperty(roommate)">
-                <v-icon @click.stop.prevent="roommate_modal(requests[roommate])">edit</v-icon>{{ requests[roommate].name }} <span v-for="night in nights" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
+                <v-icon @click.stop.prevent="roommate_modal(requests[roommate])">edit</v-icon><v-icon @click.stop.prevent="assign_to_room([requests[roommate].id], room.id, [])">delete</v-icon>{{ requests[roommate].name }} <span v-for="night in nights" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
               </v-card-text>
             </v-card>
           </v-card-text>
@@ -561,6 +564,28 @@ export default {
           }
         }).catch(() => {
           self.$store.commit('open_snackbar', 'Failed to save hotel room.');
+          self.loading = false;
+        });
+      }
+    },
+    save_roommate(roommate) {
+      const self = this;
+      self.loading = true;
+      if (self.event.id) {
+        self.post('/api/hotels/roommate', {
+          event: self.event.id,
+          roommates: [roommate],
+        }).then((res) => {
+          if (res.success) {
+            self.loading = false;
+            self.open_roommate_modal = false;
+            self.$store.commit('open_snackbar', 'Request saved successfully.');
+          } else {
+            self.$store.commit('open_snackbar', 'Failed to save request.');
+            self.loading = false;
+          }
+        }).catch(() => {
+          self.$store.commit('open_snackbar', 'Failed to save request.');
           self.loading = false;
         });
       }
