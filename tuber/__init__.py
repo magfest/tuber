@@ -50,7 +50,7 @@ def init():
                     'blob:',
                 ],
                 'img-src': [
-                    'data:',
+                    'https:',
                 ],
             }
         
