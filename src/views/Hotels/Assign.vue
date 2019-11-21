@@ -72,7 +72,7 @@
         <div style="position: fixed; width: 275px">
           <v-card>
             <v-card-text>
-              <v-btn left @click.self="add_room()">Add Room</v-btn>
+              <v-btn left @click="add_room()">Add Room</v-btn>
             </v-card-text>
           </v-card>
           <v-card>
