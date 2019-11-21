@@ -45,7 +45,13 @@ def init():
                 'font-src': [
                     'fonts.gstatic.com',
                     'use.fontawesome.com',
-                ]
+                ],
+                'worker-src': [
+                    'blob:',
+                ],
+                'img-src': [
+                    'data:',
+                ],
             }
         
         talisman = Talisman(app, content_security_policy=csp)

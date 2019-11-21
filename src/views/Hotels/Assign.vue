@@ -32,7 +32,7 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn left @click="open_roommate_modal = false">Close</v-btn>
-          <v-btn color="primary" disabled="true" text @click="save_roommate(active_roommate)">Save</v-btn>
+          <v-btn color="primary" :disabled="true" text @click="save_roommate(active_roommate)">Save</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -76,7 +76,7 @@
               <v-text-field dense clearable label="Search for People" append-icon="search" v-model="roommate_search"></v-text-field>
               <v-card v-for="match in filtered_matches" :key="match.id" @click="select_roommate(match.id)" :color="selected_roommates.includes(match.id) ? '#BBDEFB' : ''">
                 <v-card-text v-if="requests.hasOwnProperty(match.id)">
-                  <v-icon @click.stop.prevent="roommate_modal(requests[match.id])">edit</v-icon>{{ requests[match.id].name }}
+                  <v-icon @click.stop.prevent="roommate_modal(requests[match.id])">edit</v-icon>{{ requests[match.id].name }} {{ match.weight ? Math.round(match.weight) : "" }}
                 </v-card-text>
               </v-card>
             </v-card-text>
@@ -420,8 +420,11 @@ export default {
               const b = requests[idb];
               const nightsb = b.room_nights;
               const differentNights = nightsa.filter(x => !nightsb.includes(x)).concat(nightsb.filter(x => !nightsa.includes(x)));
+
               if (differentNights.length > 0) {
                 edge -= (weights.room_nights * differentNights.length);
+              } else {
+                edge += weights.room_nights;
               }
 
               if (a.requested_roommates.includes(idb) && b.requested_roommates.includes(ida)) {
