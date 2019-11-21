@@ -23,8 +23,8 @@ class HotelRoomBlock(db.Model):
 class HotelRoom(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=True)
-    description = db.Column(db.String(256), nullable=True)
-    disable_autofill = db.Column(db.Boolean, nullable=False, default=True)
+    notes = db.Column(db.String(512), nullable=True)
+    messages = db.Column(db.String(512), nullable=True)
     hotel_block = db.Column(db.Integer, db.ForeignKey('hotel_room_block.id'), nullable=False)
     hotel_location = db.Column(db.Integer, db.ForeignKey('hotel_location.id'), nullable=False)
 
@@ -42,6 +42,7 @@ class HotelLocation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(32), nullable=False)
     address = db.Column(db.String(128), nullable=False)
+    event = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
 
 class HotelRoomNight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -49,15 +50,22 @@ class HotelRoomNight(db.Model):
     event = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     restricted = db.Column(db.Boolean, nullable=False, default=False)
     restriction_type = db.Column(db.String(64), nullable=True)
+    hidden = db.Column(db.Boolean, nullable=False, default=False)
 
-class BadgeToRoomNight(db.Model):
+class RoomNightRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
+    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
     requested = db.Column(db.Boolean)
     room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
 
+class RoomNightAssignment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
+    room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
+    hotel_room = db.Column(db.Integer, db.ForeignKey('hotel_room.id'))
+
 class RoomNightApproval(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    room_night = db.Column(db.Integer, db.ForeignKey('badge_to_room_night.id'), nullable=False)
+    room_night = db.Column(db.Integer, db.ForeignKey('room_night_request.id'), nullable=False)
     department = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
     approved = db.Column(db.Boolean, nullable=False)

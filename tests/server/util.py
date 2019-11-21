@@ -1,11 +1,13 @@
 import tempfile
 import sqlite3
 import pytest
-import tuber
+import tuber.config
 
 fd, filename = tempfile.mkstemp()
-tuber.app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///" + filename
-tuber.init_db()
+tuber.config.database_url = "sqlite:///" + filename
+import tuber
+tuber.init()
+tuber.migrate()
 
 @pytest.fixture
 def client():

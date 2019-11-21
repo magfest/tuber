@@ -1,7 +1,7 @@
 from flask import Flask, g
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from flask_talisman import Talisman
+import tuber.config as config
 import json
 import sys
 import os
@@ -9,78 +9,75 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
+import alembic
+from alembic.config import Config as AlembicConfig
 
-config = {
-    "verbose": False,
-    "flask_env": "development",
-    "static_path": os.path.abspath("../dist"),
-    "migrations_path": "migrations",
-    "database_url": "sqlite:////tmp/database.db",
-    #"database_url": "postgres://rqujlvztampfcp:18a6cc420692408975c78e1bdbdf386bc1ff44559a3ac9893141088c319ca08f@ec2-54-83-52-191.compute-1.amazonaws.com:5432/df1qv9c743ph6i",
-    "session_duration": 7200,
-    "uber_api_token": "",
-    "uber_api_url": "",
-    "config": "/etc/tuber/tuber.json",
-    "background_tasks": False,
-    "force_https": False,
-}
+db = None
+app = None
+initialized = False
+alembic_config = None
 
-for i in config.keys():
-    if i.upper() in os.environ:
-        if type(config[i]) is bool:
-            config[i] = os.environ[i.upper()].upper() == "TRUE"
-        elif type(config[i]) is int:
-            config[i] = int(os.environ[i.upper()])
-        else:
-            config[i] = os.environ[i.upper()]
-
-if os.path.isfile(config['config']):
-    with open(config['config'], "r") as FILE:
-        configfile = json.loads(FILE.read())
-    configfile.update(config)
-    config = configfile
-
-if 'SENTRY_DSN' in os.environ:
-    sentry_sdk.init(
-        dsn=os.environ['SENTRY_DSN'],
-        integrations=[FlaskIntegration(), SqlalchemyIntegration(), RedisIntegration()]
-    )
-
-app = Flask(__name__)
-if config['flask_env'] == "production":
-    csp = {
-        'default-src': '\'self\'',
-        'style-src': [
-            '\'unsafe-inline\' \'self\'',
-            'fonts.googleapis.com',
-            'use.fontawesome.com',
-        ],
-        'font-src': [
-            'fonts.gstatic.com',
-            'use.fontawesome.com',
-        ]
-    }
-    
-    talisman = Talisman(app, content_security_policy=os.environ.get("CSP_DIRECTIVES", csp), force_https=config['force_https'])
-app.static_folder = config['static_path']
-
-if config['database_url'].startswith("sqlite://"):
-    path = config['database_url'].split("sqlite://")[1]
-    if not os.path.isabs(path):
-        config['database_url'] = "sqlite://" + os.path.join(os.path.dirname(__file__), "../../", path)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = config['database_url']
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-def init_db():
+def init():
+    global initialized
+    if initialized:
+        return
+    initialized = True
     global db
+    global app
+    global alembic_config
+    if config.sentry_dsn:
+        sentry_sdk.init(
+            dsn=config.sentry_dsn,
+            integrations=[FlaskIntegration(), SqlalchemyIntegration(), RedisIntegration()]
+        )
 
+    app = Flask(__name__)
+    if config.flask_env == "production":
+        csp = config.csp_directives
+        if not csp:
+            csp = {
+                'default-src': '\'self\'',
+                'style-src': [
+                    '\'unsafe-inline\' \'self\'',
+                    'fonts.googleapis.com',
+                    'use.fontawesome.com',
+                ],
+                'font-src': [
+                    'fonts.gstatic.com',
+                    'use.fontawesome.com',
+                ]
+            }
+        
+        talisman = Talisman(app, content_security_policy=csp)
+    app.static_folder = config.static_path
+
+    oneshot_db_create = False
+    if config.database_url.startswith("sqlite://"):
+        db_path = config.database_url.split("sqlite://")[1]
+        if not os.path.isabs(db_path):
+            db_path = os.path.join(os.path.dirname(__file__), "../../", db_path)
+            config.database_url = "sqlite://" + db_path
+        if not os.path.exists(db_path):
+            oneshot_db_create = True
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = config.database_url
+    print("Connecting to database {}".format(config.database_url))
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    alembic_config = AlembicConfig(config.alembic_ini)
+
+    db = SQLAlchemy(app)
     import tuber.csrf
     import tuber.models
     import tuber.static
     import tuber.api
-    
-    db.create_all()
-    db.session.commit()
-    Migrate(app, db)
+
+    if oneshot_db_create:
+        # To avoid running migrations on sqlite dev databases just create the current
+        # tables and stamp them as being up to date so that migrations won't run.
+        # This should only run if there is not an existing db.
+        db.create_all()
+        alembic.command.stamp(alembic_config, "head")
+
+def migrate():
+    alembic.command.upgrade(alembic_config, "head")

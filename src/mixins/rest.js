@@ -27,6 +27,29 @@ function post(url, data) {
   return promise;
 }
 
+function dodelete(url, data) {
+  if (data === undefined) {
+    data = {};
+  }
+  const promise = new Promise(((resolve, reject) => {
+    data.csrf_token = window.$cookies.get('csrf_token');
+    fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+      credentials: 'include',
+    }).then(json).then((data) => {
+      resolve(data);
+    }).catch((error) => {
+      reject(error);
+    });
+  }));
+  return promise;
+}
+
 function get(url, data) {
   if (data === undefined) {
     data = {};
@@ -51,6 +74,6 @@ function get(url, data) {
   return promise;
 }
 
-Vue.mixin({ methods: { post, get } });
+Vue.mixin({ methods: { post, get, dodelete } });
 
-export { post, get };
+export { post, get, dodelete };

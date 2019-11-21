@@ -6,7 +6,6 @@ tuber.json
 database.db
 build
 dist
-migrations
 
 __pycache__/
 *.py[cod]
