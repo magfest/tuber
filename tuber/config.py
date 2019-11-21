@@ -31,8 +31,6 @@ if os.path.isfile(conf['config']):
 else:
     conf.update(environment)
 
-print("CONFIG: {}".format(conf['flask_env']))
-
 for i in conf:
     vars()[i] = conf[i]
     print("{}: {}".format(i, conf[i]))
