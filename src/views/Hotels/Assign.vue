@@ -72,21 +72,15 @@
         <div style="position: fixed; width: 275px">
           <v-card>
             <v-card-text>
-              <v-btn left @click="add_room()">Add Room</v-btn>
-            </v-card-text>
-          </v-card>
-          <v-card>
-            <v-card-title>Search</v-card-title>
-            <v-card-text>
               <v-text-field dense clearable label="Search for People" append-icon="search" v-model="roommate_search"></v-text-field>
               <v-card v-for="match in filtered_matches" :key="match.id" @click="select_roommate(match.id)" :color="selected_roommates.includes(match.id) ? '#BBDEFB' : ''">
-                <v-card-text v-if="requests.hasOwnProperty(match.id)">
-                  <v-icon @click.stop.prevent="roommate_modal(requests[match.id])">edit</v-icon>{{ requests[match.id].name }} {{ match.weight ? Math.round(match.weight) : "" }}
+                <v-card-text class="pa-1" v-if="requests.hasOwnProperty(match.id)">
+                  {{ requests[match.id].name }} {{ match.weight ? "("+Math.round(match.weight)+")" : "" }} <br> <v-icon @click.stop.prevent="roommate_modal(requests[match.id])">edit</v-icon><span v-for="night in [...requests[match.id].room_nights].sort()" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
                 </v-card-text>
               </v-card>
             </v-card-text>
             <v-card-actions>
-              <v-btn :disabled="selected_rooms.length !== 1 || selected_roommates.length === 0" @click="assign_to_room(null, null, null)">Assign</v-btn>
+              <v-btn left @click="add_room()">Add Room</v-btn><v-btn :disabled="selected_rooms.length !== 1 || selected_roommates.length === 0" @click="assign_to_room(null, null, null)">Assign</v-btn>
             </v-card-actions>
           </v-card>
         </div>
