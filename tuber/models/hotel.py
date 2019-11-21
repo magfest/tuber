@@ -23,7 +23,8 @@ class HotelRoomBlock(db.Model):
 class HotelRoom(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=True)
-    description = db.Column(db.String(256), nullable=True)
+    notes = db.Column(db.String(512), nullable=True)
+    messages = db.Column(db.String(512), nullable=True)
     hotel_block = db.Column(db.Integer, db.ForeignKey('hotel_room_block.id'), nullable=False)
     hotel_location = db.Column(db.Integer, db.ForeignKey('hotel_location.id'), nullable=False)
 
@@ -52,7 +53,7 @@ class HotelRoomNight(db.Model):
 
 class BadgeToRoomNight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
+    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
     requested = db.Column(db.Boolean)
     room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
     hotel_room = db.Column(db.Integer, db.ForeignKey('hotel_room.id'))
