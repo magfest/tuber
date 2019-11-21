@@ -22,14 +22,13 @@ for i in conf.keys():
     if i.upper() in os.environ:
         environment[i] = os.environ[i.upper()]
 
+conf.update(environment)
 if os.path.isfile(conf['config']):
     print("Reading from config file: {}".format(conf['config']))
     with open(conf['config'], "r") as FILE:
         configfile = json.loads(FILE.read())
     configfile.update(environment)
     conf.update(configfile)
-else:
-    conf.update(environment)
 
 for i in conf:
     vars()[i] = conf[i]
