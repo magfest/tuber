@@ -55,6 +55,7 @@ class BadgeToRoomNight(db.Model):
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     requested = db.Column(db.Boolean)
     room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
+    hotel_room = db.Column(db.Integer, db.ForeignKey('hotel_room.id'))
 
 class RoomNightApproval(db.Model):
     id = db.Column(db.Integer, primary_key=True)
