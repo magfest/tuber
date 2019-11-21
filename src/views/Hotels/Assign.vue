@@ -1,50 +1,87 @@
 <template>
   <v-container>
+    <v-dialog v-model="open_room_modal" width="700">
+      <v-card :loading="loading">
+        <v-card-title class="headline grey lighten-2" primary-title>Edit {{ active_room.name ? active_room.name : "Room " + active_room.id }}</v-card-title>
+        <v-card-text>
+          <v-form>
+            <v-text-field label="Name" v-model="active_room.name"></v-text-field>
+            <v-text-field label="Notes" v-model="active_room.notes"></v-text-field>
+            <v-text-field label="Messages" v-model="active_room.messages"></v-text-field>
+            <v-select label="Hotel Block" :items="room_blocks" item-value="id" item-text="name" v-model="active_room.hotel_block"></v-select>
+            <v-select label="Hotel Location" :items="room_locations" item-value="id" item-text="name" v-model="active_room.hotel_location"></v-select>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn left @click="open_room_modal = false">Close</v-btn>
+          <v-btn color="primary" text @click="save_room(active_room)">Save</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-dialog v-model="open_roommate_modal" width="700">
+      <v-card :loading="loading">
+        <v-card-title class="headline grey lighten-2" primary-title>Edit {{ active_roommate.name }}</v-card-title>
+        <v-card-text>
+          <v-form>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn left @click="open_roommate_modal = false">Close</v-btn>
+          <v-btn color="primary" text @click="save_roommate(active_roommate)">Save</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
     <v-row>
       <v-col cols=3>
-        <v-card class="mb-2">
-          <v-card-title>Room Filters</v-card-title>
-          <v-card-text>
-            Hello
-          </v-card-text>
-        </v-card>
-        <v-card>
-          <v-card-title>Weights</v-card-title>
-          <v-card-text>
-            <div v-for="(val, key) in weights" :key="key">
-              <v-slider :label="key" dense v-model="weights[key]" min="0" max="10" step="0.1"></v-slider>
-            </div>
-          </v-card-text>
-        </v-card>
+        <div style="position: fixed; width: 275px">
+          <v-card class="mb-2">
+            <v-card-title>Room Filters</v-card-title>
+            <v-card-text>
+              <v-checkbox v-model="hide_completed" label="Hide Completed"></v-checkbox>
+            </v-card-text>
+          </v-card>
+          <v-card>
+            <v-card-title>Weights</v-card-title>
+            <v-card-text>
+              <div v-for="(val, key) in weights" :key="key">
+                <v-slider :label="key" dense v-model="weights[key]" min="0" max="10" step="0.1"></v-slider>
+              </div>
+            </v-card-text>
+          </v-card>
+        </div>
       </v-col>
       <v-col cols=6>
-        <v-card class="mb-2" v-for="(room, room_id) in rooms" :key="room_id" @click="select_room($event, room_id)" :color="selected_rooms.includes(room_id) ? 'accent' : ''">
-          <v-card-title>Room {{ room_id }}</v-card-title>
+        <v-card class="mb-2" v-for="room in filtered_rooms" :key="room.id" :color="selected_rooms.includes(room.id.toString()) ? '#BBDEFB' : ''">
+          <v-card-title @click.self="select_room($event, room.id)"><v-icon @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" v-model="completed_rooms[room.id]"></v-checkbox></v-card-title>
           <v-card-text>
-            <v-text-field dense label="Room Notes" v-model="room.notes"></v-text-field>
-            <v-card v-for="roommate in room.roommates" :key="roommate" @click.stop="select_roommate(roommate)" :color="selected_roommates.includes(roommate) ? 'accent' : ''">
+            <p>{{ room.notes }}</p>
+            <v-card v-for="(nights, roommate) in roommates[room.id]" :key="roommate" @click.stop="select_roommate(roommate)" :color="selected_roommates.includes(roommate.toString()) ? '#BBDEFB' : ''">
               <v-card-text v-if="requests.hasOwnProperty(roommate)">
-                {{ requests[roommate].name }}
+                <v-icon @click.stop.prevent="roommate_modal(requests[roommate])">edit</v-icon>{{ requests[roommate].name }} <span v-for="night in nights" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
               </v-card-text>
             </v-card>
           </v-card-text>
         </v-card>
       </v-col>
       <v-col cols=3>
-        <v-card>
-          <v-card-title>Search</v-card-title>
-          <v-card-text>
-            <v-text-field dense clearable label="Search for People" append-icon="search" v-model="roommate_search"></v-text-field>
-            <v-card v-for="match in filtered_matches" :key="match.id" @click="select_roommate(match.id)" :color="selected_roommates.includes(match.id) ? 'accent' : ''">
-              <v-card-text v-if="requests.hasOwnProperty(match.id)">
-                {{ requests[match.id].name }}
-              </v-card-text>
-            </v-card>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn :disabled="selected_rooms.length !== 1 || selected_roommates.length === 0" @click="assign_to_room">Assign</v-btn>
-          </v-card-actions>
-        </v-card>
+        <div style="position: fixed; width: 275px">
+          <v-card>
+            <v-card-title>Search</v-card-title>
+            <v-card-text>
+              <v-text-field dense clearable label="Search for People" append-icon="search" v-model="roommate_search"></v-text-field>
+              <v-card v-for="match in filtered_matches" :key="match.id" @click="select_roommate(match.id)" :color="selected_roommates.includes(match.id) ? '#BBDEFB' : ''">
+                <v-card-text v-if="requests.hasOwnProperty(match.id)">
+                  <v-icon @click.stop.prevent="roommate_modal(requests[match.id])">edit</v-icon>{{ requests[match.id].name }}
+                </v-card-text>
+              </v-card>
+            </v-card-text>
+            <v-card-actions>
+              <v-btn :disabled="selected_rooms.length !== 1 || selected_roommates.length === 0" @click="assign_to_room(null, null, null)">Assign</v-btn>
+            </v-card-actions>
+          </v-card>
+        </div>
       </v-col>
     </v-row>
   </v-container>
@@ -61,6 +98,12 @@ export default {
   components: {
   },
   data: () => ({
+    active_room: {},
+    open_room_modal: false,
+    active_roommate: {},
+    open_roommate_modal: false,
+    hide_completed: true,
+    completed_rooms: {},
     hotkey_listener: null,
     selected_roommates: [],
     selected_rooms: [],
@@ -79,26 +122,6 @@ export default {
       smoke: 1.0,
       sleep_time: 1.0,
     },
-    rooms: {
-      1: {
-        roommates: [
-          2496,
-        ],
-        notes: 'This needs to be an atrium room.',
-      },
-      2: {
-        roommates: [],
-        notes: '',
-      },
-      3: {
-        roommates: [],
-        notes: '',
-      },
-      4: {
-        roommates: [],
-        notes: '',
-      },
-    },
     roommate_search: '',
   }),
   computed: {
@@ -106,14 +129,37 @@ export default {
       'event',
       'user',
     ]),
+    roommates() {
+      const rooms = {};
+      const badges = Object.keys(this.assignments);
+      for (let i = 0; i < badges.length; i += 1) {
+        const roomNightIDs = Object.keys(this.assignments[badges[i]]);
+        for (let j = 0; j < roomNightIDs.length; j += 1) {
+          const assignedRooms = this.assignments[badges[i]][roomNightIDs[j]];
+          for (let k = 0; k < assignedRooms.length; k += 1) {
+            if (!Object.prototype.hasOwnProperty.call(rooms, assignedRooms[k])) {
+              rooms[assignedRooms[k]] = {};
+            }
+            if (!Object.prototype.hasOwnProperty.call(rooms[assignedRooms[k]], badges[i])) {
+              rooms[assignedRooms[k]][badges[i]] = [];
+            }
+            rooms[assignedRooms[k]][badges[i]].push(roomNightIDs[j]);
+          }
+        }
+      }
+      return rooms;
+    },
     prospective_roommates() {
+      let roommates = [];
       if (this.selected_rooms.length === 1) {
-        return this.rooms[this.selected_rooms].roommates;
+        if (Object.prototype.hasOwnProperty.call(this.roommates, this.selected_rooms[0])) {
+          roommates = Object.keys(this.roommates[this.selected_rooms[0]]);
+        }
       }
       if (this.selected_roommates.length > 0) {
-        return this.selected_roommates;
+        roommates.push(...this.selected_roommates);
       }
-      return [];
+      return roommates;
     },
     filtered_matches() {
       const results = [];
@@ -131,11 +177,14 @@ export default {
       for (let i = 0; i < this.matches.length; i += 1) {
         if (this.requests[this.matches[i].id].name.toLowerCase().includes(search)) {
           let found = false;
-          const roomIDs = Object.keys(this.rooms);
-          for (let j = 0; j < roomIDs.length; j += 1) {
-            if (this.rooms[roomIDs[j]].roommates.includes(this.matches[i].id)) {
-              found = true;
-              break;
+
+          if (Object.prototype.hasOwnProperty.call(this.assignments, this.matches[i].id)) {
+            const nightIDs = Object.keys(this.assignments[this.matches[i].id]);
+            for (let j = 0; j < nightIDs.length; j += 1) {
+              if (this.assignments[this.matches[i].id][nightIDs[j]].length > 0) {
+                found = true;
+                break;
+              }
             }
           }
           if (!found) {
@@ -149,6 +198,19 @@ export default {
         }
       }
       return results;
+    },
+    filtered_rooms() {
+      const rooms = [];
+      for (let i = 0; i < this.rooms.length; i += 1) {
+        if (Object.prototype.hasOwnProperty.call(this.completed_rooms, this.rooms[i].id)) {
+          if (this.completed_rooms[this.rooms[i].id] && this.hide_completed) {
+            continue;
+          }
+        }
+        rooms.push(this.rooms[i]);
+      }
+      rooms.sort((a, b) => ((a.id > b.id) ? 1 : -1));
+      return rooms;
     },
   },
   asyncComputed: {
@@ -180,14 +242,13 @@ export default {
       },
       default: [],
     },
-    hotel_rooms: {
+    rooms: {
       get() {
         const self = this;
         return new Promise((resolve) => {
-          if (self.event.id && self.user.id) {
+          if (self.event.id) {
             self.get('/api/hotels/hotel_room', {
               event: self.event.id,
-              user: self.user.id,
             }).then((res) => {
               if (res.success) {
                 resolve(res.hotel_rooms);
@@ -213,19 +274,23 @@ export default {
               event: self.event.id,
             }).then((res) => {
               if (res.success) {
-                resolve(res.room_nights);
+                const rn = {};
+                for (let i = 0; i < res.room_nights.length; i += 1) {
+                  rn[res.room_nights[i].id] = res.room_nights[i];
+                }
+                resolve(rn);
               } else {
-                resolve([]);
+                resolve({});
               }
             }).catch(() => {
               self.$store.commit('open_snackbar', 'Failed to get room nights.');
             });
           } else {
-            resolve([]);
+            resolve({});
           }
         });
       },
-      default: [],
+      default: {},
     },
     room_blocks: {
       get() {
@@ -289,6 +354,30 @@ export default {
               }
             }).catch(() => {
               self.$store.commit('open_snackbar', 'Failed to load requests.');
+            });
+          } else {
+            resolve({});
+          }
+        });
+      },
+      default: {},
+    },
+    assignments: {
+      get() {
+        const self = this;
+        return new Promise((resolve) => {
+          if (self.event.id) {
+            self.get('/api/hotels/room_assignments', {
+              event: self.event.id,
+            }).then((response) => {
+              if (response.success) {
+                resolve(response.room_assignments);
+              } else {
+                self.$store.commit('open_snackbar', 'Failed to load assignments.');
+                resolve({});
+              }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to load assignments.');
             });
           } else {
             resolve({});
@@ -424,7 +513,7 @@ export default {
         this.selected_roommates = [];
         this.selected_rooms = [];
       } else if (event.key === 'a' && event.altKey) {
-        this.assign_to_room();
+        this.assign_to_room(null, null, null);
       } else if (event.key === 'Delete') {
         this.delete_room();
       } else if (event.key === 'n' && event.altKey) {
@@ -435,14 +524,46 @@ export default {
       }
     },
     add_room() {
-      this.$set(this.rooms, 10, { roommates: [] });
-      this.select_room(null, 10);
+      const self = this;
+      if (self.event.id) {
+        self.post('/api/hotels/hotel_room', {
+          event: self.event.id,
+        }).then((res) => {
+          if (res.success) {
+            self.$asyncComputed.rooms.update();
+            self.select_room(null, res.room.id);
+          } else {
+            self.$store.commit('open_snackbar', 'Failed to create hotel room.');
+          }
+        }).catch(() => {
+          self.$store.commit('open_snackbar', 'Failed to create hotel room.');
+        });
+      }
     },
     delete_room() {
-      for (let i = 0; i < this.selected_rooms.length; i += 1) {
-        delete this.rooms[this.selected_rooms[i]];
+    },
+    save_room(room) {
+      const self = this;
+      self.loading = true;
+      if (self.event.id) {
+        self.post('/api/hotels/hotel_room', {
+          event: self.event.id,
+          rooms: [room],
+        }).then((res) => {
+          if (res.success) {
+            self.$asyncComputed.rooms.update();
+            self.loading = false;
+            self.open_room_modal = false;
+            self.$store.commit('open_snackbar', `Room ${room.id} saved successfully.`);
+          } else {
+            self.$store.commit('open_snackbar', 'Failed to save hotel room.');
+            self.loading = false;
+          }
+        }).catch(() => {
+          self.$store.commit('open_snackbar', 'Failed to save hotel room.');
+          self.loading = false;
+        });
       }
-      this.selected_rooms = [];
     },
     select_roommate(roommate) {
       if (this.selected_roommates.includes(roommate)) {
@@ -451,27 +572,62 @@ export default {
       } else {
         this.selected_roommates.push(roommate);
       }
+      this.roommate_search = '';
     },
     select_room(event, room) {
-      if (this.selected_rooms.includes(room)) {
-        const idx = this.selected_rooms.indexOf(room);
+      const roomID = room.toString();
+      if (this.selected_rooms.includes(roomID)) {
+        const idx = this.selected_rooms.indexOf(roomID);
         this.selected_rooms.splice(idx, 1);
         return;
       }
-      if (event !== null && !event.shiftKey) {
+      if (event === null) {
+        this.selected_rooms = [];
+      } else if (!event.shiftKey) {
         this.selected_rooms = [];
       }
-      this.selected_rooms.push(room);
+      this.selected_rooms.push(roomID);
     },
-    assign_to_room() {
-      if (this.selected_rooms.length === 1) {
-        for (let i = 0; i < this.selected_roommates.length; i += 1) {
-          if (!this.rooms[this.selected_rooms[0]].roommates.includes(this.selected_roommates[i])) {
-            this.rooms[this.selected_rooms[0]].roommates.push(this.selected_roommates[i]);
-          }
+    assign_to_room(badges, roomID, roomNightIDs) {
+      const self = this;
+      if (badges === null) {
+        if (this.selected_roommates.length > 0) {
+          badges = this.selected_roommates;
+        } else {
+          return;
         }
-        this.selected_roommates = [];
       }
+      if (roomID === null) {
+        if (this.selected_rooms.length !== 1) {
+          return;
+        }
+        [roomID] = this.selected_rooms;
+      }
+      if (self.event.id) {
+        self.post('/api/hotels/room_assignments', {
+          event: self.event.id,
+          badges,
+          room_nights: roomNightIDs,
+          hotel_room: roomID,
+        }).then((res) => {
+          if (res.success) {
+            self.$asyncComputed.assignments.update();
+            this.selected_roommates = [];
+          } else {
+            self.$store.commit('open_snackbar', 'Failed to assign hotel room.');
+          }
+        }).catch(() => {
+          self.$store.commit('open_snackbar', 'Failed to assign hotel room.');
+        });
+      }
+    },
+    room_modal(room) {
+      this.active_room = room;
+      this.open_room_modal = true;
+    },
+    roommate_modal(roommate) {
+      this.active_roommate = roommate;
+      this.open_roommate_modal = true;
     },
     generate_weights() {
       const self = this;
