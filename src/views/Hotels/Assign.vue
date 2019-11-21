@@ -21,6 +21,7 @@
         <v-card class="mb-2" v-for="(room, room_id) in rooms" :key="room_id" @click="select_room($event, room_id)" :color="selected_rooms.includes(room_id) ? 'accent' : ''">
           <v-card-title>Room {{ room_id }}</v-card-title>
           <v-card-text>
+            <v-text-field dense label="Room Notes" v-model="room.notes"></v-text-field>
             <v-card v-for="roommate in room.roommates" :key="roommate" @click.stop="select_roommate(roommate)" :color="selected_roommates.includes(roommate) ? 'accent' : ''">
               <v-card-text v-if="requests.hasOwnProperty(roommate)">
                 {{ requests[roommate].name }}
@@ -83,15 +84,19 @@ export default {
         roommates: [
           2496,
         ],
+        notes: 'This needs to be an atrium room.',
       },
       2: {
         roommates: [],
+        notes: '',
       },
       3: {
         roommates: [],
+        notes: '',
       },
       4: {
         roommates: [],
+        notes: '',
       },
     },
     roommate_search: '',
@@ -104,6 +109,9 @@ export default {
     prospective_roommates() {
       if (this.selected_rooms.length === 1) {
         return this.rooms[this.selected_rooms].roommates;
+      }
+      if (this.selected_roommates.length > 0) {
+        return this.selected_roommates;
       }
       return [];
     },
