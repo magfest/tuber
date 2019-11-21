@@ -71,9 +71,9 @@ export default {
     workers_busy: false,
     weights_dirty: false,
     weights: {
-      room_nights: 1.0,
-      roommates: 1.0,
-      department: 1.0,
+      room_nights: 4.0,
+      roommates: 5.0,
+      department: 3.0,
       gender: 1.0,
       noise: 1.0,
       smoke: 1.0,
