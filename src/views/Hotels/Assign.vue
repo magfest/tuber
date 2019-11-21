@@ -71,6 +71,11 @@
       <v-col cols=3>
         <div style="position: fixed; width: 275px">
           <v-card>
+            <v-card-text>
+              <v-btn left @click.self="add_room()">Add Room</v-btn>
+            </v-card-text>
+          </v-card>
+          <v-card>
             <v-card-title>Search</v-card-title>
             <v-card-text>
               <v-text-field dense clearable label="Search for People" append-icon="search" v-model="roommate_search"></v-text-field>
