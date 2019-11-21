@@ -43,6 +43,7 @@
             <v-card-title>Room Filters</v-card-title>
             <v-card-text>
               <v-checkbox v-model="hide_completed" label="Hide Completed"></v-checkbox>
+              <v-btn @click="reset_minimized">Restore Minimized</v-btn>
             </v-card-text>
           </v-card>
           <v-card>
@@ -57,7 +58,7 @@
       </v-col>
       <v-col cols=6>
         <v-card class="mb-2" v-for="room in filtered_rooms" :key="room.id" :color="selected_rooms.includes(room.id.toString()) ? '#BBDEFB' : ''">
-          <v-card-title @click.self="select_room($event, room.id)"><v-icon @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" @change="save_room(room)" v-model="room.completed"></v-checkbox></v-card-title>
+          <v-card-title @click.self="select_room($event, room.id)"><v-icon @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" @change="save_room(room)" v-model="room.completed"></v-checkbox><v-spacer></v-spacer><v-btn @click="room.minimized=true">Minimize</v-btn></v-card-title>
           <v-card-text>
             <p>{{ room.notes }}</p>
             <v-card v-for="(nights, roommate) in roommates[room.id]" :key="roommate" @click.stop="select_roommate(roommate)" :color="selected_roommates.includes(roommate.toString()) ? '#BBDEFB' : ''">
@@ -207,6 +208,9 @@ export default {
         if (this.rooms[i].completed && this.hide_completed) {
           continue;
         }
+        if (Object.prototype.hasOwnProperty.call(this.rooms[i], 'minimized') && this.rooms[i].minimized) {
+          continue;
+        }
         rooms.push(this.rooms[i]);
       }
       rooms.sort((a, b) => ((a.id > b.id) ? 1 : -1));
@@ -251,6 +255,9 @@ export default {
               event: self.event.id,
             }).then((res) => {
               if (res.success) {
+                for (let i = 0; i < res.hotel_rooms.length; i += 1) {
+                  res.hotel_rooms[i].minimized = false;
+                }
                 resolve(res.hotel_rooms);
               } else {
                 resolve([]);
@@ -611,6 +618,11 @@ export default {
           self.$store.commit('open_snackbar', 'Failed to save request.');
           self.loading = false;
         });
+      }
+    },
+    reset_minimized() {
+      for (let i = 0; i < this.rooms.length; i += 1) {
+        this.rooms[i].minimized = false;
       }
     },
     select_roommate(roommate) {
