@@ -34,7 +34,4 @@ def downgrade():
         batch_op.drop_constraint(None, type_='foreignkey')
         batch_op.drop_column('event')
 
-    with op.batch_alter_table('badge_to_room_night', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('hotel_room', sa.INTEGER(), autoincrement=False, nullable=True))
-
     # ### end Alembic commands ###
