@@ -429,6 +429,9 @@ export default {
         this.delete_room();
       } else if (event.key === 'n' && event.altKey) {
         this.add_room();
+      } else if ('!@#$%^&*()-+'.includes(event.key) && event.shiftKey) {
+        const idx = '!@#$%^&*()-+'.indexOf(event.key);
+        this.select_roommate(this.filtered_matches[idx].id);
       }
     },
     add_room() {
