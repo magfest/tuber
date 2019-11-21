@@ -57,7 +57,7 @@
       </v-col>
       <v-col cols=6>
         <v-card class="mb-2" v-for="room in filtered_rooms" :key="room.id" :color="selected_rooms.includes(room.id.toString()) ? '#BBDEFB' : ''">
-          <v-card-title @click.self="select_room($event, room.id)"><v-icon @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" v-model="completed_rooms[room.id]"></v-checkbox></v-card-title>
+          <v-card-title @click.self="select_room($event, room.id)"><v-icon @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" @change="save_room(room)" v-model="room.completed"></v-checkbox></v-card-title>
           <v-card-text>
             <p>{{ room.notes }}</p>
             <v-card v-for="(nights, roommate) in roommates[room.id]" :key="roommate" @click.stop="select_roommate(roommate)" :color="selected_roommates.includes(roommate.toString()) ? '#BBDEFB' : ''">
@@ -210,10 +210,8 @@ export default {
     filtered_rooms() {
       const rooms = [];
       for (let i = 0; i < this.rooms.length; i += 1) {
-        if (Object.prototype.hasOwnProperty.call(this.completed_rooms, this.rooms[i].id)) {
-          if (this.completed_rooms[this.rooms[i].id] && this.hide_completed) {
-            continue;
-          }
+        if (this.rooms[i].completed && this.hide_completed) {
+          continue;
         }
         rooms.push(this.rooms[i]);
       }

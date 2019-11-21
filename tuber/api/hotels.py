@@ -445,6 +445,7 @@ def hotel_room():
                 "messages": rn.messages,
                 "hotel_block": rn.hotel_block,
                 "hotel_location": rn.hotel_location,
+                "completed": rn.completed,
             })
         return jsonify(success=True, hotel_rooms=res)
     if request.method == "POST":
@@ -465,7 +466,7 @@ def hotel_room():
                 if 'hotel_location' in room:
                     if not room['hotel_location'] in room_location_ids:
                         return jsonify(success=False, reason="Could not find hotel location {}".format(room['hotel_location']))
-                for attr in ['name', 'notes', 'messages', 'hotel_block', 'hotel_location']:
+                for attr in ['name', 'notes', 'messages', 'hotel_block', 'hotel_location', 'completed']:
                     if attr in room:
                         setattr(rn, attr, room[attr])
                 db.session.add(rn)
