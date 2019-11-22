@@ -46,7 +46,6 @@ def staffer_auth():
     response.set_cookie('session', session.secret)
     return response
 
-
 @app.route("/api/hotels/request", methods=["GET", "POST"])
 def submit_hotels_request():
     if request.method == "GET":
@@ -329,7 +328,7 @@ def hotel_all_requests():
                 "id": badge.id,
                 "name": "{} {}".format(badge.first_name, badge.last_name),
                 "justification": req.room_night_justification,
-                "room_nights": list(default_room_nights),
+                "room_nights": [x for x in default_room_nights if x in [y.room_night for y in badge.room_night_requests if y.requested]],
                 "prefer_department": req.prefer_department,
                 "preferred_department": req.preferred_department,
                 "notes": notes,
@@ -666,30 +665,7 @@ def hotel_room_assignments():
         if not check_permission('room_assignment.write', event=request.json['event']):
             return jsonify(success=False, reason="Permission Denied")
         if 'badge' in request.json:
-            badge = db.session.query(Badge).filter(Badge.id == request.json['badge']).one_or_none()
-            if not badge:
-                return jsonify(success=False, reason="Could not locate badge {}".format(request.json['badge']))
-            if badge.event != request.json['event']:
-                return jsonify(success=False, reason="Permission Denied")
-            if not 'room_assignments' in request.json:
-                return jsonify(success=False, reason="room_assignments is a required field for this endpoint")
-            rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.badge == badge.id).all()
-            for rna in rnas:
-                db.session.delete(rnas)
-            res = []
-            for room_night in request.json['room_assignments']:
-                for room in request.json['room_assignmnts'][room_night]:
-                    rna = RoomNightAssignment(badge=badge.id, room_night=room_night, hotel_room=room)
-                    db.session.add(rna)
-                    db.session.flush()
-                    res.append({
-                        "id": rna.id,
-                        "badge": rna.badge,
-                        "room_night": rna.room_night,
-                        "hotel_room": rna.hotel_room,
-                    })
-            db.session.commit()
-            return jsonify(success=True, room_assignments=res)
+            badges = [request.json['badge']]
         if 'badges' in request.json:
             for badge in request.json['badges']:
                 rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.badge==badge, RoomNightAssignment.hotel_room==int(request.json['hotel_room'])).all()
