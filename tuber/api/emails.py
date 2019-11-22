@@ -9,107 +9,40 @@ import jinja2
 import boto3
 import uuid
 import lupa
+from tuber.api import *
+from tuber.models import *
+from marshmallow_sqlalchemy import ModelSchema
 
-@app.route('/api/emails', methods=['GET', 'POST'])
-def api_emails():
-    fields = ['name', 'description', 'code', 'subject', 'body', 'active', 'source', 'event', 'send_once']
-    if request.method == 'GET':
-        if not check_permission('emails.read', event=request.values['event']):
-            return jsonify(success=False)
-        emails = db.session.query(Email).filter(Email.event == request.values['event']).all()
-        result = []
-        for email in emails:
-            result.append({ i:getattr(email, i) for i in ['id', *fields]})
-        return jsonify(success=True, emails=result)
-    if request.method == 'POST':
-        if not check_permission('emails.write', event=request.json['event']):
-            return jsonify(success=False)
-        for i in fields:
-            if not i in request.json:
-                return jsonify(success=False, reason="{} is a required parameter".format(i))
-        if ('id' in request.json) and request.json['id']:
-            email = db.session.query(Email).filter(Email.id == request.json['id']).one_or_none()
-            if not email:
-                return jsonify(success=False, reason="Could not locate email {}".format(request.json['id']))
-        else:
-            email = Email()
-        for i in fields:
-            setattr(email, i, request.json[i])
-        db.session.add(email)
-        db.session.commit()
-        res = {i:getattr(email, i) for i in ['id', *fields]}
-        return jsonify(success=True, email=res)
+class EmailSchemaRead(ModelSchema):
+    class Meta:
+        model = Email
+        fields = ['id', 'name', 'description', 'code', 'subject', 'body', 'active', 'send_once', 'source', 'receipts']
 
-@app.route('/api/emails/delete', methods=['POST'])
-def api_emails_delete():
-    if not check_permission('emails.write', event=request.json['event']):
-        return jsonify(success=False, reason="Permission Denied")
-    if not 'id' in request.json:
-        return jsonify(success=False, reason="id is a required parameter")
-    email = db.session.query(Email).filter(Email.id == request.json['id']).one_or_none()
-    if not email:
-        return jsonify(success=False, reason="Could not find email {}".format(request.json['id']))
-    db.session.delete(email)
-    db.session.commit()
-    return jsonify(success=True)
+class EmailSchemaWrite(ModelSchema):
+    class Meta:
+        model = Email
+        fields = ['id', 'name', 'description', 'code', 'subject', 'body', 'active', 'send_once']
 
-@app.route('/api/emails/sources', methods=['GET', 'POST'])
-def api_email_sources():
-    fields = ['name', 'description', 'event', 'address', 'ses_access_key', 'ses_secret_key', 'region']
-    if request.method == 'GET':
-        if not check_permission('emailsource.read', event=request.values['event']):
-            return jsonify(success=False)
-        sources = db.session.query(EmailSource).filter(EmailSource.event == request.values['event']).all()
-        result = []
-        for source in sources:
-            result.append({ i:getattr(source, i) for i in ['id', *fields]})
-        return jsonify(success=True, sources=result)
-    if request.method == 'POST':
-        if not check_permission('emailsource.write', event=request.json['event']):
-            return jsonify(success=False)
-        for i in fields:
-            if not i in request.json:
-                return jsonify(success=False, reason="{} is a required parameter".format(i))
-        if 'id' in request.json:
-            source = db.session.query(EmailSource).filter(EmailSource.id == request.json['id']).one_or_none()
-            if not source:
-                return jsonify(success=False, reason="Could not locate email source {}".format(request.json['id']))
-        else:
-            source = EmailSource()
-        for i in fields:
-            setattr(source, i, request.json[i])
-        db.session.add(source)
-        db.session.commit()
-        res = {i:getattr(source, i) for i in ['id', *fields]}
-        return jsonify(success=True, email_source=res)
+register_crud("email", {EmailSchemaRead():["GET"], EmailSchemaWrite(): ["POST", "PATCH", "DELETE"]})
 
-@app.route('/api/emails/sources/delete', methods=['POST'])
-def api_emails_sources_delete():
-    if not check_permission('emailsource.write', event=request.json['event']):
-        return jsonify(success=False, reason="Permission Denied")
-    if not 'id' in request.json:
-        return jsonify(success=False, reason="id is a required parameter")
-    emails = db.session.query(Email).filter(Email.source == request.json['id']).all()
-    if email:
-        return jsonify(success=False, reason="Email source {} is still in use.".format(request.json['id']))
-    emailsource = db.session.query(EmailSource).filter(EmailSource.id == request.json['id']).one_or_none()
-    if not emailsource:
-        return jsonify(success=False, reason="Could not locate email source {}".format(request.json['id']))
-    db.session.delete(emailsource)
-    db.session.commit()
-    return jsonify(success=True)
+class EmailSourceSchemaRead(ModelSchema):
+    class Meta:
+        model = EmailSource
+        fields = ['id', 'name', 'description', 'address', 'region', 'ses_access_key', 'ses_secret_key', 'emails', 'receipts']
 
-@app.route('/api/emails/receipts', methods=['GET'])
-def api_email_receipts():
-    if not check_permission('emailreceipt.read', event=request.values['event']):
-        return jsonify(success=False, reason="Permission Denied")
-    if not 'email' in request.values:
-        return jsonify(success=False, reason="email is a required parameter")
-    receipts = db.session.query(EmailReceipt).filter(EmailReceipt.email == request.values['email']).all()
-    res = []
-    for i in receipts:
-        res.append({x: getattr(i, x) for x in ['id', 'email', 'badge', 'source', 'to_address', 'from_address', 'subject', 'body', 'timestamp']})
-    return jsonify(success=True, receipts=res)
+class EmailSourceSchemaWrite(ModelSchema):
+    class Meta:
+        model = EmailSource
+        fields = ['id', 'name', 'description', 'address', 'region', 'ses_access_key', 'ses_secret_key']
+
+register_crud("email_source", {EmailSourceSchemaRead(): ["GET"], EmailSourceSchemaWrite(): ["POST", "PATCH", "DELETE"]})
+
+class EmailReceiptSchemaRead(ModelSchema):
+    class Meta:
+        model = EmailReceipt
+        fields = ['id', 'email', 'source', 'to_address', 'from_address', 'subject', 'body', 'timestamp']
+
+register_crud("email_receipt", EmailReceiptSchemaRead(), methods=["GET"], url_scheme="badge")
             
 @app.route('/api/emails/trigger', methods=['POST'])
 def api_email_trigger():

@@ -48,21 +48,23 @@ def get_user():
                     if "event" in request.json:
                         event = request.json['event']
                 if event:
-                    badge = db.session.query(Badge).filter(Badge.user_id == session.user, Badge.event_id == event).one_or_none()
+                    badge = db.session.query(Badge).filter(Badge.user == session.user, Badge.event == event).one_or_none()
                     if badge:
                         g.badge = badge.id
             else:
                 db.session.delete(session)
             db.session.commit()
 
-def check_permission(operation="", event=0, department=0):
+def check_permission(permission=None, event=0, department=0):
+    if callable(permission):
+        return permission()
     for i in g.perms:
         if int(event) and (not (i['event'] is None)) and (i['event'] != int(event)):
             continue
         if int(department) and (not i['department'] is None) and (i['department'] != int(department)):
             continue
         perm_entity, perm_op = i['operation'].split(".")
-        req_entity, req_op = operation.split(".")
+        req_entity, req_op = permission.split(".")
         if perm_entity != "*" and req_entity != perm_entity:
             continue
         if perm_op != "*" and req_op != perm_op:

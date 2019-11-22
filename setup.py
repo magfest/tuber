@@ -38,7 +38,8 @@ setup(
         'rq',
         'lupa',
         'boto3',
-        'jinja2'
+        'jinja2',
+        'marshmallow-sqlalchemy'
     ],
     setup_requires=[
         'py2app'

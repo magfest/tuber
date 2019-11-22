@@ -11,9 +11,16 @@ class Email(db.Model):
     active = db.Column(db.Boolean, nullable=False)
     send_once = db.Column(db.Boolean, nullable=False)
     source = db.Column(db.Integer, db.ForeignKey('email_source.id'), nullable=True)
+    receipts = db.relationship("EmailReceipt")
 
     def __repr__(self):
         return '<Email %r>' % self.name
+
+class EmailTrigger(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    trigger = db.Column(db.String(128), nullable=False)
+    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
+    context = db.Column(db.String(4096))
 
 class EmailSource(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -24,6 +31,8 @@ class EmailSource(db.Model):
     region = db.Column(db.String(64), nullable=False)
     ses_access_key = db.Column(db.String(128), nullable=False)
     ses_secret_key = db.Column(db.String(128), nullable=False)
+    emails = db.relationship("Email")
+    receipts = db.relationship("EmailReceipt")
 
     def __repr__(self):
         return '<EmailSource %r>' % self.name
