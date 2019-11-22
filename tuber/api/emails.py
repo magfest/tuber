@@ -1,5 +1,5 @@
 from tuber import app, config, db
-from flask import send_from_directory, send_file, request, jsonify, make_response
+from flask import send_from_directory, send_file, request, jsonify, Response, stream_with_context
 from tuber.models import *
 from tuber.permissions import *
 from passlib.hash import sha256_crypt
@@ -113,28 +113,31 @@ def api_email_receipts():
         res.append({x: getattr(i, x) for x in ['id', 'email', 'badge', 'source', 'to_address', 'from_address', 'subject', 'body', 'timestamp']})
     return jsonify(success=True, receipts=res)
             
-def get_email_context(badge):
+def get_email_context(badge, tables):
     event = db.session.query(Event).filter(Event.id == badge.event_id).one()
-
     requested_nights = [x.room_night for x in badge.room_night_requests if x.requested]
     assigned_nights = [x.room_night for x in badge.room_night_assignments]
     approved_nights = []
     approving_depts = []
-    hotel_room_nights = db.session.query(HotelRoomNight).filter(HotelRoomNight.event == event.id).all()
+    approving_dept_ids = []
+    hotel_room_nights = tables['HotelRoomNight']
     has_edge_night = False
     for night in hotel_room_nights:
         if night.id in requested_nights and not night.restricted:
             approved_nights.append(night.id)
         if night.id in requested_nights and night.restricted:
             has_edge_night = True
-    approvals = db.session.query(RoomNightApproval, Department, RoomNightRequest).join(Department, Department.id == RoomNightApproval.department).join(RoomNightRequest, RoomNightRequest.id == RoomNightApproval.room_night).filter(RoomNightApproval.room_night.in_([x.id for x in badge.room_night_requests]), RoomNightApproval.approved == True).all()
-    for rna, dept, rnr in approvals:
-        if not rnr.room_night in approved_nights:
-            approved_nights.append(rnr.room_night)
-            if not dept.name in approving_depts:
-                approving_depts.append(dept.name)
-    hotel_request = db.session.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
-    if not hotel_request:
+    for approval in tables['RoomNightApproval']:
+        for rnr in badge.room_night_requests:
+            if rnr.id == approval.room_night:
+                approved_nights.append(rnr.room_night)
+                if not approval.department in approving_dept_ids:
+                    approving_dept_ids.append(approval.department)
+                    approving_depts.append(tables['Department'][approval.department].name)            
+    hotel_request = [x for x in tables['HotelRoomRequest'] if x.badge == badge.id]
+    if hotel_request:
+        hotel_request = hotel_request[0]
+    else:
         hotel_request = HotelRoomRequest(declined=True)
     requested_nights.sort()
     assigned_nights.sort()
@@ -160,12 +163,15 @@ def generate_emails(email):
     subject_template = jinja2.Template(email.subject)
     body_template = jinja2.Template(email.body)
 
+    tables = {
+        "HotelRoomNight": db.session.query(HotelRoomNight).filter(HotelRoomNight.event == email.event).all(),
+        "HotelRoomRequest": db.session.query(HotelRoomRequest).join(Badge, Badge.id == HotelRoomRequest.badge).filter(Badge.event_id == email.event).all(),
+        "RoomNightApproval": db.session.query(RoomNightApproval).join(RoomNightRequest, RoomNightRequest.id == RoomNightApproval.room_night).filter(RoomNightApproval.approved == True).all(),
+        "Department": {x.id: x for x in db.session.query(Department).filter(Department.event_id == email.event).all()},
+    }
+    
     for badge in badges:
-        if email.send_once:
-            receipts = db.session.query(EmailReceipt).filter(EmailReceipt.email == email.id, EmailReceipt.badge == badge.id).all()
-            if receipts:
-                continue
-        context = get_email_context(badge)
+        context = get_email_context(badge, tables)
         if filter(context):
             subject = subject_template.render(**context)
             body = body_template.render(**context)
@@ -182,17 +188,16 @@ def email_csv():
     if not email:
         return jsonify(success=False, reason="Could not find requested email {}".format(request.args['email']))
 
-    emails = [["Badge ID", "To", "From", "Subject", "Body"]]
-    emails.extend(generate_emails(email))
+    def stream_emails():
+        yield "Badge ID,To,From,Subject,Body\n"
+        for i in generate_emails(email):
+            yield '"{}","{}","{}","{}","{}"\n'.format(*i)
 
-    output = io.StringIO()
-    writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
-    for i in emails:
-        writer.writerow(i)
-    output = make_response(output.getvalue())
-    output.headers["Content-Disposition"] = "attachment; filename=export.csv"
-    output.headers["Content-type"] = "text/csv"
-    return output
+    headers = {
+        "Content-Type": "text/csv",
+        "Content-Disposition": "attachment; filename=emails.csv",
+    }
+    return Response(stream_with_context(stream_emails()), headers=headers)
 
 @app.route('/api/emails/trigger', methods=['POST'])
 def api_email_trigger():
@@ -213,6 +218,10 @@ def api_email_trigger():
     client = boto3.client('ses', region_name=source.region, aws_access_key_id=source.ses_access_key, aws_secret_access_key=source.ses_secret_key)
 
     for compiled in generate_emails(email):
+        if email.send_once:
+            receipts = db.session.query(EmailReceipt).filter(EmailReceipt.email == email.id, EmailReceipt.badge == compiled[0]).all()
+            if receipts:
+                continue
         try:
             client.send_email(
                 Destination={
