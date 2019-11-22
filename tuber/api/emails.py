@@ -130,7 +130,8 @@ def get_email_context(badge, tables):
     for approval in tables['RoomNightApproval']:
         for rnr in badge.room_night_requests:
             if rnr.id == approval.room_night:
-                approved_nights.append(rnr.room_night)
+                if not rnr.room_night in approved_nights:
+                    approved_nights.append(rnr.room_night)
                 if not approval.department in approving_dept_ids:
                     approving_dept_ids.append(approval.department)
                     approving_depts.append(tables['Department'][approval.department].name)            
