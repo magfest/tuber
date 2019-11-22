@@ -23,16 +23,12 @@
       <v-card :loading="loading">
         <v-card-title class="headline grey lighten-2" primary-title>Edit {{ active_roommate.name }}</v-card-title>
         <v-card-text>
-          <v-form>
-            <router-link :to="{name: 'hotelsrequestview', params: {badge: active_roommate.id}}">
-              Edit {{ active_roommate.name }} Here (Real dialog pending...)
-            </router-link>
-          </v-form>
+          <request-short ref="reqDialog" :badge_id="active_roommate.id"></request-short>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn left @click="open_roommate_modal = false">Close</v-btn>
-          <v-btn color="primary" :disabled="true" text @click="save_roommate(active_roommate)">Save</v-btn>
+          <v-btn color="primary" text @click="save_roommate()">Save</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -95,10 +91,12 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import RequestShort from './RequestShort.vue';
 
 export default {
   name: 'HotelAssign',
   components: {
+    RequestShort,
   },
   data: () => ({
     active_room: {},
@@ -178,6 +176,9 @@ export default {
         search = this.roommate_search.toLowerCase();
       }
       for (let i = 0; i < this.matches.length; i += 1) {
+        if (!Object.prototype.hasOwnProperty.call(this.requests, this.matches[i].id)) {
+          continue;
+        }
         if (this.requests[this.matches[i].id].name.toLowerCase().includes(search)) {
           let found = false;
 
@@ -598,17 +599,15 @@ export default {
         });
       }
     },
-    save_roommate(roommate) {
+    save_roommate() {
       const self = this;
       self.loading = true;
       if (self.event.id) {
-        self.post('/api/hotels/roommate', {
-          event: self.event.id,
-          roommates: [roommate],
-        }).then((res) => {
-          if (res.success) {
+        self.$refs.reqDialog.save().then((res) => {
+          if (res) {
             self.loading = false;
             self.open_roommate_modal = false;
+            self.$asyncComputed.requests.update();
             self.$store.commit('open_snackbar', 'Request saved successfully.');
           } else {
             self.$store.commit('open_snackbar', 'Failed to save request.');
