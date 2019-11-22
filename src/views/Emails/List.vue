@@ -1,7 +1,7 @@
 <template>
   <div>
       <br>
-      <v-dialog v-model="add_modal" width="700">
+      <v-dialog v-model="add_modal" max-width="1200">
         <v-card :loading="loading">
           <v-card-title class="headline grey lighten-2" primary-title>Create New Email</v-card-title>
 
@@ -44,6 +44,9 @@
             </template>
             <template v-slot:item.trigger="{ item }">
               <v-icon style="cursor: pointer" @click="trigger_email(item)">email</v-icon>
+            </template>
+            <template v-slot:item.download="{ item }">
+              <a :href="'/api/emails/csv?event='+event.id+'&email='+item.id+'&csrf_token='+$cookies.get('csrf_token')"><v-icon>cloud_download</v-icon></a>
             </template>
           </v-data-table>
           <v-btn @click="add_modal = true">Add</v-btn>
@@ -100,6 +103,10 @@ export default {
       {
         text: 'Manual Trigger',
         value: 'trigger',
+      },
+      {
+        text: 'Download',
+        value: 'download',
       },
     ],
   }),

@@ -13,6 +13,9 @@ class Badge(db.Model):
     email = db.Column(db.String(128), unique=False, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     uber_id = db.Column(db.String(128), unique=True, nullable=True)
+    room_night_requests = db.relationship("RoomNightRequest")
+    room_night_assignments = db.relationship("RoomNightAssignment")
+    room_request = db.relationship("HotelRoomRequest")
 
     def __repr__(self):
         return '<Badge %r %r>' % (self.first_name, self.last_name)
