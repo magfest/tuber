@@ -204,6 +204,8 @@ def api_email_trigger():
     email = db.session.query(Email).filter(Email.id == request.json['email']).one_or_none()
     if not email:
         return jsonify(success=False, reason="Could not find requested email {}".format(request.json['email']))
+    if not email.active:
+        return jsonify(success=False, reason="Email must be activated before triggering.")
     source = db.session.query(EmailSource).filter(EmailSource.id == email.source).one_or_none()
     if not source:
         return jsonify(success=False, reason="Could not find EmailSource to send email from")
@@ -211,7 +213,6 @@ def api_email_trigger():
     client = boto3.client('ses', region_name=source.region, aws_access_key_id=source.ses_access_key, aws_secret_access_key=source.ses_secret_key)
 
     for compiled in generate_emails(email):
-        break
         try:
             client.send_email(
                 Destination={
