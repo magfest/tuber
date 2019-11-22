@@ -668,22 +668,23 @@ def hotel_room_assignments():
         if 'badge' in request.json:
             badges = [request.json['badge']]
         if 'badges' in request.json:
-            for badge in request.json['badges']:
-                rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.badge==badge, RoomNightAssignment.hotel_room==int(request.json['hotel_room'])).all()
-                for rna in rnas:
-                    db.session.delete(rna)
-                if type(request.json['room_nights']) is list:
-                    for room_night in request.json['room_nights']:
-                        rna = RoomNightAssignment(badge=badge, room_night=room_night, hotel_room=request.json['hotel_room'])
+            badges = request.json['badges']
+        for badge in badges:
+            rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.badge==badge, RoomNightAssignment.hotel_room==int(request.json['hotel_room'])).all()
+            for rna in rnas:
+                db.session.delete(rna)
+            if type(request.json['room_nights']) is list:
+                for room_night in request.json['room_nights']:
+                    rna = RoomNightAssignment(badge=badge, room_night=room_night, hotel_room=request.json['hotel_room'])
+                    db.session.add(rna)
+            else:
+                requested = db.session.query(RoomNightRequest, HotelRoomNight).join(HotelRoomNight, RoomNightRequest.room_night == HotelRoomNight.id).filter(RoomNightRequest.badge == badge, RoomNightRequest.requested == True).all()
+                approvals = db.session.query(RoomNightApproval, RoomNightRequest).join(RoomNightRequest, RoomNightRequest.id == RoomNightApproval.room_night).filter(RoomNightRequest.badge == badge).all()
+                approved = [x[1].room_night for x in approvals if x[0].approved]
+                for req, night in requested:
+                    if (night.id in approved) or (not night.restricted):
+                        rna = RoomNightAssignment(badge=badge, room_night=req.room_night, hotel_room=request.json['hotel_room'])
                         db.session.add(rna)
-                else:
-                    requested = db.session.query(RoomNightRequest, HotelRoomNight).join(HotelRoomNight, RoomNightRequest.room_night == HotelRoomNight.id).filter(RoomNightRequest.badge == badge).all()
-                    approvals = db.session.query(RoomNightApproval, RoomNightRequest).join(RoomNightRequest, RoomNightRequest.id == RoomNightApproval.room_night).filter(RoomNightRequest.badge == badge).all()
-                    approved = [x[1].room_night for x in approvals if x[0].approved]
-                    for req, night in requested:
-                        if (night.id in approved) or (not night.restricted):
-                            rna = RoomNightAssignment(badge=badge, room_night=req.room_night, hotel_room=request.json['hotel_room'])
-                            db.session.add(rna)
             db.session.commit()
             return jsonify(success=True)
         return jsonify(success=False, reason="Either badge or badges must be provided")
