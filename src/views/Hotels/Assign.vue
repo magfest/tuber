@@ -53,7 +53,7 @@
         </div>
       </v-col>
       <v-col cols=6>
-        <v-card class="mb-2" v-for="room in filtered_rooms" :key="room.id" :color="selected_rooms.includes(room.id.toString()) ? '#BBDEFB' : ''">
+        <v-card class="mb-2" v-for="room in filtered_rooms" :key="room.id" :color="selected_rooms.includes(room.id.toString()) ? '#BBDEFB' : room.completed ? '#B2DFDB' : ''">
           <v-card-title @click.self="select_room($event, room.id)"><v-icon @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" @change="save_room(room)" v-model="room.completed"></v-checkbox><v-spacer></v-spacer><v-btn @click="room.minimized=true">Minimize</v-btn></v-card-title>
           <v-card-text>
             <p>{{ room.notes }}</p>
