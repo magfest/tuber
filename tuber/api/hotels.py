@@ -227,6 +227,7 @@ def department_names():
                 "description": dept.description
             }
         return jsonify({"success": True, "departments": filtered})
+    return jsonify(success=False, reason="Permission Denied")
 
 @app.route("/api/hotels/department_membership", methods=["POST"])
 def department_membership():
