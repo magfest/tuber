@@ -31,6 +31,7 @@ class EmailSource(db.Model):
     region = db.Column(db.String(64), nullable=False)
     ses_access_key = db.Column(db.String(128), nullable=False)
     ses_secret_key = db.Column(db.String(128), nullable=False)
+    active = db.Column(db.Boolean)
     emails = db.relationship("Email")
     receipts = db.relationship("EmailReceipt")
 

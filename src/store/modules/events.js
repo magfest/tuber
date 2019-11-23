@@ -16,8 +16,8 @@ const getters = {
 const actions = {
   get_events({ commit }) {
     return new Promise((resolve) => {
-      get('/api/events/list').then((response) => {
-        commit('set_events', response.events);
+      get('/api/events', { full: true }).then((events) => {
+        commit('set_events', events);
         resolve();
       }).catch(() => {
         commit('open_snackbar', 'Failed to retrieve list of events.');

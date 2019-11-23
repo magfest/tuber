@@ -1,20 +1,21 @@
 from functools import partial
-from flask import send_from_directory, send_file, request, jsonify
+from flask import send_from_directory, send_file, request, jsonify, g
 from tuber.models import *
 from tuber.permissions import *
 from tuber import app, db
+from marshmallow import EXCLUDE
 
 all_permissions = []
 
 def check_matches(matches, row, env):
     for match in matches:
-        if row[match] != env[match]:
+        if getattr(row, match) != env[match]:
             return False
     return True
 
 def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=None):
     if isinstance(schema, dict):
-        for key, val in schema.items:
+        for key, val in schema.items():
             if request.method in val:
                 schema = key
     for perm in permissions[request.method]:
@@ -27,13 +28,13 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
 
     if id is None:
         if request.method == "GET":
-            if 'full' in request.args and request.args['full'].lower() == "true":
+            if 'full' in g.data and g.data['full'].lower() == "true":
                 rows = db.session.query(model).filter(*filters).all()
                 return jsonify(schema.dump(rows, many=True))
             rows = db.session.query(model.id).filter(*filters).all()
             return jsonify([x.id for x in rows])
         if request.method == "POST":
-            row = model(event=event.id, **schema.load(request.json))
+            row = model(event=event, **g.data)
             db.session.add(row)
             db.session.commit()
             return jsonify(schema.dump(row))
@@ -47,9 +48,9 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
             if not check_matches(matches, old_row, locals()):
                 return "", 403
             object = schema.dump(old_row)
-            object.update(request.json)
+            object.update(g.data)
             db.session.delete(old_row)
-            new_row = model(**schema.loads(object))
+            new_row = schema.load(object, unknown=EXCLUDE)
             if check_matches(matches, new_row, locals()):
                 db.session.add(new_row)
                 db.session.commit()
@@ -74,15 +75,15 @@ def register_crud(name, schema, methods=["GET", "POST", "PATCH", "DELETE"], perm
 
     url_schemes = {
         "event": {
-            "base_url": f"/api/event/<int:event>/{name}",
+            "base_url": f"/api/events/<int:event>/{name}",
             "matches": ['event'],
         },
         "badge": {
-            "base_url": f"/api/event/<int:event>/badge/<int:badge>/{name}",
+            "base_url": f"/api/events/<int:event>/badge/<int:badge>/{name}",
             "matches": ['event', 'badge'],
         },
         "department": {
-            "base_url": f"/api/event/<int:event/department/<int:department>/{name}",
+            "base_url": f"/api/events/<int:event/department/<int:department>/{name}",
             "matches": ['event', 'department'],
         },
         "global": {

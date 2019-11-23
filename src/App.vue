@@ -188,6 +188,8 @@ export default {
       },
     ],
   }),
+  asyncComputed: {
+  },
   computed: {
     ...mapGetters([
       'snackbar_text',
@@ -254,13 +256,6 @@ export default {
   },
   mounted() {
     this.$vuetify.theme.dark = false;
-    this.get('/api/event/1/badges').then((res) => {
-      console.log('Fetched badges', res);
-    }).catch();
-  },
-  methods: {
-  },
-  watch: {
   },
 };
 </script>
