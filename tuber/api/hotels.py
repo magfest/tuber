@@ -669,6 +669,8 @@ def hotel_room_assignments():
             badges = [request.json['badge']]
         if 'badges' in request.json:
             badges = request.json['badges']
+        if not badges:
+            return jsonify(success=False, reason="Either badge or badges must be provided")
         for badge in badges:
             rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.badge==badge, RoomNightAssignment.hotel_room==int(request.json['hotel_room'])).all()
             for rna in rnas:
@@ -685,8 +687,7 @@ def hotel_room_assignments():
                     if (night.id in approved) or (not night.restricted):
                         rna = RoomNightAssignment(badge=badge, room_night=req.room_night, hotel_room=request.json['hotel_room'])
                         db.session.add(rna)
-            db.session.commit()
-            return jsonify(success=True)
-        return jsonify(success=False, reason="Either badge or badges must be provided")
+        db.session.commit()
+        return jsonify(success=True)
             
     return jsonify(success=False, reason="Unsupported method type {}".format(request.method))

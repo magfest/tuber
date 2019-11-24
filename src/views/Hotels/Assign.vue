@@ -473,7 +473,7 @@ export default {
                 edge -= weights.sleep_time * (diff / 6) + 0.5;
               }
 
-              if (a.antirequested_roommates.includes(idb) || b.antirequested_roommates.includes(idb)) {
+              if (a.antirequested_roommates.includes(idb) || b.antirequested_roommates.includes(ida)) {
                 edge = 0;
               }
               self.edges[ida][idb] = edge;
