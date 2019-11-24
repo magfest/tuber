@@ -26,12 +26,18 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
     for match in matches:
         filters.append(getattr(model, match) == locals()[match])
 
+    get_filters = []
+    for param in g.data:
+        if hasattr(model, param):
+            get_filters.append(getattr(model, param) == g.data[param])
+    get_filters.extend(filters)
+
     if id is None:
         if request.method == "GET":
             if 'full' in g.data and g.data['full'].lower() == "true":
-                rows = db.session.query(model).filter(*filters).all()
+                rows = db.session.query(model).filter(*get_filters).all()
                 return jsonify(schema.dump(rows, many=True))
-            rows = db.session.query(model.id).filter(*filters).all()
+            rows = db.session.query(model.id).filter(*get_filters).all()
             return jsonify([x.id for x in rows])
         if request.method == "POST":
             row = model(event=event, **g.data)

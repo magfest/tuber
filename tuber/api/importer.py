@@ -11,10 +11,6 @@ import uuid
 import csv
 import io
 
-headers = {
-    'X-Auth-Token': config.uber_api_token
-}
-
 def get_uber_csv(session, model, url):
     data = session.post(url+"/devtools/export_model", data={"selected_model": model}).text
     stream = io.StringIO(data)

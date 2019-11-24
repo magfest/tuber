@@ -8,44 +8,6 @@ import datetime
 import uuid
 import os
 
-headers = {
-    'X-Auth-Token': config.uber_api_token
-}
-
-@app.route("/api/hotels/staffer_auth", methods=["POST"])
-def staffer_auth():
-    try:
-        req = {
-            "method": "attendee.search",
-            "params": [
-                request.json['token'],
-                "full"
-            ]
-        }
-        resp = requests.post(config.uber_api_url, headers=headers, json=req)
-        if len(resp.json()['result']) == 0:
-            return jsonify(success=False)
-    except:
-        return jsonify(success=False)
-    result = resp.json()['result'][0]
-    if not 'id' in result:
-        return jsonify(success=False)
-    id = result['id']
-    if id != request.json['token']:
-        return jsonify(success=False)
-    if not result['staffing']:
-        return jsonify(success=False)
-    user = db.session.query(User).filter(User.password == id).one_or_none()
-    if user:
-        session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()))
-        db.session.add(session)
-    else:
-        return jsonify(success=False)
-    db.session.commit()
-    response = jsonify({"success": True, "session": session.secret})
-    response.set_cookie('session', session.secret)
-    return response
-
 @app.route("/api/hotels/request", methods=["GET", "POST"])
 def submit_hotels_request():
     if request.method == "GET":

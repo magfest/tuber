@@ -5,6 +5,16 @@ from tuber.permissions import *
 from passlib.hash import sha256_crypt
 import datetime
 import uuid
+from tuber.api import *
+from marshmallow_sqlalchemy import ModelSchema
+
+class UserSchema(ModelSchema):
+    class Meta:
+        model = User
+        sqla_session = db.session
+        fields = ['id', 'username', 'email', 'active', 'badges', 'sessions']
+
+register_crud("users", UserSchema(), url_scheme="global")
 
 @app.route("/api/check_initial_setup")
 def check_initial_setup():
@@ -76,49 +86,40 @@ def get_permissions():
         return jsonify(success=False)
     return jsonify({"success": True, "permissions": g.perms})
 
-@app.route("/api/user/badge", methods=["POST"])
-def get_badge():
-    if 'badge' in request.json:
-        badge = db.session.query(Badge).filter(Badge.id == request.json['badge']).one_or_none()
-        if badge:
-            if check_permission("staff.search_names", event=badge.event_id):
-                return jsonify(success=True, badge={"id": badge.id, "first_name": badge.first_name, "last_name": badge.last_name, "email": badge.email, "uber_id": badge.uber_id})
-    if 'event' in request.json and 'user' in request.json:
-        event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
-        if not event:
-            return jsonify({"success": False})
-        user = db.session.query(User).filter(User.id == request.json['user']).one_or_none()
-        if not user:
-            return jsonify({"success": False})
-        if check_permission("staff.search_names", event=request.json['event']):
-            badge = db.session.query(Badge).filter(Badge.user_id == user.id, Badge.event_id == event.id).one_or_none()
-            if badge:
-                return jsonify({"success": True, "badge": {"id": badge.id, "first_name": badge.first_name, "last_name": badge.last_name, "email": badge.email}})
-    return jsonify({"success": False})
+headers = {
+    'X-Auth-Token': config.uber_api_token
+}
 
-@app.route("/api/users", methods=["GET"])
-def get_users():
-    if check_permission("user.read"):
-        users = db.session.query(User).all()
-        filtered = []
-        for user in users:
-            filtered.append({
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "active": user.active
-            })
-        return jsonify(success=True, users=filtered)
-    return jsonify(success=False)
-
-@app.route("/api/user", methods=["GET"])
-def get_user():
-    if check_permission("user.read"):
-        user = db.session.query(User).filter(User.id == request.args['user']).one_or_none()
-        if user:
-            rows = db.session.query(Grant, Role).filter(Grant.user == request.args['user']).join(Role, Grant.role == Role.id).all()
-            roles = []
-            for row in rows:
-                grant, role = row
-                roles.append({"description": role.description, "department": grant.department, "event": role.event, "name": role.name})
-            return jsonify(success=True, user={"id": user.id, "username": user.username, "email": user.email, "active": user.active, "roles": roles})
+@app.route("/api/uber_login", methods=["POST"])
+def staffer_auth():
+    try:
+        req = {
+            "method": "attendee.search",
+            "params": [
+                request.json['token'],
+                "full"
+            ]
+        }
+        resp = requests.post(config.uber_api_url, headers=headers, json=req)
+        if len(resp.json()['result']) == 0:
+            return jsonify(success=False)
+    except:
+        return jsonify(success=False)
+    result = resp.json()['result'][0]
+    if not 'id' in result:
+        return jsonify(success=False)
+    id = result['id']
+    if id != request.json['token']:
+        return jsonify(success=False)
+    if not result['staffing']:
+        return jsonify(success=False)
+    user = db.session.query(User).filter(User.password == id).one_or_none()
+    if user:
+        session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()))
+        db.session.add(session)
+    else:
+        return jsonify(success=False)
+    db.session.commit()
+    response = jsonify({"success": True, "session": session.secret})
+    response.set_cookie('session', session.secret)
+    return response

@@ -6,7 +6,7 @@ class BadgeSchema(ModelSchema):
     class Meta:
         model = Badge
         sqla_session = db.session
-        fields = ['id', 'printed_number', 'printed_name', 'search_name', 'first_name', 'last_name', 'legal_name', 'legal_name_matches', 'email', 'user_id', 'uber_id', 'departments', 'room_night_requests', 'room_night_assignments']
+        fields = ['id', 'printed_number', 'printed_name', 'search_name', 'first_name', 'last_name', 'legal_name', 'legal_name_matches', 'email', 'user', 'uber_id', 'departments', 'room_night_requests', 'room_night_assignments']
 
 register_crud("badges", BadgeSchema())
 
