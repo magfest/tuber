@@ -82,7 +82,7 @@ def get_badge():
         badge = db.session.query(Badge).filter(Badge.id == request.json['badge']).one_or_none()
         if badge:
             if check_permission("staff.search_names", event=badge.event_id):
-                return jsonify(success=True, badge={"id": badge.id, "first_name": badge.first_name, "last_name": badge.last_name, "email": badge.email})
+                return jsonify(success=True, badge={"id": badge.id, "first_name": badge.first_name, "last_name": badge.last_name, "email": badge.email, "uber_id": badge.uber_id})
     if 'event' in request.json and 'user' in request.json:
         event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
         if not event:
