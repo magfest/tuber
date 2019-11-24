@@ -321,6 +321,7 @@ def hotel_requests():
         if check_permission("hotel_request.approve", event=request.args['event']):
             requests = db.session.query(Department, Badge, HotelRoomRequest).join(BadgeToDepartment, BadgeToDepartment.department == Department.id).join(HotelRoomRequest, HotelRoomRequest.badge == BadgeToDepartment.badge).join(Badge, Badge.id == BadgeToDepartment.badge).all()
             departments = {}
+            print(requests)
             for req in requests:
                 dept, badge, roomrequest = req
                 if not check_permission("hotel_request.approve", event=request.args['event'], department=dept.id):

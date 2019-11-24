@@ -179,7 +179,30 @@ router.beforeEach((to, from, next) => {
         store.commit('open_snackbar', 'Failed to verify uber authentication.');
       });
     } else {
-      next();
+      store.dispatch('check_logged_in').then(() => {
+        if (store.getters.logged_in) {
+          store.dispatch('get_events').then(() => {
+            next();
+          }).catch(() => {
+            store.commit('open_snackbar', 'Failed to retrieve events from server.');
+          });
+        } else {
+          store.dispatch('check_initial_setup').then(() => {
+            if (store.getters.initial_setup) {
+              if (to.name !== 'initialsetup') {
+                next({ name: 'initialsetup' });
+              }
+            } else if (to.name !== 'login') {
+              next({ name: 'login' });
+            }
+            next();
+          }).catch(() => {
+            next();
+          });
+        }
+      }).catch(() => {
+        store.commit('open_snackbar', 'Failed to check whether currently logged in.');
+      });
     }
   } else {
     store.dispatch('check_logged_in').then(() => {
