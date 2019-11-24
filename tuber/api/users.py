@@ -8,13 +8,34 @@ import uuid
 from tuber.api import *
 from marshmallow_sqlalchemy import ModelSchema
 
+def allow_self_edits(event=0, department=0):
+    if set(g.data.keys()) & set(['id', 'active', 'badges', 'sessions']):
+        return False
+    return g.url_params['id'] == g.user.id
+
+def allow_self_reads(event=0, department=0):
+    return g.url_params['id'] == g.user.id
+
 class UserSchema(ModelSchema):
     class Meta:
         model = User
         sqla_session = db.session
         fields = ['id', 'username', 'email', 'active', 'badges', 'sessions']
 
-register_crud("users", UserSchema(), url_scheme="global")
+register_crud("users", UserSchema(), url_scheme="global", permissions={"GET": [[allow_self_reads, "users.read"]], "PATCH": [[allow_self_edits, "users.update"]]})
+
+@app.route("/api/change_password", methods=["POST"])
+def change_password():
+    if not g.user:
+        return "", 403
+    if not 'password' in g.data:
+        return jsonify(success=False, reason="You must provide a password")
+    if len(g.data['password']) < 8:
+        return jsonify(success=False, reason="Your password must be at least 8 characters.")
+    g.user.password = sha256_crypt.hash(g.data['password'])
+    db.session.add(g.user)
+    db.session.commit()
+    return jsonify(success=True)
 
 @app.route("/api/check_initial_setup")
 def check_initial_setup():
@@ -28,7 +49,7 @@ def initial_setup():
     if User.query.first():
         raise PermissionDenied("Initial setup has already completed.")
     if request.json['username'] and request.json['email'] and request.json['password']:
-        user = User(username=request.json['username'], email=request.json['email'], password=sha256_crypt.encrypt(request.json['password']), active=True)
+        user = User(username=request.json['username'], email=request.json['email'], password=sha256_crypt.hash(request.json['password']), active=True)
         role = Role(name="Server Admin", description="Allowed to do anything.")
         db.session.add(user)
         db.session.add(role)

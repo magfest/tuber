@@ -9,7 +9,6 @@ def allow_self_edits(event=0, department=0):
     return g.url_params['id'] in [x.id for x in g.user.badges]
 
 def allow_self_reads(event=0, department=0):
-    print(g.url_params, g.user.badges)
     return g.url_params['id'] in [x.id for x in g.user.badges]
 
 class BadgeSchema(ModelSchema):
