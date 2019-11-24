@@ -49,7 +49,6 @@ export default {
     },
   },
   data: () => ({
-    roommates: [],
     options: [],
     optionsLoading: false,
     search: '',
@@ -61,55 +60,65 @@ export default {
     ]),
   },
   asyncComputed: {
-    department_names() {
-      const self = this;
-      return new Promise((resolve) => {
-        if (self.event.id) {
-          self.post('/api/hotels/department_names', {
-            event: self.event.id,
-          }).then((res) => {
-            if (res.success) {
-              resolve(res.departments);
-            }
-            resolve({});
-          }).catch(() => {
-            self.notify('Failed to retrieve department names.');
-          });
-        }
-      });
-    },
-    roommates() {
-      const resRoommates = [];
-      const self = this;
-      return new Promise((resolve) => {
-        self.value.forEach((id) => {
-          self.post('/api/hotels/roommate_lookup', {
-            event: self.event.id,
-            badge: id,
-          }).then((res) => {
-            if (res.success) {
-              for (let i = 0; i < res.roommate.departments.length; i += 1) {
-                if (Object.prototype.hasOwnProperty.call(self.department_names, res.roommate.departments[i])) {
-                  res.roommate.departments[i] = self.department_names[res.roommate.departments[i]].name;
-                }
+    department_names: {
+      get() {
+        const self = this;
+        return new Promise((resolve) => {
+          if (self.event.id) {
+            self.post('/api/hotels/department_names', {
+              event: self.event.id,
+            }).then((res) => {
+              if (res.success) {
+                resolve(res.departments);
               }
-              if (res.roommate.departments.length === 0) {
-                res.roommate.text = res.roommate.name;
-              } else {
-                res.roommate.text = `${res.roommate.name} (${res.roommate.departments.join(', ')})`;
-              }
-              resRoommates.push(res.roommate);
-              if (self.value.length === resRoommates.length) {
-                resolve(resRoommates);
-              }
-            } else {
-              resolve([]);
-            }
-          }).catch(() => {
-            self.notify('Failed to lookup roommates.');
-          });
+              resolve({});
+            }).catch(() => {
+              self.notify('Failed to retrieve department names.');
+            });
+          }
         });
-      });
+      },
+      default: {},
+    },
+    roommates: {
+      get() {
+        const resRoommates = [];
+        const self = this;
+        return new Promise((resolve) => {
+          if (self.value.length > 0) {
+            self.value.forEach((id) => {
+              self.post('/api/hotels/roommate_lookup', {
+                event: self.event.id,
+                badge: id,
+              }).then((res) => {
+                if (res.success) {
+                  for (let i = 0; i < res.roommate.departments.length; i += 1) {
+                    if (Object.prototype.hasOwnProperty.call(self.department_names, res.roommate.departments[i])) {
+                      res.roommate.departments[i] = self.department_names[res.roommate.departments[i]].name;
+                    }
+                  }
+                  if (res.roommate.departments.length === 0) {
+                    res.roommate.text = res.roommate.name;
+                  } else {
+                    res.roommate.text = `${res.roommate.name} (${res.roommate.departments.join(', ')})`;
+                  }
+                  resRoommates.push(res.roommate);
+                  if (self.value.length === resRoommates.length) {
+                    resolve(resRoommates);
+                  }
+                } else {
+                  resolve([]);
+                }
+              }).catch(() => {
+                self.notify('Failed to lookup roommates.');
+              });
+            });
+          } else {
+            resolve([]);
+          }
+        });
+      },
+      default: [],
     },
   },
   mounted() {
