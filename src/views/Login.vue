@@ -43,16 +43,16 @@ export default {
           self.$store.dispatch('check_logged_in').then(() => {
             self.$router.push({ name: 'home' });
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to check if you are logged in.');
+            self.notify('Failed to check if you are logged in.');
           });
-          self.$store.commit('open_snackbar', 'Logged in successfully!');
+          self.notify('Logged in successfully!');
         } else {
           this.login_loading = false;
-          self.$store.commit('open_snackbar', 'Failed to log in. Are your credentials correct?');
+          self.notify('Failed to log in. Are your credentials correct?');
         }
       }).catch(() => {
         self.login_loading = false;
-        self.$store.commit('open_snackbar', 'Network error while logging in.');
+        self.notify('Network error while logging in.');
       });
     },
   },

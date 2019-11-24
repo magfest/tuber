@@ -92,7 +92,7 @@ export default {
               resolve([]);
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to retrieve department membership.');
+            self.notify('Failed to retrieve department membership.');
           });
         } else {
           resolve([]);
@@ -112,7 +112,7 @@ export default {
               reject(Error('Failed to retrieve request'));
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to fetch your request.');
+            self.notify('Failed to fetch your request.');
           });
         } else {
           resolve({});
@@ -129,7 +129,7 @@ export default {
             resolve(null);
           }
         }).catch(() => {
-          self.$store.commit('open_snackbar', 'Failed to retrieve badge.');
+          self.notify('Failed to retrieve badge.');
         });
       });
     },

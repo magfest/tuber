@@ -105,7 +105,7 @@ export default {
               resolve([]);
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to load hotel request.');
+            self.notify('Failed to load hotel request.');
           });
         } else {
           resolve([]);
@@ -125,7 +125,7 @@ export default {
               resolve([]);
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to load room nights.');
+            self.notify('Failed to load room nights.');
           });
         } else {
           resolve([]);
@@ -152,10 +152,10 @@ export default {
         approved: request.approved,
       }).then((res) => {
         if (!res.success) {
-          self.$store.commit('open_snackbar', `Could not approve room night: ${res.reason}`);
+          self.notify(`Could not approve room night: ${res.reason}`);
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Failed to approve room night.');
+        self.notify('Failed to approve room night.');
       });
     },
     approve_all(person, department) {

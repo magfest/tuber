@@ -102,14 +102,14 @@ export default {
         event: this.event.id,
       }).then((resp) => {
         if (resp.success) {
-          self.$store.commit('open_snackbar', 'Import started successfully. It will complete in the background.');
+          self.notify('Import started successfully. It will complete in the background.');
           self.loading = false;
         } else {
-          self.$store.commit('open_snackbar', 'Failed to import staff.');
+          self.notify('Failed to import staff.');
           self.loading = false;
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Network error while importing staff.');
+        self.notify('Network error while importing staff.');
         self.loading = false;
       });
     },

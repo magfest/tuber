@@ -141,13 +141,13 @@ export default {
       }).then((res) => {
         self.loading = false;
         if (res.success) {
-          self.$store.commit('open_snackbar', 'Email triggered successfully.');
+          self.notify('Email triggered successfully.');
         } else {
-          self.$store.commit('open_snackbar', res.reason);
+          self.notify(res.reason);
         }
       }).catch(() => {
         self.loading = false;
-        self.$store.commit('open_snackbar', 'Failed to trigger email.');
+        self.notify('Failed to trigger email.');
       });
     },
     delete_email(email) {

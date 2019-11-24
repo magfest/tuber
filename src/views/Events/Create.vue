@@ -39,13 +39,13 @@ export default {
       }).then((resp) => {
         if (resp.success) {
           self.$store.dispatch('get_events');
-          self.$store.commit('open_snackbar', 'Created event successfully!');
+          self.notify('Created event successfully!');
           self.$router.push({ name: 'home' });
         } else {
-          self.$store.commit('open_snackbar', 'Failed to create event.');
+          self.notify('Failed to create event.');
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Network error while creating event.');
+        self.notify('Network error while creating event.');
       });
     },
   },

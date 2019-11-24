@@ -77,7 +77,7 @@ export default {
               resolve({});
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to fetch user.');
+            self.notify('Failed to fetch user.');
           });
         });
       },
@@ -95,7 +95,7 @@ export default {
               resolve([]);
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to retrieve list of events.');
+            self.notify('Failed to retrieve list of events.');
           });
         });
       },
@@ -119,7 +119,7 @@ export default {
               resolve({});
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to retrieve list of departments.');
+            self.notify('Failed to retrieve list of departments.');
           });
         });
       },

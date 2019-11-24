@@ -1,6 +1,5 @@
 <template>
   <v-container>
-    {{ departments }}
     <v-dialog v-model="open_room_modal" width="700">
       <v-card :loading="loading">
         <v-card-title class="headline grey lighten-2" primary-title>Edit {{ active_room.name ? active_room.name : "Room " + active_room.id }}</v-card-title>
@@ -265,7 +264,7 @@ export default {
                 resolve([]);
               }
             }).catch(() => {
-              self.$store.commit('open_snackbar', 'Failed to get hotel rooms.');
+              self.notify('Failed to get hotel rooms.');
             });
           } else {
             resolve([]);
@@ -292,7 +291,7 @@ export default {
                 resolve({});
               }
             }).catch(() => {
-              self.$store.commit('open_snackbar', 'Failed to get room nights.');
+              self.notify('Failed to get room nights.');
             });
           } else {
             resolve({});
@@ -315,7 +314,7 @@ export default {
                 resolve([]);
               }
             }).catch(() => {
-              self.$store.commit('open_snackbar', 'Failed to get room blocks.');
+              self.notify('Failed to get room blocks.');
             });
           } else {
             resolve([]);
@@ -338,7 +337,7 @@ export default {
                 resolve([]);
               }
             }).catch(() => {
-              self.$store.commit('open_snackbar', 'Failed to get room locations.');
+              self.notify('Failed to get room locations.');
             });
           } else {
             resolve([]);
@@ -358,11 +357,11 @@ export default {
               if (response.success) {
                 resolve(response.requests);
               } else {
-                self.$store.commit('open_snackbar', 'Failed to load requests.');
+                self.notify('Failed to load requests.');
                 resolve({});
               }
             }).catch(() => {
-              self.$store.commit('open_snackbar', 'Failed to load requests.');
+              self.notify('Failed to load requests.');
             });
           } else {
             resolve({});
@@ -382,11 +381,11 @@ export default {
               if (response.success) {
                 resolve(response.room_assignments);
               } else {
-                self.$store.commit('open_snackbar', 'Failed to load assignments.');
+                self.notify('Failed to load assignments.');
                 resolve({});
               }
             }).catch(() => {
-              self.$store.commit('open_snackbar', 'Failed to load assignments.');
+              self.notify('Failed to load assignments.');
             });
           } else {
             resolve({});
@@ -552,10 +551,10 @@ export default {
             self.$asyncComputed.rooms.update();
             self.select_room(null, res.room.id);
           } else {
-            self.$store.commit('open_snackbar', 'Failed to create hotel room.');
+            self.notify('Failed to create hotel room.');
           }
         }).catch(() => {
-          self.$store.commit('open_snackbar', 'Failed to create hotel room.');
+          self.notify('Failed to create hotel room.');
         });
       }
     },
@@ -570,10 +569,10 @@ export default {
             self.$asyncComputed.rooms.update();
             self.$asyncComputed.assignments.update();
           } else {
-            self.$store.commit('open_snackbar', 'Failed to delete hotel room.');
+            self.notify('Failed to delete hotel room.');
           }
         }).catch(() => {
-          self.$store.commit('open_snackbar', 'Failed to delete hotel room.');
+          self.notify('Failed to delete hotel room.');
         });
       }
     },
@@ -589,13 +588,13 @@ export default {
             self.$asyncComputed.rooms.update();
             self.loading = false;
             self.open_room_modal = false;
-            self.$store.commit('open_snackbar', `Room ${room.id} saved successfully.`);
+            self.notify(`Room ${room.id} saved successfully.`);
           } else {
-            self.$store.commit('open_snackbar', 'Failed to save hotel room.');
+            self.notify('Failed to save hotel room.');
             self.loading = false;
           }
         }).catch(() => {
-          self.$store.commit('open_snackbar', 'Failed to save hotel room.');
+          self.notify('Failed to save hotel room.');
           self.loading = false;
         });
       }
@@ -609,13 +608,13 @@ export default {
             self.loading = false;
             self.open_roommate_modal = false;
             self.$asyncComputed.requests.update();
-            self.$store.commit('open_snackbar', 'Request saved successfully.');
+            self.notify('Request saved successfully.');
           } else {
-            self.$store.commit('open_snackbar', 'Failed to save request.');
+            self.notify('Failed to save request.');
             self.loading = false;
           }
         }).catch(() => {
-          self.$store.commit('open_snackbar', 'Failed to save request.');
+          self.notify('Failed to save request.');
           self.loading = false;
         });
       }
@@ -674,10 +673,10 @@ export default {
             self.$asyncComputed.assignments.update();
             this.selected_roommates = [];
           } else {
-            self.$store.commit('open_snackbar', 'Failed to assign hotel room.');
+            self.notify('Failed to assign hotel room.');
           }
         }).catch(() => {
-          self.$store.commit('open_snackbar', 'Failed to assign hotel room.');
+          self.notify('Failed to assign hotel room.');
         });
       }
     },

@@ -65,7 +65,7 @@ export default {
             }
             resolve(res.users);
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to retrieve users');
+            self.notify('Failed to retrieve users');
             resolve([]);
           });
         });
