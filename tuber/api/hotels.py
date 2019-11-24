@@ -687,7 +687,7 @@ def hotel_room_assignments():
                     if (night.id in approved) or (not night.restricted):
                         rna = RoomNightAssignment(badge=badge, room_night=req.room_night, hotel_room=request.json['hotel_room'])
                         db.session.add(rna)
-            db.session.commit()
+        db.session.commit()
         return jsonify(success=True)
             
     return jsonify(success=False, reason="Unsupported method type {}".format(request.method))
