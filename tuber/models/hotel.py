@@ -54,13 +54,15 @@ class HotelRoomNight(db.Model):
     restricted = db.Column(db.Boolean, nullable=False, default=False)
     restriction_type = db.Column(db.String(64), nullable=True)
     hidden = db.Column(db.Boolean, nullable=False, default=False)
+    requests = db.relationship("RoomNightRequest")
+    assignments = db.relationship("RoomNightAssignment")
+    approvals = db.relationship("RoomNightApproval")
 
 class RoomNightRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
+    badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     requested = db.Column(db.Boolean)
     room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
-    approvals = db.relationship("RoomNightApproval")
 
 class RoomNightAssignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -70,6 +72,7 @@ class RoomNightAssignment(db.Model):
 
 class RoomNightApproval(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    room_night = db.Column(db.Integer, db.ForeignKey('room_night_request.id'), nullable=False)
+    badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
+    room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
     department = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
     approved = db.Column(db.Boolean, nullable=False)

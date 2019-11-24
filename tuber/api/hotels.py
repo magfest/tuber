@@ -7,6 +7,27 @@ import requests
 import datetime
 import uuid
 import os
+from tuber.api import *
+from marshmallow_sqlalchemy import ModelSchema
+
+class HotelRoomRequestSchema(ModelSchema):
+    class Meta:
+        model = HotelRoomRequest
+        sqla_session = db.session
+        fields = [
+            'id',
+            'badge',
+            'declined',
+            'prefer_department',
+            'notes',
+            'prefer_single_gender',
+            'noise_level',
+            'smoke_sensitive',
+            'sleep_time',
+            'room_night_justification',
+        ]
+
+register_crud("hotel_room_requests", HotelRoomRequestSchema())
 
 @app.route("/api/hotels/request", methods=["GET", "POST"])
 def submit_hotels_request():

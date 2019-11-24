@@ -27,16 +27,14 @@ def handle_permission_denied(error):
 @app.before_request
 def get_user():
     g.user = None
-    g.badge = None
     g.perms = []
     if 'session' in request.cookies:
-        session = db.session.query(Session).filter(Session.secret == request.cookies.get('session')).one_or_none()
+        session, g.user = db.session.query(Session, User).join(User, Session.user == User.id).filter(Session.secret == request.cookies.get('session')).one_or_none()
         if session:
             if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config.session_duration):
                 session.last_active = datetime.datetime.now()
-                g.user = session.user
                 g.session = session.secret
-                permissions = db.session.query(Grant.department, Role.event, Permission.operation).filter(Grant.user == g.user).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
+                permissions = db.session.query(Grant.department, Role.event, Permission.operation).filter(Grant.user == g.user.id).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
                 for permission in permissions:
                     g.perms.append({"department": permission.department, "event": permission.event, "operation": permission.operation})
                 db.session.add(session)
@@ -47,17 +45,17 @@ def get_user():
                 if request.method == "POST":
                     if "event" in request.json:
                         event = request.json['event']
-                if event:
-                    badge = db.session.query(Badge).filter(Badge.user == session.user, Badge.event == event).one_or_none()
-                    if badge:
-                        g.badge = badge.id
             else:
                 db.session.delete(session)
             db.session.commit()
 
 def check_permission(permission=None, event=0, department=0):
+    if isinstance(permission, list):
+        if len(permission) > 1:
+            return check_permission(permission[0], event, department) or check_permission(permission[1:], event, department)
+        permission = permission[0]
     if callable(permission):
-        return permission()
+        return permission(event, department)
     for i in g.perms:
         if int(event) and (not (i['event'] is None)) and (i['event'] != int(event)):
             continue

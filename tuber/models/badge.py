@@ -22,7 +22,8 @@ class Badge(db.Model):
     departments = db.relationship("Department", secondary="badge_to_department", back_populates="badges")
     room_night_requests = db.relationship("RoomNightRequest")
     room_night_assignments = db.relationship("RoomNightAssignment")
-    room_request = db.relationship("HotelRoomRequest")
+    room_night_approvals = db.relationship("RoomNightApproval")
+    hotel_room_request = db.relationship("HotelRoomRequest")
 
     def __repr__(self):
         return '<Badge %r %r>' % (self.first_name, self.last_name)
@@ -53,3 +54,5 @@ class RibbonType(db.Model):
 
 class RibbonToBadge(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    ribbon = db.Column(db.Integer, db.ForeignKey('ribbon_type.id'))
+    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))

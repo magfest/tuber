@@ -14,6 +14,7 @@ def check_matches(matches, row, env):
     return True
 
 def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=None):
+    g.url_params = {"event": event, "badge": badge, "department": department, "id": id}
     if isinstance(schema, dict):
         for key, val in schema.items():
             if request.method in val:
@@ -50,17 +51,16 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
             if check_matches(matches, row, locals()):
                 return jsonify(schema.dump(row))
         if request.method == "PATCH":
-            old_row = schema.get_instance({"id": id})
-            if not check_matches(matches, old_row, locals()):
+            row = schema.get_instance({"id": id})
+            if not check_matches(matches, row, locals()):
                 return "", 403
-            object = schema.dump(old_row)
-            object.update(g.data)
-            db.session.delete(old_row)
-            new_row = schema.load(object, unknown=EXCLUDE)
-            if check_matches(matches, new_row, locals()):
-                db.session.add(new_row)
+            for attr in g.data:
+                if hasattr(row, attr):
+                    setattr(row, attr, g.data[attr])
+            if check_matches(matches, row, locals()):
+                db.session.add(row)
                 db.session.commit()
-                return jsonify(schema.dump(new_row))
+                return jsonify(schema.dump(row))
             return "",  403
         if request.method == "DELETE":
             row = schema.get_instance({"id": id})
