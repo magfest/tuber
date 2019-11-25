@@ -133,15 +133,6 @@ export default {
         icon: 'settings',
         items: [
           {
-            name: 'Event Settings',
-            alt: 'Change Event-Global Settings',
-            icon: 'settings',
-            path: '/event/settings',
-            permissions: [
-              'event.write',
-            ],
-          },
-          {
             name: 'Email Settings',
             alt: 'Edit Automated Emails',
             icon: 'email',
@@ -182,6 +173,15 @@ export default {
             path: '/users',
             permissions: [
               'user.read',
+            ],
+          },
+          {
+            name: 'Events',
+            alt: 'Add or Edit Events',
+            icon: 'event',
+            path: '/events',
+            permissions: [
+              'events.read',
             ],
           },
         ],

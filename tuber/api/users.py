@@ -20,9 +20,41 @@ class UserSchema(ModelSchema):
     class Meta:
         model = User
         sqla_session = db.session
-        fields = ['id', 'username', 'email', 'active', 'badges', 'sessions']
+        fields = ['id', 'username', 'email', 'active', 'badges', 'sessions', 'grants']
 
-register_crud("users", UserSchema(), url_scheme="global", permissions={"GET": [[allow_self_reads, "users.read"]], "PATCH": [[allow_self_edits, "users.update"]]})
+class UserWriteSchema(ModelSchema):
+    class Meta:
+        model = User
+        sqla_session = db.session
+        fields = ['id', 'username', 'email', 'active']
+
+register_crud("users", {UserSchema(): ["GET"], UserWriteSchema(): ["POST", "PATCH", "DELETE"]}, url_scheme="global", permissions={"GET": [[allow_self_reads, "users.read"]], "PATCH": [[allow_self_edits, "users.update"]]})
+
+class GrantSchema(ModelSchema):
+    class Meta:
+        model = Grant
+        sqla_session = db.session
+        fields = ['id', 'user', 'role', 'department']
+
+register_crud("grants", GrantSchema(), url_scheme="global")
+
+
+class RoleSchema(ModelSchema):
+    class Meta:
+        model = Role
+        sqla_session = db.session
+        fields = ['id', 'name', 'description', 'event']
+
+register_crud("roles", RoleSchema(), url_scheme="global")
+
+
+class PermissionSchema(ModelSchema):
+    class Meta:
+        model = Permission
+        sqla_session = db.session
+        fields = ['id', 'operation', 'role']
+
+register_crud("permissions", PermissionSchema(), url_scheme="global")
 
 @app.route("/api/change_password", methods=["POST"])
 def change_password():
@@ -79,7 +111,7 @@ def login():
 @app.route("/api/logout", methods=["POST"])
 def logout():
     if g.user:
-        sessions = db.session.query(Session).filter(Session.user == g.user).delete()
+        sessions = db.session.query(Session).filter(Session.user == g.user.id).delete()
         db.session.commit()
         return jsonify({"success": True})
     return jsonify({"success": False})
@@ -87,7 +119,7 @@ def logout():
 @app.route("/api/check_login")
 def check_login():
     if g.user:
-        user = db.session.query(User).filter(User.id == g.user).one()
+        user = db.session.query(User).filter(User.id == g.user.id).one()
         return jsonify({"success": True, "user": {"email": user.email, "username": user.username, "id": user.id}, "session": g.session})
     return jsonify({"success": False})
 

@@ -27,21 +27,22 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
     for match in matches:
         filters.append(getattr(model, match) == locals()[match])
 
-    get_filters = []
-    for param in g.data:
-        if hasattr(model, param):
-            get_filters.append(getattr(model, param) == g.data[param])
-    get_filters.extend(filters)
-
     if id is None:
         if request.method == "GET":
+            get_filters = []
+            for param in g.data:
+                if hasattr(model, param):
+                    get_filters.append(getattr(model, param) == g.data[param])
+            get_filters.extend(filters)
             if 'full' in g.data and g.data['full'].lower() == "true":
                 rows = db.session.query(model).filter(*get_filters).all()
                 return jsonify(schema.dump(rows, many=True))
             rows = db.session.query(model.id).filter(*get_filters).all()
             return jsonify([x.id for x in rows])
         if request.method == "POST":
-            row = model(event=event, **g.data)
+            row = model(**{key:val for key, val in g.data.items() if key in schema.Meta.fields})
+            for match in matches:
+                setattr(row, match, locals()[match])
             db.session.add(row)
             db.session.commit()
             return jsonify(schema.dump(row))
@@ -55,7 +56,7 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
             if not check_matches(matches, row, locals()):
                 return "", 403
             for attr in g.data:
-                if hasattr(row, attr):
+                if hasattr(row, attr) and attr in schema.Meta.fields:
                     setattr(row, attr, g.data[attr])
             if check_matches(matches, row, locals()):
                 db.session.add(row)
@@ -117,3 +118,5 @@ from .events import *
 from .importer import *
 from .emails import *
 from .badges import *
+
+print(all_permissions)

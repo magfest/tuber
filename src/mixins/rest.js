@@ -32,6 +32,9 @@ const schema = {
   events: {
     url: '/api/events',
   },
+  users: {
+    url: '/api/users',
+  },
   badges: {
     url: '/api/events/<event>/badges',
   },
@@ -43,6 +46,15 @@ const schema = {
   },
   email_sources: {
     url: '/api/events/<event>/email_sources',
+  },
+  grants: {
+    url: '/api/grants',
+  },
+  roles: {
+    url: '/api/roles',
+  },
+  permissions: {
+    url: '/api/permissions',
   },
 };
 

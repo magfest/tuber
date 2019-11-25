@@ -29,8 +29,9 @@ def get_user():
     g.user = None
     g.perms = []
     if 'session' in request.cookies:
-        session, g.user = db.session.query(Session, User).join(User, Session.user == User.id).filter(Session.secret == request.cookies.get('session')).one_or_none()
-        if session:
+        res = db.session.query(Session, User).join(User, Session.user == User.id).filter(Session.secret == request.cookies.get('session')).one_or_none()
+        if res:
+            session, g.user = res
             if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config.session_duration):
                 session.last_active = datetime.datetime.now()
                 g.session = session.secret

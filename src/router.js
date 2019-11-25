@@ -8,15 +8,13 @@ import StaffDetail from './views/StaffDetail.vue';
 import DepartmentList from './views/DepartmentList.vue';
 import DepartmentDetail from './views/DepartmentDetail.vue';
 import HotelRequest from './views/Hotels/Request.vue';
-import EventCreate from './views/Events/Create.vue';
+import EventList from './views/Events/List.vue';
 import InitialSetup from './views/InitialSetup.vue';
 import DataImport from './views/Events/Import.vue';
 import RequestApprove from './views/Hotels/Approve.vue';
 import HotelAssign from './views/Hotels/Assign.vue';
 import HotelSettings from './views/Hotels/Settings.vue';
-import EventSettings from './views/Events/Settings.vue';
-import UserSettings from './views/Users/Settings.vue';
-import UserEdit from './views/Users/Edit.vue';
+import UserList from './views/Users/List.vue';
 import EmailList from './views/Emails/List.vue';
 import EmailSourceList from './views/Emails/SourceList.vue';
 import store from './store/store';
@@ -98,14 +96,9 @@ const router = new Router({
       component: HotelAssign,
     },
     {
-      path: '/event/create',
-      name: 'eventcreate',
-      component: EventCreate,
-    },
-    {
-      path: '/event/settings',
-      name: 'eventsettings',
-      component: EventSettings,
+      path: '/events',
+      name: 'eventlist',
+      component: EventList,
     },
     {
       path: '/event/import',
@@ -115,12 +108,7 @@ const router = new Router({
     {
       path: '/users',
       name: 'usersettings',
-      component: UserSettings,
-    },
-    {
-      path: '/user/:id',
-      name: 'useredit',
-      component: UserEdit,
+      component: UserList,
     },
     {
       path: '/emails',
@@ -159,60 +147,34 @@ function post(url, data) {
 }
 
 router.beforeEach((to, from, next) => {
-  if (to.name === 'hotelsrequest' || to.name === 'hotelsapprove' || to.name === 'hotelsapprovals') {
-    if (Object.prototype.hasOwnProperty.call(to.query, 'id')) {
-      post('/api/hotels/staffer_auth', {
-        token: to.query.id,
-      }).then((resp) => {
-        if (resp.success) {
-          store.dispatch('check_logged_in').then(() => {
-            store.dispatch('get_events').then(() => {
-              next();
-            }).catch(() => {
-              store.commit('open_snackbar', 'Failed to retrieve events from server.');
-            });
-          }).catch(() => {
-            store.commit('open_snackbar', 'Failed to check whether currently logged in.');
-          });
-        }
-      }).catch(() => {
-        store.commit('open_snackbar', 'Failed to verify uber authentication.');
-      });
-    } else {
-      store.dispatch('check_logged_in').then(() => {
-        if (store.getters.logged_in) {
+  if ((to.name === 'hotelsrequest' || to.name === 'hotelsapprove' || to.name === 'hotelsapprovals') && (Object.prototype.hasOwnProperty.call(to.query, 'id'))) {
+    post('/api/hotels/staffer_auth', {
+      token: to.query.id,
+    }).then((resp) => {
+      if (resp.success) {
+        store.dispatch('check_logged_in').then(() => {
           store.dispatch('get_events').then(() => {
             next();
           }).catch(() => {
             store.commit('open_snackbar', 'Failed to retrieve events from server.');
-          });
-        } else {
-          store.dispatch('check_initial_setup').then(() => {
-            if (store.getters.initial_setup) {
-              if (to.name !== 'initialsetup') {
-                next({ name: 'initialsetup' });
-              }
-            } else if (to.name !== 'login') {
-              next({ name: 'login' });
-            }
-            next();
-          }).catch(() => {
             next();
           });
-        }
-      }).catch(() => {
-        store.commit('open_snackbar', 'Failed to check whether currently logged in.');
-      });
-    }
+        }).catch(() => {
+          store.commit('open_snackbar', 'Failed to check whether currently logged in.');
+          next();
+        });
+      }
+    }).catch(() => {
+      store.commit('open_snackbar', 'Failed to verify uber authentication.');
+      next();
+    });
   } else {
     store.dispatch('check_logged_in').then(() => {
       if (store.getters.logged_in) {
         store.dispatch('get_events').then(() => {
-          if (store.getters.events.length === 0 && to.name !== 'eventcreate') {
-            next({ name: 'eventcreate' });
-          }
           next();
         }).catch(() => {
+          store.commit('open_snackbar', 'Failed to fetch events.');
           next();
         });
       } else {
@@ -220,17 +182,21 @@ router.beforeEach((to, from, next) => {
           if (store.getters.initial_setup) {
             if (to.name !== 'initialsetup') {
               next({ name: 'initialsetup' });
+            } else {
+              next();
             }
           } else if (to.name !== 'login') {
             next({ name: 'login' });
+          } else {
+            next();
           }
-          next();
         }).catch(() => {
           next();
         });
       }
     }).catch(() => {
       store.commit('open_snackbar', 'Failed to check if currently logged in.');
+      next();
     });
   }
 });
