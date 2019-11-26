@@ -74,14 +74,14 @@ def downgrade():
         batch_op.drop_constraint('room_night_approval_badge_fkey', type_='foreignkey')
         batch_op.drop_constraint('room_night_approval_room_night_fkey', type_='foreignkey')
 
-    op.execute('update room_night_approval set room_night=subquery.room_night from (select room_night_approval.id, room_night_request.id from room_night_request join room_night_approval on room_night_approval.badge = room_night_request.badge) as subquery where subquery.id=room_night_approval.id;')
+    op.execute('update room_night_approval set room_night=subquery.room_night from (select room_night_approval.id, room_night_request.room_night from room_night_request join room_night_approval on room_night_approval.badge = room_night_request.badge) as subquery where subquery.id=room_night_approval.id;')
 
     with op.batch_alter_table('room_night_approval', schema=None) as batch_op:
         batch_op.create_foreign_key('room_night_approval_room_night_request_fkey', 'room_night_request', ['room_night'], ['id'])
         batch_op.drop_column('badge')
 
     with op.batch_alter_table('badge', schema=None) as batch_op:
-        batch_op.drop_constraint(None, type_='foreignkey')
+        batch_op.drop_constraint('badge_badge_type_fkey', type_='foreignkey')
         batch_op.drop_column('badge_type')
 
     op.drop_table('ribbon_to_badge')
