@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container class="legible">
     <v-dialog v-model="open_room_modal" width="700">
       <v-card :loading="loading">
         <v-card-title class="headline grey lighten-2" primary-title>Edit {{ active_room.name ? active_room.name : "Room " + active_room.id }}</v-card-title>
@@ -40,6 +40,7 @@
             <v-card-text>
               <v-checkbox v-model="hide_completed" label="Hide Completed"></v-checkbox>
               <v-btn @click="reset_minimized">Restore Minimized</v-btn>
+              <v-slider label="Num Matches" v-model="num_filtered_matches" min="3" max="25"></v-slider>
             </v-card-text>
           </v-card>
           <v-card>
@@ -67,18 +68,16 @@
       </v-col>
       <v-col cols=3>
         <div style="position: fixed; width: 275px">
-          <v-card>
+          <v-card max-height="759" style="overflow: auto">
             <v-card-text>
               <v-text-field dense clearable label="Search for People" append-icon="search" v-model="roommate_search"></v-text-field>
+              <v-btn left @click="add_room()">Add Room</v-btn><v-btn :disabled="selected_rooms.length !== 1 || selected_roommates.length === 0" @click="assign_to_room(null, null, null)">Assign</v-btn><br><br>
               <v-card v-for="match in filtered_matches" :key="match.id" @click="select_roommate(match.id)" :color="selected_roommates.includes(match.id) ? '#BBDEFB' : ''">
-                <v-card-text class="pa-1" v-if="requests.hasOwnProperty(match.id)">
+                <v-card-text class="pa-1 legible" v-if="requests.hasOwnProperty(match.id)">
                   {{ requests[match.id].name }} {{ match.weight ? "("+Math.round(match.weight)+")" : "" }} <br> <v-icon @click.stop.prevent="roommate_modal(requests[match.id])">edit</v-icon><span v-for="night in [...requests[match.id].room_nights].sort()" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
                 </v-card-text>
               </v-card>
             </v-card-text>
-            <v-card-actions>
-              <v-btn left @click="add_room()">Add Room</v-btn><v-btn :disabled="selected_rooms.length !== 1 || selected_roommates.length === 0" @click="assign_to_room(null, null, null)">Assign</v-btn>
-            </v-card-actions>
           </v-card>
         </div>
       </v-col>
@@ -87,6 +86,9 @@
 </template>
 
 <style>
+.legible {
+  color: rgba(0,0,0,1) !important;
+}
 </style>
 
 <script>
@@ -99,6 +101,7 @@ export default {
     RequestShort,
   },
   data: () => ({
+    num_filtered_matches: 10,
     active_room: {},
     open_room_modal: false,
     active_roommate: {},
@@ -194,7 +197,7 @@ export default {
           if (!found) {
             if (!this.selected_roommates.includes(this.matches[i].id)) {
               results.push(this.matches[i]);
-              if (results.length >= 10) {
+              if (results.length >= this.num_filtered_matches) {
                 return results;
               }
             }

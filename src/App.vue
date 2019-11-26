@@ -252,8 +252,9 @@ export default {
       return this.checkPermission('event.read', this.event.id);
     },
   },
-  mounted() {
-    this.$vuetify.theme.dark = false;
+  created() {
+    this.$vuetify.theme.secondary = '#000000';
+    console.log(this.$vuetify.theme);
   },
   methods: {
   },
