@@ -1,5 +1,5 @@
 <template>
-  <v-container class="legible">
+  <v-container>
     <v-dialog v-model="open_room_modal" width="700">
       <v-card :loading="loading">
         <v-card-title class="headline grey lighten-2" primary-title>Edit {{ active_room.name ? active_room.name : "Room " + active_room.id }}</v-card-title>
