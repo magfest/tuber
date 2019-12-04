@@ -328,7 +328,7 @@ def hotel_all_requests():
             results[badge.id] = {
                 "id": badge.id,
                 "name": "{} {}".format(badge.first_name, badge.last_name),
-                "legal_name": badge.legal_name if badge.legal_name else "{} {}".format(badge.first_name, badge.last_name),
+                "legal_name": badge.legal_name if badge.legal_name else "",
                 "justification": req.room_night_justification,
                 "room_nights": [x for x in default_room_nights if x in [y.room_night for y in badge.room_night_requests if y.requested]],
                 "prefer_department": req.prefer_department,
