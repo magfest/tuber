@@ -54,13 +54,15 @@
         </div>
       </v-col>
       <v-col cols=6>
-        <v-card class="mb-2" v-for="room in filtered_rooms" :key="room.id" :color="selected_rooms.includes(room.id.toString()) ? '#BBDEFB' : room.completed ? '#B2DFDB' : ''">
-          <v-card-title @click.self="select_room($event, room.id)"><v-icon @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" @change="save_room(room)" v-model="room.completed"></v-checkbox><v-spacer></v-spacer><v-btn @click="room.minimized=true">Minimize</v-btn></v-card-title>
+        <v-pagination v-model="room_page" :length="num_room_pages">
+        </v-pagination>
+        <v-card class="mb-2" v-for="room in paginated_rooms" :key="room.id" :color="selected_rooms.includes(room.id.toString()) ? '#BBDEFB' : room.completed ? '#B2DFDB' : ''">
+          <v-card-title @click.self="select_room($event, room.id)"><v-icon v-once @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" @change="save_room(room)" v-model="room.completed"></v-checkbox><v-spacer></v-spacer><v-btn @click="room.minimized=true">Minimize</v-btn></v-card-title>
           <v-card-text>
             <p>{{ room.notes }}</p>
             <v-card v-for="(nights, roommate) in roommates[room.id]" :key="roommate" @click.stop="select_roommate(roommate)" :color="selected_roommates.includes(roommate.toString()) ? '#BBDEFB' : ''">
               <v-card-text v-if="requests.hasOwnProperty(roommate)">
-                <v-icon @click.stop.prevent="roommate_modal(requests[roommate])">edit</v-icon><v-icon @click.stop.prevent="assign_to_room([requests[roommate].id], room.id, [])">delete</v-icon>{{ requests[roommate].name }} <span v-for="night in nights" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
+                <v-icon v-once @click.stop.prevent="roommate_modal(requests[roommate])">edit</v-icon><v-icon @click.stop.prevent="assign_to_room([requests[roommate].id], room.id, [])">delete</v-icon>{{ requests[roommate].name }} <span v-for="night in nights" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
               </v-card-text>
             </v-card>
           </v-card-text>
@@ -102,6 +104,7 @@ export default {
   },
   data: () => ({
     num_filtered_matches: 10,
+    room_page: 1,
     active_room: {},
     open_room_modal: false,
     active_roommate: {},
@@ -133,6 +136,9 @@ export default {
       'event',
       'user',
     ]),
+    num_room_pages() {
+      return Math.ceil(this.filtered_rooms.length / 15);
+    },
     roommates() {
       const rooms = {};
       const badges = Object.keys(this.assignments);
@@ -219,6 +225,11 @@ export default {
       }
       rooms.sort((a, b) => ((a.id > b.id) ? 1 : -1));
       return rooms;
+    },
+    paginated_rooms() {
+      const start = (this.room_page - 1) * 15;
+      const end = this.room_page * 15;
+      return this.filtered_rooms.slice(start, end);
     },
   },
   asyncComputed: {
