@@ -206,7 +206,6 @@ def generate_emails(email):
     for badge in badges:
         context = get_email_context(badge, tables)
         if filter(context):
-            print(context)
             subject = subject_template.render(**context)
             body = body_template.render(**context)
             yield [badge.id, badge.email, source.address, subject, body]

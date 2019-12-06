@@ -60,6 +60,17 @@ def run_staff_import(email, password, url, event):
                 grant = Grant(user=user.id, role=role.id)
                 db.session.add(grant)
             badge = db.session.query(Badge).filter(Badge.event_id == event, Badge.uber_id == attendee['id']).one_or_none()
+            if badge:
+                badge.printed_number = attendee['badge_num']
+                badge.printed_name = attendee['badge_printed_name']
+                badge.search_name = "{} {}".format(attendee['first_name'].lower(), attendee['last_name'].lower())
+                badge.first_name = attendee['first_name']
+                badge.last_name = attendee['last_name']
+                badge.legal_name = attendee['legal_name']
+                badge.legal_name_matches = bool(attendee['legal_name'])
+                badge.email = attendee['email']
+                badge.phone = attendee['cellphone']
+                db.session.add(badge)
             if not badge:
                 badge = Badge(
                     uber_id = attendee['id'],
@@ -72,6 +83,7 @@ def run_staff_import(email, password, url, event):
                     legal_name = attendee['legal_name'],
                     legal_name_matches = bool(attendee['legal_name']),
                     email = attendee['email'],
+                    phone = attendee['cellphone'],
                     user_id = user.id
                 )
                 db.session.add(badge)
