@@ -10,6 +10,7 @@ class Badge(db.Model):
     last_name = db.Column(db.String(128), nullable=False)
     legal_name = db.Column(db.String(256), nullable=False)
     legal_name_matches = db.Column(db.Boolean)
+    phone = db.Column(db.String(16), nullable=True)
     email = db.Column(db.String(128), unique=False, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     uber_id = db.Column(db.String(128), unique=True, nullable=True)

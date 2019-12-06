@@ -117,6 +117,34 @@ def get_email_context(badge, tables):
     event = db.session.query(Event).filter(Event.id == badge.event_id).one()
     requested_nights = [x.room_night for x in badge.room_night_requests if x.requested]
     assigned_nights = [x.room_night for x in badge.room_night_assignments]
+    hotel_room_ids = list(set([x.hotel_room for x in badge.room_night_assignments]))
+    hotel_rooms = []
+    for room in hotel_room_ids:
+        assignments = [x for x in tables['RoomNightAssignment'] if x.hotel_room == room]
+        start_night = assignments[0].room_night
+        end_night = assignments[0].room_night
+        for i in assignments:
+            if i.room_night < start_night:
+                start_night = i.room_night
+            if i.room_night > end_night:
+                end_night = i.room_night
+        roommates = {}
+        for i in assignments:
+            if not i.badge in roommates:
+                roommates[i.badge] = {
+                    "badge": tables['Badge'][i.badge],
+                    "nights": [i.room_night,],
+                }
+            else:
+                if not i.room_night in roommates[i.badge]['nights']:
+                    roommates[i.badge]['nights'].append(i.room_night)
+        hotel_rooms.append({
+            "roommates": roommates, 
+            "messages": tables['HotelRoom'][room].messages,
+            "completed": tables['HotelRoom'][room].completed,
+            "start_night": start_night,
+            "end_night": end_night,
+        })
     approved_nights = []
     approving_depts = []
     approving_dept_ids = []
@@ -150,6 +178,7 @@ def get_email_context(badge, tables):
         "assigned_nights": assigned_nights,
         "approved_nights": approved_nights,
         "approving_depts": ", ".join(approving_depts),
+        "hotel_rooms": hotel_rooms,
         "hotel_room_nights": {x.id:x for x in hotel_room_nights},
         "has_edge_night": has_edge_night,
         "hotel_request": hotel_request,
@@ -169,11 +198,15 @@ def generate_emails(email):
         "HotelRoomRequest": db.session.query(HotelRoomRequest).join(Badge, Badge.id == HotelRoomRequest.badge).filter(Badge.event_id == email.event).all(),
         "RoomNightApproval": db.session.query(RoomNightApproval).join(RoomNightRequest, RoomNightRequest.id == RoomNightApproval.room_night).filter(RoomNightApproval.approved == True).all(),
         "Department": {x.id: x for x in db.session.query(Department).filter(Department.event_id == email.event).all()},
+        "HotelRoom": {x.id: x for x in db.session.query(HotelRoom).all()},
+        "Badge": {x.id: x for x in db.session.query(Badge).filter(Badge.event_id == email.event).all()},
+        "RoomNightAssignment": db.session.query(RoomNightAssignment).all(),
     }
     
     for badge in badges:
         context = get_email_context(badge, tables)
         if filter(context):
+            print(context)
             subject = subject_template.render(**context)
             body = body_template.render(**context)
             yield [badge.id, badge.email, source.address, subject, body]

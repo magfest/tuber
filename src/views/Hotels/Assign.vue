@@ -38,7 +38,8 @@
           <v-card class="mb-2">
             <v-card-title>Room Filters</v-card-title>
             <v-card-text>
-              <v-checkbox v-model="hide_completed" label="Hide Completed"></v-checkbox>
+              <v-checkbox v-model="hide_completed" dense label="Hide Completed"></v-checkbox>
+              <v-checkbox v-model="filter_page" dense label="Paginate Rooms"></v-checkbox>
               <v-btn @click="reset_minimized">Restore Minimized</v-btn>
               <v-slider label="Num Matches" v-model="num_filtered_matches" min="3" max="25"></v-slider>
             </v-card-text>
@@ -54,7 +55,7 @@
         </div>
       </v-col>
       <v-col cols=6>
-        <v-pagination v-model="room_page" :length="num_room_pages">
+        <v-pagination v-if="filter_page" v-model="room_page" :length="num_room_pages">
         </v-pagination>
         <v-card class="mb-2" v-for="room in paginated_rooms" :key="room.id" :color="selected_rooms.includes(room.id.toString()) ? '#BBDEFB' : room.completed ? '#B2DFDB' : ''">
           <v-card-title @click.self="select_room($event, room.id)"><v-icon v-once @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" @change="save_room(room)" v-model="room.completed"></v-checkbox><v-spacer></v-spacer><v-btn @click="room.minimized=true">Minimize</v-btn></v-card-title>
@@ -106,6 +107,7 @@ export default {
     num_filtered_matches: 10,
     room_page: 1,
     active_room: {},
+    filter_page: true,
     open_room_modal: false,
     active_roommate: {},
     open_roommate_modal: false,
@@ -229,7 +231,10 @@ export default {
     paginated_rooms() {
       const start = (this.room_page - 1) * 15;
       const end = this.room_page * 15;
-      return this.filtered_rooms.slice(start, end);
+      if (this.filter_page) {
+        return this.filtered_rooms.slice(start, end);
+      }
+      return this.filtered_rooms;
     },
   },
   asyncComputed: {
