@@ -261,7 +261,7 @@ def api_email_trigger():
         return jsonify(success=False, reason="Could not find EmailSource to send email from")
 
     def stream_emails():
-        temp_session = db.create_session({})
+        temp_session = db.create_session({})()
         client = boto3.client('ses', region_name=source.region, aws_access_key_id=source.ses_access_key, aws_secret_access_key=source.ses_secret_key)
         yield '{'
         for compiled in generate_emails(email):
