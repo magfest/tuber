@@ -112,7 +112,16 @@ def api_email_receipts():
     for i in receipts:
         res.append({x: getattr(i, x) for x in ['id', 'email', 'badge', 'source', 'to_address', 'from_address', 'subject', 'body', 'timestamp']})
     return jsonify(success=True, receipts=res)
-            
+
+END_NIGHT_OFFSETS = {
+    1: "Wednesday",
+    2: "Thursday",
+    3: "Friday",
+    4: "Saturday",
+    5: "Sunday",
+    6: "Monday",
+}
+
 def get_email_context(badge, tables):
     event = db.session.query(Event).filter(Event.id == badge.event_id).one()
     requested_nights = [x.room_night for x in badge.room_night_requests if x.requested]
@@ -128,6 +137,7 @@ def get_email_context(badge, tables):
                 start_night = i.room_night
             if i.room_night > end_night:
                 end_night = i.room_night
+        end_night = END_NIGHT_OFFSETS[end_night]
         roommates = {}
         for i in assignments:
             if not i.badge in roommates:
@@ -138,6 +148,8 @@ def get_email_context(badge, tables):
             else:
                 if not i.room_night in roommates[i.badge]['nights']:
                     roommates[i.badge]['nights'].append(i.room_night)
+        for roommate in roommates.keys():
+            roommates[roommate]['nights'].sort()
         hotel_rooms.append({
             "roommates": roommates, 
             "messages": tables['HotelRoom'][room].messages,
