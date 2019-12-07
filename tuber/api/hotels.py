@@ -354,6 +354,12 @@ def hotel_all_requests():
             results[req.requester]['antirequested_roommates'].append(req.requested)
         for membership in department_membership:
             results[membership.badge]['departments'].append(membership.department)
+        to_del = []
+        for res in results.keys():
+            if not results[res]["room_nights"]:
+                to_del.append(res)
+        for i in to_del:
+            del results[i]
         return jsonify(success=True, requests=results)
 
 @app.route("/api/hotels/requests", methods=["GET", "POST"])
@@ -694,3 +700,17 @@ def hotel_room_assignments():
         return jsonify(success=True)
             
     return jsonify(success=False, reason="Unsupported method type {}".format(request.method))
+
+@app.route("/api/hotels/badges")
+def hotel_badges():
+    if not check_permission('badges.read', event=request.args['event']):
+        return jsonify(success=False, reason="Permission Denied.")
+    badges = db.session.query(Badge).filter(Badge.event_id == request.args['event']).all()
+    ret = []
+    for badge in badges:
+        ret.append({
+            "id": badge.id,
+            "first_name": badge.first_name,
+            "last_name": badge.last_name,
+        })
+    return jsonify(success=True, badges=ret)

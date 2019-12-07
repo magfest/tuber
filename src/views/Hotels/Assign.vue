@@ -36,10 +36,11 @@
       <v-col cols=3>
         <div style="position: fixed; width: 275px">
           <v-card class="mb-2">
-            <v-card-title>Room Filters</v-card-title>
+            <v-card-title>Filters</v-card-title>
             <v-card-text>
-              <v-checkbox v-model="hide_completed" dense label="Hide Completed"></v-checkbox>
-              <v-checkbox v-model="filter_page" dense label="Paginate Rooms"></v-checkbox>
+              <v-checkbox class="dense_check" v-model="hide_completed" dense label="Hide Completed"></v-checkbox>
+              <v-checkbox class="dense_check" v-model="filter_page" dense label="Paginate Rooms"></v-checkbox>
+              <v-checkbox class="dense_check" v-model="search_all_people" dense label="Show All Badges"></v-checkbox><br>
               <v-btn @click="reset_minimized">Restore Minimized</v-btn>
               <v-slider label="Num Matches" v-model="num_filtered_matches" min="3" max="25"></v-slider>
             </v-card-text>
@@ -75,11 +76,22 @@
             <v-card-text>
               <v-text-field dense clearable label="Search for People" append-icon="search" v-model="roommate_search"></v-text-field>
               <v-btn left @click="add_room()">Add Room</v-btn><v-btn :disabled="selected_rooms.length !== 1 || selected_roommates.length === 0" @click="assign_to_room(null, null, null)">Assign</v-btn><br><br>
-              <v-card v-for="match in filtered_matches" :key="match.id" @click="select_roommate(match.id)" :color="selected_roommates.includes(match.id) ? '#BBDEFB' : ''">
-                <v-card-text class="pa-1 legible" v-if="requests.hasOwnProperty(match.id)">
-                  {{ requests[match.id].name }} {{ match.weight ? "("+Math.round(match.weight)+")" : "" }} <br> <v-icon @click.stop.prevent="roommate_modal(requests[match.id])">edit</v-icon><span v-for="night in [...requests[match.id].room_nights].sort()" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
-                </v-card-text>
-              </v-card>
+              <div v-if="search_all_people">
+                <v-card v-for="match in filtered_badges" :key="match.id">
+                  <v-card-text class="pa-1 legible">
+                    {{ match.first_name }} {{ match.last_name }} <br> <v-icon @click.stop.prevent="roommate_modal({id: match.id, name: match.first_name + ' ' + match.last_name})">edit</v-icon>
+                    <span v-if="!Object.prototype.hasOwnProperty.call(requests, match.id)">No Nights Requested</span>
+                    <span v-else><span v-for="night in [...requests[match.id].room_nights].sort()" :key="night">{{ room_nights[night].name.slice(0,2) }} </span></span>
+                  </v-card-text>
+                </v-card>
+              </div>
+              <div v-else>
+                <v-card v-for="match in filtered_matches" :key="match.id" @click="select_roommate(match.id)" :color="selected_roommates.includes(match.id) ? '#BBDEFB' : ''">
+                  <v-card-text class="pa-1 legible" v-if="requests.hasOwnProperty(match.id)">
+                    {{ requests[match.id].name }} {{ match.weight ? "("+Math.round(match.weight)+")" : "" }} <br> <v-icon @click.stop.prevent="roommate_modal(requests[match.id])">edit</v-icon><span v-for="night in [...requests[match.id].room_nights].sort()" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
+                  </v-card-text>
+                </v-card>
+              </div>
             </v-card-text>
           </v-card>
         </div>
@@ -91,6 +103,9 @@
 <style>
 .legible {
   color: rgba(0,0,0,1) !important;
+}
+.dense_check {
+  height: 25px;
 }
 </style>
 
@@ -105,6 +120,7 @@ export default {
   },
   data: () => ({
     num_filtered_matches: 10,
+    search_all_people: false,
     room_page: 1,
     active_room: {},
     filter_page: true,
@@ -209,6 +225,24 @@ export default {
                 return results;
               }
             }
+          }
+        }
+      }
+      return results;
+    },
+    filtered_badges() {
+      const results = [];
+      let search = '';
+      if (this.roommate_search !== null) {
+        search = this.roommate_search.toLowerCase();
+      }
+      for (let i = 0; i < this.badges.length; i += 1) {
+        const badge = this.badges[i];
+        const name = (`${badge.first_name} ${badge.last_name}`).toLowerCase();
+        if (name.includes(search)) {
+          results.push(this.badges[i]);
+          if (results.length >= this.num_filtered_matches) {
+            return results;
           }
         }
       }
@@ -412,6 +446,30 @@ export default {
         });
       },
       default: {},
+    },
+    badges: {
+      get() {
+        const self = this;
+        return new Promise((resolve) => {
+          if (self.event.id) {
+            self.get('/api/hotels/badges', {
+              event: self.event.id,
+            }).then((response) => {
+              if (response.success) {
+                resolve(response.badges);
+              } else {
+                self.$store.commit('open_snackbar', 'Failed to load badges.');
+                resolve([]);
+              }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to load badges.');
+            });
+          } else {
+            resolve([]);
+          }
+        });
+      },
+      default: [],
     },
   },
   beforeDestroy() {
