@@ -260,38 +260,45 @@ def api_email_trigger():
     if not source:
         return jsonify(success=False, reason="Could not find EmailSource to send email from")
 
-    client = boto3.client('ses', region_name=source.region, aws_access_key_id=source.ses_access_key, aws_secret_access_key=source.ses_secret_key)
-
-    for compiled in generate_emails(email):
-        if email.send_once:
-            receipts = db.session.query(EmailReceipt).filter(EmailReceipt.email == email.id, EmailReceipt.badge == compiled[0]).all()
-            if receipts:
-                continue
-        try:
-            client.send_email(
-                Destination={
-                    'ToAddresses': [
-                        compiled[1],
-                    ],
-                },
-                Message={
-                    'Body': {
-                        'Text': {
+    def stream_emails():
+        client = boto3.client('ses', region_name=source.region, aws_access_key_id=source.ses_access_key, aws_secret_access_key=source.ses_secret_key)
+        yield '{'
+        for compiled in generate_emails(email):
+            if email.send_once:
+                receipts = db.session.query(EmailReceipt).filter(EmailReceipt.email == email.id, EmailReceipt.badge == compiled[0]).all()
+                if receipts:
+                    continue
+            try:
+                client.send_email(
+                    Destination={
+                        'ToAddresses': [
+                            compiled[1],
+                        ],
+                    },
+                    Message={
+                        'Body': {
+                            'Text': {
+                                'Charset': 'UTF-8',
+                                'Data': compiled[4],
+                            },
+                        },
+                        'Subject': {
                             'Charset': 'UTF-8',
-                            'Data': compiled[4],
+                            'Data': compiled[3],
                         },
                     },
-                    'Subject': {
-                        'Charset': 'UTF-8',
-                        'Data': compiled[3],
-                    },
-                },
-                Source=source.address,
-            )
-        except ClientError as e:
-            print(e.response['Error']['Message'])
-        else:
-            receipt = EmailReceipt(email=email.id, badge=compiled[0], source=source.id, to_address=compiled[1], from_address=source.address, subject=compiled[3], body=compiled[4], timestamp=datetime.datetime.now())
-            db.session.add(receipt)
-        db.session.commit()
-    return jsonify(success=True)
+                    Source=source.address,
+                )
+            except ClientError as e:
+                print(e.response['Error']['Message'])
+            else:
+                receipt = EmailReceipt(email=email.id, badge=compiled[0], source=source.id, to_address=compiled[1], from_address=source.address, subject=compiled[3], body=compiled[4], timestamp=datetime.datetime.now())
+                db.session.add(receipt)
+            db.session.commit()
+            yield '"{}": true,'.format(compiled[0])
+        yield '}'
+    headers = {
+        "Content-Type": "application/json",
+        "Content-Disposition": "attachment; filename=emails.json",
+    }
+    return Response(stream_with_context(stream_emails()), headers=headers)
