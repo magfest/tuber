@@ -281,5 +281,5 @@ def api_email_trigger():
         else:
             receipt = EmailReceipt(email=email.id, badge=compiled[0], source=source.id, to_address=compiled[1], from_address=source.address, subject=compiled[3], body=compiled[4], timestamp=datetime.datetime.now())
             db.session.add(receipt)
-    db.session.commit()
+        db.session.commit()
     return jsonify(success=True)
