@@ -35,7 +35,7 @@ After cloning this repository you will need the following dependencies:
 
 ```bash
 dnf install npm python3 python3-devel postgresql-devel # Fedora/RHEL/CentOS
-apt install npm python3 python3-dev postgresql-dev # Debian/Ubuntu
+apt install npm python3 python3-dev python3-pip libpq-dev # Debian/Ubuntu
 brew install npm python postgresql # MacOS
 ```
 
