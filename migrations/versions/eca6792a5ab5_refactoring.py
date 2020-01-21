@@ -47,7 +47,7 @@ def upgrade():
 
     with op.batch_alter_table('room_night_approval', schema=None) as batch_op:
         batch_op.add_column(sa.Column('badge', sa.Integer()))
-        batch_op.drop_constraint('room_night_approval_room_night_request_fkey', type_='foreignkey')
+    op.drop_constraint('room_night_approval_room_night_request_fkey', 'room_night_approval', type_='foreignkey')
 
     op.execute('update room_night_approval set badge=badge, room_night=room_night where (badge, room_night) = (select room_night_request.badge, room_night_request.room_night from room_night_request join room_night_approval on room_night_approval.room_night = room_night_request.id)')
     
