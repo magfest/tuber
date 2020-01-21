@@ -53,7 +53,8 @@ def init():
                     'https:',
                 ],
             }
-        
+            
+    if config.force_https:
         talisman = Talisman(app, content_security_policy=csp)
     app.static_folder = config.static_path
 
