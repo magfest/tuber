@@ -15,6 +15,7 @@ conf = {
     "background_tasks": False,
     "sentry_dsn": "",
     "csp_directives": "",
+    "force_https": False,
 }
 
 environment = {}
@@ -36,6 +37,10 @@ if os.path.isfile(conf['config']):
         configfile = json.loads(FILE.read())
     configfile.update(environment)
     conf.update(configfile)
+
+for i in ["verbose", "background_tasks", "force_https"]:
+    if isinstance(conf[i], str):
+        conf[i] = conf[i].lower() == "true"
 
 for i in conf:
     vars()[i] = conf[i]
