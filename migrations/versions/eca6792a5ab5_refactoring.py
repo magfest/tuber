@@ -43,17 +43,17 @@ def upgrade():
     op.bulk_insert(badge_types, [{'id': 1, 'name': 'Staff', 'description': 'Run the event.'}])
     with op.batch_alter_table('badge', schema=None) as batch_op:
         batch_op.add_column(sa.Column('badge_type', sa.Integer(), nullable=False, server_default='1'))
-        batch_op.create_foreign_key(None, 'badge_type', ['badge_type'], ['id'])
+        batch_op.create_foreign_key("badge_badge_type_fkey", 'badge_type', ['badge_type'], ['id'])
 
     with op.batch_alter_table('room_night_approval', schema=None) as batch_op:
         batch_op.add_column(sa.Column('badge', sa.Integer()))
         batch_op.drop_constraint('room_night_approval_room_night_request_fkey', type_='foreignkey')
 
-    op.execute('update room_night_approval set badge=subquery.badge, room_night=subquery.room_night from (select room_night_approval.id, room_night_request.badge, room_night_request.room_night from room_night_request join room_night_approval on room_night_approval.room_night = room_night_request.id) as subquery where subquery.id=room_night_approval.id;')
+    op.execute('update room_night_approval set badge=badge, room_night=room_night where (badge, room_night) = (select room_night_request.badge, room_night_request.room_night from room_night_request join room_night_approval on room_night_approval.room_night = room_night_request.id)')
     
     with op.batch_alter_table('room_night_approval', schema=None) as batch_op:
-        batch_op.create_foreign_key(None, 'badge', ['badge'], ['id'])
-        batch_op.create_foreign_key(None, 'hotel_room_night', ['room_night'], ['id'])
+        batch_op.create_foreign_key("room_night_approval_badge_fkey", 'badge', ['badge'], ['id'])
+        batch_op.create_foreign_key("room_night_approval_hotel_room_night_fkey", 'hotel_room_night', ['room_night'], ['id'])
 
     with op.batch_alter_table('room_night_request', schema=None) as batch_op:
         batch_op.alter_column('badge',

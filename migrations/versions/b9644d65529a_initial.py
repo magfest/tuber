@@ -250,7 +250,7 @@ def upgrade():
     sa.Column('department', sa.Integer(), nullable=False),
     sa.Column('approved', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['department'], ['department.id'], ),
-    sa.ForeignKeyConstraint(['room_night'], ['badge_to_room_night.id'], ),
+    sa.ForeignKeyConstraint(['room_night'], ['badge_to_room_night.id'], name="room_night_approval_room_night_fkey"),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

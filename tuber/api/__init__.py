@@ -118,5 +118,3 @@ from .events import *
 from .importer import *
 from .emails import *
 from .badges import *
-
-print(all_permissions)

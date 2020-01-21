@@ -23,6 +23,13 @@ for i in conf.keys():
         environment[i] = os.environ[i.upper()]
 
 conf.update(environment)
+if os.path.isfile("./tuber.json") and not os.path.isfile(conf['config']):
+    print("Reading from config file: {}".format("./tuber.json"))
+    with open("./tuber.json", "r") as FILE:
+        configfile = json.loads(FILE.read())
+    configfile.update(environment)
+    conf.update(configfile)
+
 if os.path.isfile(conf['config']):
     print("Reading from config file: {}".format(conf['config']))
     with open(conf['config'], "r") as FILE:
