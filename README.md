@@ -35,7 +35,7 @@ After cloning this repository you will need the following dependencies:
 
 ```bash
 dnf install npm python3 python3-devel postgresql-devel # Fedora/RHEL/CentOS
-apt install npm python3 python3-dev postgresql-dev# Debian/Ubuntu
+apt install npm python3 python3-dev python3-pip libpq-dev # Debian/Ubuntu
 brew install npm python postgresql # MacOS
 ```
 
@@ -61,3 +61,9 @@ Opening a PR against magfest/tuber will automatically deploy a testing environme
 If you would like to deploy your own instance:
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
+### Troubleshooting
+#### Mac developer setup
+
+If you receive the following ambiguous error message: `ld: library not found for -lssl`
+
+The fix for this: `export LDFLAGS="-L/usr/local/opt/openssl/lib"`

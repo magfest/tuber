@@ -10,7 +10,7 @@ import DepartmentDetail from './views/DepartmentDetail.vue';
 import HotelRequest from './views/Hotels/Request.vue';
 import EventList from './views/Events/List.vue';
 import InitialSetup from './views/InitialSetup.vue';
-import DataImport from './views/Events/Import.vue';
+import DataImport from './views/Events/Import/index.vue';
 import RequestApprove from './views/Hotels/Approve.vue';
 import HotelAssign from './views/Hotels/Assign.vue';
 import HotelSettings from './views/Hotels/Settings.vue';

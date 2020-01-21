@@ -36,10 +36,13 @@
       <v-col cols=3>
         <div style="position: fixed; width: 275px">
           <v-card class="mb-2">
-            <v-card-title>Room Filters</v-card-title>
+            <v-card-title>Filters</v-card-title>
             <v-card-text>
-              <v-checkbox v-model="hide_completed" label="Hide Completed"></v-checkbox>
+              <v-checkbox class="dense_check" v-model="hide_completed" dense label="Hide Completed"></v-checkbox>
+              <v-checkbox class="dense_check" v-model="filter_page" dense label="Paginate Rooms"></v-checkbox>
+              <v-checkbox class="dense_check" v-model="search_all_people" dense label="Show All Badges"></v-checkbox><br>
               <v-btn @click="reset_minimized">Restore Minimized</v-btn>
+              <v-slider label="Num Matches" v-model="num_filtered_matches" min="3" max="25"></v-slider>
             </v-card-text>
           </v-card>
           <v-card>
@@ -53,13 +56,15 @@
         </div>
       </v-col>
       <v-col cols=6>
-        <v-card class="mb-2" v-for="room in filtered_rooms" :key="room.id" :color="selected_rooms.includes(room.id.toString()) ? '#BBDEFB' : room.completed ? '#B2DFDB' : ''">
-          <v-card-title @click.self="select_room($event, room.id)"><v-icon @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" @change="save_room(room)" v-model="room.completed"></v-checkbox><v-spacer></v-spacer><v-btn @click="room.minimized=true">Minimize</v-btn></v-card-title>
+        <v-pagination v-if="filter_page" v-model="room_page" :length="num_room_pages">
+        </v-pagination>
+        <v-card class="mb-2" v-for="room in paginated_rooms" :key="room.id" :color="selected_rooms.includes(room.id.toString()) ? '#BBDEFB' : room.completed ? '#B2DFDB' : ''">
+          <v-card-title @click.self="select_room($event, room.id)"><v-icon v-once @click.stop.prevent="room_modal(room)">edit</v-icon>{{ room.name ? room.name : "Room " + room.id }}<v-spacer></v-spacer><v-checkbox dense label="Complete" @change="save_room(room)" v-model="room.completed"></v-checkbox><v-spacer></v-spacer><v-btn @click="room.minimized=true">Minimize</v-btn></v-card-title>
           <v-card-text>
             <p>{{ room.notes }}</p>
             <v-card v-for="(nights, roommate) in roommates[room.id]" :key="roommate" @click.stop="select_roommate(roommate)" :color="selected_roommates.includes(roommate.toString()) ? '#BBDEFB' : ''">
               <v-card-text v-if="requests.hasOwnProperty(roommate)">
-                <v-icon @click.stop.prevent="roommate_modal(requests[roommate])">edit</v-icon><v-icon @click.stop.prevent="assign_to_room([requests[roommate].id], room.id, [])">delete</v-icon>{{ requests[roommate].name }} <span v-for="night in nights" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
+                <v-icon v-once @click.stop.prevent="roommate_modal(requests[roommate])">edit</v-icon><v-icon @click.stop.prevent="assign_to_room([requests[roommate].id], room.id, [])">delete</v-icon>{{ requests[roommate].name }} <span v-for="night in nights" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
               </v-card-text>
             </v-card>
           </v-card-text>
@@ -67,18 +72,27 @@
       </v-col>
       <v-col cols=3>
         <div style="position: fixed; width: 275px">
-          <v-card>
+          <v-card max-height="759" style="overflow: auto">
             <v-card-text>
               <v-text-field dense clearable label="Search for People" append-icon="search" v-model="roommate_search"></v-text-field>
-              <v-card v-for="match in filtered_matches" :key="match.id" @click="select_roommate(match.id)" :color="selected_roommates.includes(match.id) ? '#BBDEFB' : ''">
-                <v-card-text class="pa-1" v-if="requests.hasOwnProperty(match.id)">
-                  {{ requests[match.id].name }} {{ match.weight ? "("+Math.round(match.weight)+")" : "" }} <br> <v-icon @click.stop.prevent="roommate_modal(requests[match.id])">edit</v-icon><span v-for="night in [...requests[match.id].room_nights].sort()" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
-                </v-card-text>
-              </v-card>
+              <v-btn left @click="add_room()">Add Room</v-btn><v-btn :disabled="selected_rooms.length !== 1 || selected_roommates.length === 0" @click="assign_to_room(null, null, null)">Assign</v-btn><br><br>
+              <div v-if="search_all_people">
+                <v-card v-for="match in filtered_badges" :key="match.id">
+                  <v-card-text class="pa-1 legible">
+                    {{ match.first_name }} {{ match.last_name }} <br> <v-icon @click.stop.prevent="roommate_modal({id: match.id, name: match.first_name + ' ' + match.last_name})">edit</v-icon>
+                    <span v-if="!Object.prototype.hasOwnProperty.call(requests, match.id)">No Nights Requested</span>
+                    <span v-else><span v-for="night in [...requests[match.id].room_nights].sort()" :key="night">{{ room_nights[night].name.slice(0,2) }} </span></span>
+                  </v-card-text>
+                </v-card>
+              </div>
+              <div v-else>
+                <v-card v-for="match in filtered_matches" :key="match.id" @click="select_roommate(match.id)" :color="selected_roommates.includes(match.id) ? '#BBDEFB' : ''">
+                  <v-card-text class="pa-1 legible" v-if="requests.hasOwnProperty(match.id)">
+                    {{ requests[match.id].name }} {{ match.weight ? "("+Math.round(match.weight)+")" : "" }} <br> <v-icon @click.stop.prevent="roommate_modal(requests[match.id])">edit</v-icon><span v-for="night in [...requests[match.id].room_nights].sort()" :key="night">{{ room_nights[night].name.slice(0,2) }} </span>
+                  </v-card-text>
+                </v-card>
+              </div>
             </v-card-text>
-            <v-card-actions>
-              <v-btn left @click="add_room()">Add Room</v-btn><v-btn :disabled="selected_rooms.length !== 1 || selected_roommates.length === 0" @click="assign_to_room(null, null, null)">Assign</v-btn>
-            </v-card-actions>
           </v-card>
         </div>
       </v-col>
@@ -87,6 +101,12 @@
 </template>
 
 <style>
+.legible {
+  color: rgba(0,0,0,1) !important;
+}
+.dense_check {
+  height: 25px;
+}
 </style>
 
 <script>
@@ -99,7 +119,11 @@ export default {
     RequestShort,
   },
   data: () => ({
+    num_filtered_matches: 10,
+    search_all_people: false,
+    room_page: 1,
     active_room: {},
+    filter_page: true,
     open_room_modal: false,
     active_roommate: {},
     open_roommate_modal: false,
@@ -130,6 +154,9 @@ export default {
       'event',
       'user',
     ]),
+    num_room_pages() {
+      return Math.ceil(this.filtered_rooms.length / 15);
+    },
     roommates() {
       const rooms = {};
       const badges = Object.keys(this.assignments);
@@ -194,10 +221,28 @@ export default {
           if (!found) {
             if (!this.selected_roommates.includes(this.matches[i].id)) {
               results.push(this.matches[i]);
-              if (results.length >= 10) {
+              if (results.length >= this.num_filtered_matches) {
                 return results;
               }
             }
+          }
+        }
+      }
+      return results;
+    },
+    filtered_badges() {
+      const results = [];
+      let search = '';
+      if (this.roommate_search !== null) {
+        search = this.roommate_search.toLowerCase();
+      }
+      for (let i = 0; i < this.badges.length; i += 1) {
+        const badge = this.badges[i];
+        const name = (`${badge.first_name} ${badge.last_name}`).toLowerCase();
+        if (name.includes(search)) {
+          results.push(this.badges[i]);
+          if (results.length >= this.num_filtered_matches) {
+            return results;
           }
         }
       }
@@ -216,6 +261,14 @@ export default {
       }
       rooms.sort((a, b) => ((a.id > b.id) ? 1 : -1));
       return rooms;
+    },
+    paginated_rooms() {
+      const start = (this.room_page - 1) * 15;
+      const end = this.room_page * 15;
+      if (this.filter_page) {
+        return this.filtered_rooms.slice(start, end);
+      }
+      return this.filtered_rooms;
     },
   },
   asyncComputed: {
@@ -393,6 +446,30 @@ export default {
         });
       },
       default: {},
+    },
+    badges: {
+      get() {
+        const self = this;
+        return new Promise((resolve) => {
+          if (self.event.id) {
+            self.get('/api/hotels/badges', {
+              event: self.event.id,
+            }).then((response) => {
+              if (response.success) {
+                resolve(response.badges);
+              } else {
+                self.$store.commit('open_snackbar', 'Failed to load badges.');
+                resolve([]);
+              }
+            }).catch(() => {
+              self.$store.commit('open_snackbar', 'Failed to load badges.');
+            });
+          } else {
+            resolve([]);
+          }
+        });
+      },
+      default: [],
     },
   },
   beforeDestroy() {

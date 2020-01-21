@@ -29,6 +29,7 @@ class HotelRoom(db.Model):
     hotel_block = db.Column(db.Integer, db.ForeignKey('hotel_room_block.id'), nullable=False)
     hotel_location = db.Column(db.Integer, db.ForeignKey('hotel_location.id'), nullable=False)
     completed = db.Column(db.Boolean)
+    room_night_assignments = db.relationship('RoomNightAssignment')
 
 class HotelRoommateRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -55,6 +55,37 @@ def get_email_context(badge, tables):
     event = db.session.query(Event).filter(Event.id == badge.event).one()
     requested_nights = [x.room_night for x in badge.room_night_requests if x.requested]
     assigned_nights = [x.room_night for x in badge.room_night_assignments]
+    hotel_room_ids = list(set([x.hotel_room for x in badge.room_night_assignments]))
+    hotel_rooms = []
+    for room in hotel_room_ids:
+        assignments = [x for x in tables['RoomNightAssignment'] if x.hotel_room == room]
+        start_night = assignments[0].room_night
+        end_night = assignments[0].room_night
+        for i in assignments:
+            if i.room_night < start_night:
+                start_night = i.room_night
+            if i.room_night > end_night:
+                end_night = i.room_night
+        end_night = END_NIGHT_OFFSETS[end_night]
+        roommates = {}
+        for i in assignments:
+            if not i.badge in roommates:
+                roommates[i.badge] = {
+                    "badge": tables['Badge'][i.badge],
+                    "nights": [i.room_night,],
+                }
+            else:
+                if not i.room_night in roommates[i.badge]['nights']:
+                    roommates[i.badge]['nights'].append(i.room_night)
+        for roommate in roommates.keys():
+            roommates[roommate]['nights'].sort()
+        hotel_rooms.append({
+            "roommates": roommates, 
+            "messages": tables['HotelRoom'][room].messages,
+            "completed": tables['HotelRoom'][room].completed,
+            "start_night": start_night,
+            "end_night": end_night,
+        })
     approved_nights = []
     approving_depts = []
     approving_dept_ids = []
@@ -88,6 +119,7 @@ def get_email_context(badge, tables):
         "assigned_nights": assigned_nights,
         "approved_nights": approved_nights,
         "approving_depts": ", ".join(approving_depts),
+        "hotel_rooms": hotel_rooms,
         "hotel_room_nights": {x.id:x for x in hotel_room_nights},
         "has_edge_night": has_edge_night,
         "hotel_request": hotel_request,
@@ -107,6 +139,9 @@ def generate_emails(email):
         "HotelRoomRequest": db.session.query(HotelRoomRequest).join(Badge, Badge.id == HotelRoomRequest.badge).filter(Badge.event == email.event).all(),
         "RoomNightApproval": db.session.query(RoomNightApproval).join(RoomNightRequest, RoomNightRequest.id == RoomNightApproval.room_night).filter(RoomNightApproval.approved == True).all(),
         "Department": {x.id: x for x in db.session.query(Department).filter(Department.event == email.event).all()},
+        "HotelRoom": {x.id: x for x in db.session.query(HotelRoom).all()},
+        "Badge": {x.id: x for x in db.session.query(Badge).filter(Badge.event_id == email.event).all()},
+        "RoomNightAssignment": db.session.query(RoomNightAssignment).all(),
     }
     
     for badge in badges:
@@ -158,38 +193,46 @@ def api_email_trigger():
 
     return jsonify(success=True) # TODO: Removed before going back to prod
 
-    client = boto3.client('ses', region_name=source.region, aws_access_key_id=source.ses_access_key, aws_secret_access_key=source.ses_secret_key)
-
-    for compiled in generate_emails(email):
-        if email.send_once:
-            receipts = db.session.query(EmailReceipt).filter(EmailReceipt.email == email.id, EmailReceipt.badge == compiled[0]).all()
-            if receipts:
-                continue
-        try:
-            client.send_email(
-                Destination={
-                    'ToAddresses': [
-                        compiled[1],
-                    ],
-                },
-                Message={
-                    'Body': {
-                        'Text': {
+    def stream_emails():
+        temp_session = db.create_session({})()
+        client = boto3.client('ses', region_name=source.region, aws_access_key_id=source.ses_access_key, aws_secret_access_key=source.ses_secret_key)
+        yield '{'
+        for compiled in generate_emails(email):
+            if email.send_once:
+                receipts = db.session.query(EmailReceipt).filter(EmailReceipt.email == email.id, EmailReceipt.badge == compiled[0]).all()
+                if receipts:
+                    continue
+            try:
+                client.send_email(
+                    Destination={
+                        'ToAddresses': [
+                            compiled[1],
+                        ],
+                    },
+                    Message={
+                        'Body': {
+                            'Text': {
+                                'Charset': 'UTF-8',
+                                'Data': compiled[4],
+                            },
+                        },
+                        'Subject': {
                             'Charset': 'UTF-8',
-                            'Data': compiled[4],
+                            'Data': compiled[3],
                         },
                     },
-                    'Subject': {
-                        'Charset': 'UTF-8',
-                        'Data': compiled[3],
-                    },
-                },
-                Source=source.address,
-            )
-        except ClientError as e:
-            print(e.response['Error']['Message'])
-        else:
-            receipt = EmailReceipt(email=email.id, badge=compiled[0], source=source.id, to_address=compiled[1], from_address=source.address, subject=compiled[3], body=compiled[4], timestamp=datetime.datetime.now())
-            db.session.add(receipt)
-    db.session.commit()
-    return jsonify(success=True)
+                    Source=source.address,
+                )
+            except ClientError as e:
+                print(e.response['Error']['Message'])
+            else:
+                receipt = EmailReceipt(email=email.id, badge=compiled[0], source=source.id, to_address=compiled[1], from_address=source.address, subject=compiled[3], body=compiled[4], timestamp=datetime.datetime.now())
+                temp_session.add(receipt)
+                temp_session.commit()
+            yield '"{}": true,'.format(compiled[0])
+        yield '}'
+    headers = {
+        "Content-Type": "application/json",
+        "Content-Disposition": "attachment; filename=emails.json",
+    }
+    return Response(stream_with_context(stream_emails()), headers=headers)
