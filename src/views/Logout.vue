@@ -19,14 +19,14 @@ export default {
         self.$store.dispatch('check_logged_in').then(() => {
           self.$router.push({ name: 'home' });
         }).catch(() => {
-          self.$store.commit('open_snackbar', 'Failed to check whether you are logged in.');
+          self.notify('Failed to check whether you are logged in.');
         });
-        self.$store.commit('open_snackbar', 'Logged out successfully!');
+        self.notify('Logged out successfully!');
       } else {
-        self.$store.commit('open_snackbar', 'Failed to log out. Were you logged in?');
+        self.notify('Failed to log out. Were you logged in?');
       }
     }).catch(() => {
-      self.$store.commit('open_snackbar', 'Network error while logging out.');
+      self.notify('Network error while logging out.');
     });
   },
 };

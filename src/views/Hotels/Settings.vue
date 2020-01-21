@@ -191,7 +191,7 @@ export default {
                 resolve([]);
               }
             }).catch(() => {
-              self.$store.commit('open_snackbar', 'Failed to retrieve hotel settings.');
+              self.notify('Failed to retrieve hotel settings.');
             });
           } else {
             resolve([]);
@@ -214,7 +214,7 @@ export default {
                 resolve([]);
               }
             }).catch(() => {
-              self.$store.commit('open_snackbar', 'Failed to get hotel room blocks.');
+              self.notify('Failed to get hotel room blocks.');
             });
           } else {
             resolve([]);
@@ -237,7 +237,7 @@ export default {
                 resolve([]);
               }
             }).catch(() => {
-              self.$store.commit('open_snackbar', 'Failed to get hotel room locations.');
+              self.notify('Failed to get hotel room locations.');
             });
           } else {
             resolve([]);
@@ -261,13 +261,13 @@ export default {
         self.loading = false;
         if (res.success) {
           self.room_night.name = '';
-          self.$store.commit('open_snackbar', 'Room Night Added.');
+          self.notify('Room Night Added.');
           self.$asyncComputed.room_nights.update();
         } else {
-          self.$store.commit('open_snackbar', `Failed to add Room Night: ${res.reason}`);
+          self.notify(`Failed to add Room Night: ${res.reason}`);
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Failed to update hotel settings.');
+        self.notify('Failed to update hotel settings.');
       });
     },
     delete_room_nights() {
@@ -281,14 +281,14 @@ export default {
         room_nights: self.room_nights,
       }).then((res) => {
         if (res.success) {
-          self.$store.commit('open_snackbar', 'Room Nights Deleted.');
+          self.notify('Room Nights Deleted.');
           self.$asyncComputed.room_nights.update();
         } else {
-          self.$store.commit('open_snackbar', 'Failed to delete Room Nights.');
+          self.notify('Failed to delete Room Nights.');
           self.$asyncComputed.room_nights.update();
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Failed to delete hotel room nights.');
+        self.notify('Failed to delete hotel room nights.');
       });
     },
     add_room_block() {
@@ -303,13 +303,13 @@ export default {
         if (res.success) {
           self.room_block.name = '';
           self.room_block.description = '';
-          self.$store.commit('open_snackbar', 'Room Block Added.');
+          self.notify('Room Block Added.');
           self.$asyncComputed.room_block.update();
         } else {
-          self.$store.commit('open_snackbar', `Failed to add Room Block: ${res.reason}`);
+          self.notify(`Failed to add Room Block: ${res.reason}`);
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Failed to add hotel block.');
+        self.notify('Failed to add hotel block.');
       });
     },
     delete_room_blocks() {
@@ -323,14 +323,14 @@ export default {
         room_blocks: self.room_blocks,
       }).then((res) => {
         if (res.success) {
-          self.$store.commit('open_snackbar', 'Room Blocks Deleted.');
+          self.notify('Room Blocks Deleted.');
           self.$asyncComputed.room_blocks.update();
         } else {
-          self.$store.commit('open_snackbar', `Failed to delete Room Blocks: ${res.reason}`);
+          self.notify(`Failed to delete Room Blocks: ${res.reason}`);
           self.$asyncComputed.room_blocks.update();
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Failed to delete hotel room blocks.');
+        self.notify('Failed to delete hotel room blocks.');
       });
     },
     add_room_location() {
@@ -345,13 +345,13 @@ export default {
         if (res.success) {
           self.room_location.name = '';
           self.room_location.address = '';
-          self.$store.commit('open_snackbar', 'Room Location Added.');
+          self.notify('Room Location Added.');
           self.$asyncComputed.room_location.update();
         } else {
-          self.$store.commit('open_snackbar', `Failed to add Room Location: ${res.reason}`);
+          self.notify(`Failed to add Room Location: ${res.reason}`);
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Failed to add hotel room location.');
+        self.notify('Failed to add hotel room location.');
       });
     },
     delete_room_locations() {
@@ -365,14 +365,14 @@ export default {
         room_locations: self.room_locations,
       }).then((res) => {
         if (res.success) {
-          self.$store.commit('open_snackbar', 'Room Location Deleted.');
+          self.notify('Room Location Deleted.');
           self.$asyncComputed.room_locations.update();
         } else {
-          self.$store.commit('open_snackbar', `Failed to delete Room Location: ${res.reason}`);
+          self.notify(`Failed to delete Room Location: ${res.reason}`);
           self.$asyncComputed.room_locations.update();
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Failed to delete hotel room location.');
+        self.notify('Failed to delete hotel room location.');
       });
     },
   },

@@ -6,6 +6,9 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(128), default="")
     active = db.Column(db.Boolean)
+    badges = db.relationship("Badge")
+    sessions = db.relationship("Session")
+    grants = db.relationship("Grant")
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -33,6 +36,6 @@ class Role(db.Model):
 class Grant(db.Model):
     # Null values become wildcards, i.e. if event is NULL, then the grant applies to all events
     id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.Integer, nullable=True)
+    user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     role = db.Column(db.Integer, nullable=True)
     department = db.Column(db.Integer, nullable=True)

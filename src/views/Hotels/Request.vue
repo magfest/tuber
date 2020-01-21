@@ -152,7 +152,7 @@ export default {
               resolve([]);
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to retrieve department membership.');
+            self.notify('Failed to retrieve department membership.');
           });
         } else {
           resolve([]);
@@ -172,7 +172,7 @@ export default {
               reject(Error('Failed to retrieve request'));
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to fetch your request.');
+            self.notify('Failed to fetch your request.');
           });
         } else {
           resolve({});
@@ -190,7 +190,7 @@ export default {
               resolve(null);
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to retrieve badge.');
+            self.notify('Failed to retrieve badge.');
           });
         } else if (self.event.id && self.user.id) {
           self.post('/api/user/badge', { event: self.event.id, user: self.user.id }).then((res) => {
@@ -200,7 +200,7 @@ export default {
               resolve(null);
             }
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to retrieve badge.');
+            self.notify('Failed to retrieve badge.');
           });
         }
       });
@@ -232,10 +232,10 @@ export default {
           self.confirmation = true;
         } else {
           self.loading = false;
-          self.$store.commit('open_snackbar', `Failed to submit hotel request: ${res.reason}`);
+          self.notify(`Failed to submit hotel request: ${res.reason}`);
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Failed to submit hotel request.');
+        self.notify('Failed to submit hotel request.');
         self.loading = false;
       });
     },

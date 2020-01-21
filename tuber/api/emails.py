@@ -9,121 +9,50 @@ import jinja2
 import boto3
 import uuid
 import lupa
+from tuber.api import *
+from tuber.models import *
+from marshmallow_sqlalchemy import ModelSchema
 import csv
 import io
 
-@app.route('/api/emails', methods=['GET', 'POST'])
-def api_emails():
-    fields = ['name', 'description', 'code', 'subject', 'body', 'active', 'source', 'event', 'send_once']
-    if request.method == 'GET':
-        if not check_permission('emails.read', event=request.values['event']):
-            return jsonify(success=False)
-        emails = db.session.query(Email).filter(Email.event == request.values['event']).all()
-        result = []
-        for email in emails:
-            result.append({ i:getattr(email, i) for i in ['id', *fields]})
-        return jsonify(success=True, emails=result)
-    if request.method == 'POST':
-        if not check_permission('emails.write', event=request.json['event']):
-            return jsonify(success=False)
-        for i in fields:
-            if not i in request.json:
-                return jsonify(success=False, reason="{} is a required parameter".format(i))
-        if ('id' in request.json) and request.json['id']:
-            email = db.session.query(Email).filter(Email.id == request.json['id']).one_or_none()
-            if not email:
-                return jsonify(success=False, reason="Could not locate email {}".format(request.json['id']))
-        else:
-            email = Email()
-        for i in fields:
-            setattr(email, i, request.json[i])
-        db.session.add(email)
-        db.session.commit()
-        res = {i:getattr(email, i) for i in ['id', *fields]}
-        return jsonify(success=True, email=res)
+class EmailSchemaRead(ModelSchema):
+    class Meta:
+        model = Email
+        sqla_session = db.session
+        fields = ['id', 'name', 'description', 'event', 'code', 'subject', 'body', 'active', 'send_once', 'source', 'receipts']
 
-@app.route('/api/emails/delete', methods=['POST'])
-def api_emails_delete():
-    if not check_permission('emails.write', event=request.json['event']):
-        return jsonify(success=False, reason="Permission Denied")
-    if not 'id' in request.json:
-        return jsonify(success=False, reason="id is a required parameter")
-    email = db.session.query(Email).filter(Email.id == request.json['id']).one_or_none()
-    if not email:
-        return jsonify(success=False, reason="Could not find email {}".format(request.json['id']))
-    db.session.delete(email)
-    db.session.commit()
-    return jsonify(success=True)
+class EmailSchemaWrite(ModelSchema):
+    class Meta:
+        model = Email
+        sqla_session = db.session
+        fields = ['id', 'name', 'description', 'event', 'code', 'subject', 'body', 'active', 'send_once', 'source']
 
-@app.route('/api/emails/sources', methods=['GET', 'POST'])
-def api_email_sources():
-    fields = ['name', 'description', 'event', 'address', 'ses_access_key', 'ses_secret_key', 'region']
-    if request.method == 'GET':
-        if not check_permission('emailsource.read', event=request.values['event']):
-            return jsonify(success=False)
-        sources = db.session.query(EmailSource).filter(EmailSource.event == request.values['event']).all()
-        result = []
-        for source in sources:
-            result.append({ i:getattr(source, i) for i in ['id', *fields]})
-        return jsonify(success=True, sources=result)
-    if request.method == 'POST':
-        if not check_permission('emailsource.write', event=request.json['event']):
-            return jsonify(success=False)
-        for i in fields:
-            if not i in request.json:
-                return jsonify(success=False, reason="{} is a required parameter".format(i))
-        if 'id' in request.json:
-            source = db.session.query(EmailSource).filter(EmailSource.id == request.json['id']).one_or_none()
-            if not source:
-                return jsonify(success=False, reason="Could not locate email source {}".format(request.json['id']))
-        else:
-            source = EmailSource()
-        for i in fields:
-            setattr(source, i, request.json[i])
-        db.session.add(source)
-        db.session.commit()
-        res = {i:getattr(source, i) for i in ['id', *fields]}
-        return jsonify(success=True, email_source=res)
+register_crud("emails", {EmailSchemaRead():["GET"], EmailSchemaWrite(): ["POST", "PATCH", "DELETE"]})
 
-@app.route('/api/emails/sources/delete', methods=['POST'])
-def api_emails_sources_delete():
-    if not check_permission('emailsource.write', event=request.json['event']):
-        return jsonify(success=False, reason="Permission Denied")
-    if not 'id' in request.json:
-        return jsonify(success=False, reason="id is a required parameter")
-    emails = db.session.query(Email).filter(Email.source == request.json['id']).all()
-    if email:
-        return jsonify(success=False, reason="Email source {} is still in use.".format(request.json['id']))
-    emailsource = db.session.query(EmailSource).filter(EmailSource.id == request.json['id']).one_or_none()
-    if not emailsource:
-        return jsonify(success=False, reason="Could not locate email source {}".format(request.json['id']))
-    db.session.delete(emailsource)
-    db.session.commit()
-    return jsonify(success=True)
+class EmailSourceSchemaRead(ModelSchema):
+    class Meta:
+        model = EmailSource
+        sqla_session = db.session
+        fields = ['id', 'name', 'description', 'event', 'address', 'region', 'ses_access_key', 'ses_secret_key', 'active', 'emails', 'receipts']
 
-@app.route('/api/emails/receipts', methods=['GET'])
-def api_email_receipts():
-    if not check_permission('emailreceipt.read', event=request.values['event']):
-        return jsonify(success=False, reason="Permission Denied")
-    if not 'email' in request.values:
-        return jsonify(success=False, reason="email is a required parameter")
-    receipts = db.session.query(EmailReceipt).filter(EmailReceipt.email == request.values['email']).all()
-    res = []
-    for i in receipts:
-        res.append({x: getattr(i, x) for x in ['id', 'email', 'badge', 'source', 'to_address', 'from_address', 'subject', 'body', 'timestamp']})
-    return jsonify(success=True, receipts=res)
+class EmailSourceSchemaWrite(ModelSchema):
+    class Meta:
+        model = EmailSource
+        sqla_session = db.session
+        fields = ['id', 'name', 'description', 'event', 'address', 'region', 'ses_access_key', 'ses_secret_key', 'active']
 
-END_NIGHT_OFFSETS = {
-    1: "Wednesday",
-    2: "Thursday",
-    3: "Friday",
-    4: "Saturday",
-    5: "Sunday",
-    6: "Monday",
-}
+register_crud("email_sources", {EmailSourceSchemaRead(): ["GET"], EmailSourceSchemaWrite(): ["POST", "PATCH", "DELETE"]})
 
+class EmailReceiptSchemaRead(ModelSchema):
+    class Meta:
+        model = EmailReceipt
+        sqla_session = db.session
+        fields = ['id', 'email', 'source', 'to_address', 'from_address', 'subject', 'body', 'timestamp']
+
+register_crud("email_receipts", EmailReceiptSchemaRead(), methods=["GET"], url_scheme="badge")
+            
 def get_email_context(badge, tables):
-    event = db.session.query(Event).filter(Event.id == badge.event_id).one()
+    event = db.session.query(Event).filter(Event.id == badge.event).one()
     requested_nights = [x.room_night for x in badge.room_night_requests if x.requested]
     assigned_nights = [x.room_night for x in badge.room_night_assignments]
     hotel_room_ids = list(set([x.hotel_room for x in badge.room_night_assignments]))
@@ -198,7 +127,7 @@ def get_email_context(badge, tables):
 
 def generate_emails(email):
     source = db.session.query(EmailSource).filter(EmailSource.id == email.source).one()
-    badges = db.session.query(Badge).filter(Badge.event_id == email.event).all()
+    badges = db.session.query(Badge).filter(Badge.event == email.event).all()
 
     L = lupa.LuaRuntime(register_eval=False)
     filter = L.execute(email.code)
@@ -207,9 +136,9 @@ def generate_emails(email):
 
     tables = {
         "HotelRoomNight": db.session.query(HotelRoomNight).filter(HotelRoomNight.event == email.event).all(),
-        "HotelRoomRequest": db.session.query(HotelRoomRequest).join(Badge, Badge.id == HotelRoomRequest.badge).filter(Badge.event_id == email.event).all(),
+        "HotelRoomRequest": db.session.query(HotelRoomRequest).join(Badge, Badge.id == HotelRoomRequest.badge).filter(Badge.event == email.event).all(),
         "RoomNightApproval": db.session.query(RoomNightApproval).join(RoomNightRequest, RoomNightRequest.id == RoomNightApproval.room_night).filter(RoomNightApproval.approved == True).all(),
-        "Department": {x.id: x for x in db.session.query(Department).filter(Department.event_id == email.event).all()},
+        "Department": {x.id: x for x in db.session.query(Department).filter(Department.event == email.event).all()},
         "HotelRoom": {x.id: x for x in db.session.query(HotelRoom).all()},
         "Badge": {x.id: x for x in db.session.query(Badge).filter(Badge.event_id == email.event).all()},
         "RoomNightAssignment": db.session.query(RoomNightAssignment).all(),
@@ -259,6 +188,10 @@ def api_email_trigger():
     source = db.session.query(EmailSource).filter(EmailSource.id == email.source).one_or_none()
     if not source:
         return jsonify(success=False, reason="Could not find EmailSource to send email from")
+    if not source.active:
+        return jsonify(success=False, reason="The email source for this email is inactive.")
+
+    return jsonify(success=True) # TODO: Removed before going back to prod
 
     def stream_emails():
         temp_session = db.create_session({})()

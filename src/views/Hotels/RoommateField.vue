@@ -73,7 +73,7 @@ export default {
               }
               resolve({});
             }).catch(() => {
-              self.$store.commit('open_snackbar', 'Failed to retrieve department names.');
+              self.notify('Failed to retrieve department names.');
             });
           }
         });
@@ -110,7 +110,7 @@ export default {
                   resolve([]);
                 }
               }).catch(() => {
-                self.$store.commit('open_snackbar', 'Failed to lookup roommates.');
+                self.notify('Failed to lookup roommates.');
               });
             });
           } else {
@@ -156,7 +156,7 @@ export default {
           self.optionsLoading = false;
         }
       }).catch(() => {
-        self.$store.commit('open_snackbar', 'Failed to search for roommate names.');
+        self.notify('Failed to search for roommate names.');
       });
       self.optionsLoading = false;
     },

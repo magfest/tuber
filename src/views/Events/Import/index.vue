@@ -47,23 +47,11 @@ export default {
   data: () => ({
     tab: null,
     loading: false,
-    email: '',
-    password: '',
-    uber_url: '',
-    attendees: 50000,
-    departments: 50,
-    staffers: 2000,
-    csv_type: 'Attendees',
   }),
   computed: {
     ...mapGetters([
       'event',
     ]),
-  },
-  methods: {
-    generateMock() {
-
-    },
   },
 };
 </script>

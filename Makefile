@@ -13,7 +13,7 @@ install-develop: venv node_modules
 develop: install-develop tuber.json
 	node_modules/.bin/kill-port 8081 8080
 	npm run serve &
-	FLASK_ENV=development venv/bin/tuber --config tuber.json
+	FLASK_ENV=development venv/bin/tuber
 
 tuber.json:
 	cp contrib/tuber.json.devel tuber.json

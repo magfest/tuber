@@ -43,7 +43,7 @@ export default {
           self.get('/api/hotels/statistics', { event: self.event.id }).then((resp) => {
             resolve([resp.num_requests, resp.num_badges - resp.num_requests]);
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to load statistics.');
+            self.notify('Failed to load statistics.');
           });
         });
       },

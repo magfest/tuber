@@ -44,15 +44,15 @@ export default {
           self.$store.dispatch('check_initial_setup').then(() => {
             self.$router.push({ name: 'home' });
           }).catch(() => {
-            self.$store.commit('open_snackbar', 'Failed to check if server is in initial setup mode.');
+            self.notify('Failed to check if server is in initial setup mode.');
           });
-          self.$store.commit('open_snackbar', 'Created admin account successfully!');
+          self.notify('Created admin account successfully!');
         } else {
-          self.$store.commit('open_snackbar', 'Failed to create admin account.');
+          self.notify('Failed to create admin account.');
         }
       }).catch(() => {
         self.initial_setup_loading = false;
-        self.$store.commit('open_snackbar', 'Network error while creating admin account.');
+        self.notify('Network error while creating admin account.');
       });
     },
   },

@@ -52,6 +52,27 @@ venv/bin/pip install pytest
 make test
 ```
 
+### Database Migrations
+
+If you want to create a new table or modify an existing one you will need to create an alembic migration. Most of the time, you can do this by autogenerating it.
+
+First, create the table definition in tuber/models/<name>.py, and make sure it is imported in tuber/models/__init__.py.
+
+Next, use alembic to create the migration file:
+
+```bash
+venv/bin/alembic revision --autogenerate -m "Added widget column to the whatsit table"
+```
+
+This should create a migration file in migrations/versions. Read through it and adjust the steps as necessary. The next time you restart your dev instance it will run the migration.
+
+You can also trigger the database update manually:
+```bash
+venv/bin/alembic upgrade head
+```
+
+Make sure to commit the migration along with the code that uses it!
+
 ### Heroku
 
 Heroku configuration is in a combination of app.json and Procfile.
@@ -67,3 +88,8 @@ If you would like to deploy your own instance:
 If you receive the following ambiguous error message: `ld: library not found for -lssl`
 
 The fix for this: `export LDFLAGS="-L/usr/local/opt/openssl/lib"`
+
+#### Alembic with multiple heads
+
+Sometimes when merging a branch that has its own new migrations into your own branch you'll have to tell alembic what to do.
+If you see alembic complaining about multiple heads check here: https://blog.jerrycodes.com/multiple-heads-in-alembic-migrations/

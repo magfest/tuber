@@ -22,11 +22,31 @@ export default {
       attendees: 50000,
       departments: 50,
       staffers: 2000,
+      csv_type: 'Attendees',
+      files: [],
+      csv_types: [
+        'Attendees',
+        'Departments',
+      ],
     };
   },
   methods: {
     generateMock() {
-
+      const self = this;
+      this.post('/api/importer/mock', {
+        attendees: parseInt(self.attendees, 10),
+        departments: parseInt(self.departments, 10),
+        staffers: parseInt(self.staffers, 10),
+        event: self.event.id,
+      }).then((resp) => {
+        if (resp.success) {
+          self.$store.commit('open_snackbar', 'Mock data generated successfully.');
+        } else {
+          self.$store.commit('open_snackbar', 'Failed to generate mock data.');
+        }
+      }).catch(() => {
+        self.$store.commit('open_snackbar', 'Network error while generating mock data.');
+      });
     },
   },
 };
