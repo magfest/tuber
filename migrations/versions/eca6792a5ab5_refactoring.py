@@ -48,7 +48,8 @@ def upgrade():
     with op.batch_alter_table('room_night_approval', schema=None) as batch_op:
         batch_op.add_column(sa.Column('badge', sa.Integer()))
 
-    op.execute('update room_night_approval set badge = rnr.badge, room_night = rnr.room_night from room_night_approval as rna inner join room_night_request as rnr on rna.room_night = rnr.id')
+    op.execute('update room_night_approval set badge = (select badge from room_night_request where room_night_request.id = room_night_approval.room_night)')
+    op.execute('update room_night_approval set room_night = (select room_night from room_night_request where room_night_request.id = room_night_approval.room_night)')
     
     with op.batch_alter_table('room_night_approval', schema=None) as batch_op:
         batch_op.create_foreign_key("room_night_approval_badge_fkey", 'badge', ['badge'], ['id'])
