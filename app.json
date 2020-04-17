@@ -6,10 +6,7 @@
   ],
   "buildpacks": [
     {
-      "url": "heroku/python"
-    },
-    {
-      "url": "heroku/nodejs"
+      "url": "https://github.com/negativetwelve/heroku-buildpack-subdir"
     }
   ],
   "env": {
@@ -43,9 +40,6 @@
     }
   },
   "formation": {
-    "web": {
-      "quantity": 1
-    }
   },
   "name": "tuber",
   "scripts": {
