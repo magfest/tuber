@@ -6,7 +6,7 @@
   ],
   "buildpacks": [
     {
-      "url": "https://github.com/negativetwelve/heroku-buildpack-subdir"
+      "url": "https://github.com/magfest/heroku-buildpack-subdir"
     }
   ],
   "env": {
