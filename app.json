@@ -43,8 +43,8 @@
   },
   "name": "tuber",
   "scripts": {
-    "test-setup": "make build",
-    "test": "make test"
+    "test-setup": "bash contrib/build-tests.sh",
+    "test": "bash contrib/run-tests.sh"
   },
   "description": "Open source event management software, based on Flask and Vue.js.",
   "repository": "https://github.com/magfest/tuber",
