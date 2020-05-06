@@ -26,8 +26,9 @@ Tuber is an event management system.
 {{{ git_dir_setup_macro }}}
 
 %build
+cd backend
 %py3_build
-find 
+cd ../frontend
 npm install
 npm run build
 
@@ -43,13 +44,13 @@ cp contrib/nginx.conf %{buildroot}/usr/share/tuber/nginx.conf
 cp contrib/tuber.service %{buildroot}/usr/lib/systemd/system/
 cp contrib/tuber.json %{buildroot}/etc/tuber/
 cp contrib/tuber.json %{buildroot}/usr/share/tuber/
-cp dist/js/app.*.js %{buildroot}/usr/share/tuber/web/js/
-cp dist/js/chunk-vendors.*.js %{buildroot}/usr/share/tuber/web/js/
-cp dist/css/app.*.css %{buildroot}/usr/share/tuber/web/css/
-cp dist/css/chunk-vendors.*.css %{buildroot}/usr/share/tuber/web/css/
-cp dist/index.html %{buildroot}/usr/share/tuber/web/
-cp dist/favicon.ico %{buildroot}/usr/share/tuber/web/
-cp -r migrations/* %{buildroot}/usr/share/tuber/migrations/
+cp frontend/dist/js/app.*.js %{buildroot}/usr/share/tuber/web/js/
+cp frontend/dist/js/chunk-vendors.*.js %{buildroot}/usr/share/tuber/web/js/
+cp frontend/dist/css/app.*.css %{buildroot}/usr/share/tuber/web/css/
+cp frontend/dist/css/chunk-vendors.*.css %{buildroot}/usr/share/tuber/web/css/
+cp frontend/dist/index.html %{buildroot}/usr/share/tuber/web/
+cp frontend/dist/favicon.ico %{buildroot}/usr/share/tuber/web/
+cp -r backend/migrations/* %{buildroot}/usr/share/tuber/migrations/
 
 %files
 %config /etc/tuber/tuber.json
