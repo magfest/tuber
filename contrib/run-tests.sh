@@ -1,2 +1,8 @@
 #!/bin/bash
-cd backend & pytest & cd ../frontend & npm run test
+
+venv/bin/activate
+cd backend
+pytest
+
+cd ../frontend
+npm run test
