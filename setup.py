@@ -31,7 +31,6 @@ setup(
         'passlib',
         'flask',
         'gunicorn',
-        'psycopg2',
         'flask-talisman',
         'sentry-sdk[flask]',
         'redis',
