@@ -21,7 +21,7 @@
     "STATIC_PATH": {
       "required": false,
       "description": "The relative location of the webroot.",
-      "value": "../dist"
+      "value": "../../frontend/dist"
     },
     "FLASK_ENV": {
       "required": false,
