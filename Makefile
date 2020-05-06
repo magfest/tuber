@@ -22,7 +22,7 @@ tuber.json:
 venv: venv/bin/activate
 
 venv/bin/activate:
-	python3 -m venv venv
+	python -m venv venv
 	echo "export FLASK_APP=tuber" >> venv/bin/activate
 
 test: build pytest
@@ -37,7 +37,7 @@ venv/bin/pytest: venv
 rpm: venv node_modules
 	-rm -rf dist
 	npm run build
-	/usr/bin/env python3 setup.py bdist_rpm --release $(shell git rev-list $(shell git tag)..HEAD --count)
+	/usr/bin/env python setup.py bdist_rpm --release $(shell git rev-list $(shell git tag)..HEAD --count)
 
 deb: rpm
 	fpm -s rpm -t deb dist/tuber*.noarch.rpm
