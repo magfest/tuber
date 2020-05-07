@@ -39,7 +39,9 @@ npm install
 npm run build
 
 %install
+cd backend
 %py3_install
+cd ..
 mkdir -p %{buildroot}/usr/lib/systemd/system
 mkdir -p %{buildroot}/var/lib/tuber/
 mkdir -p %{buildroot}/usr/share/tuber/web/js/
