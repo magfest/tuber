@@ -28,6 +28,5 @@ def main():
     for i in configfile:
         setattr(tuber.config, i, configfile[i])
 
-    tuber.init()
     tuber.migrate()
     tuber.app.run(host='0.0.0.0', port=8080)
