@@ -3,9 +3,13 @@ Tuber
 
 Tuber is an event management system. It helps keep track of your event staff, their jobs and shifts, departments, and attendees.
 
+.. automodule:: tuber
+    :members:
+
 .. http:get:: /api/hotels
 
     Retrieve a list of hotels.
+
     **Example Request**
 
     .. tabs::
