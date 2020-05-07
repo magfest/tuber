@@ -17,7 +17,6 @@ config.set_main_option("sqlalchemy.url", tuber.config.database_url)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-tuber.init()
 target_metadata = tuber.db.Model.metadata
 
 # other values from the config, defined by the needs of env.py,
