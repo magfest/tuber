@@ -44,6 +44,19 @@ export default {
       'logged_in',
       'events',
     ]),
+    event: {
+      get() {
+        return this.$store.state.events.event;
+      },
+      set(value) {
+        const self = this;
+        this.events.forEach((el) => {
+          if (el.id === value) {
+            self.$store.commit('set_event', el);
+          }
+        });
+      },
+    },
   },
 };
 </script>
