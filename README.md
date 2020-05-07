@@ -34,23 +34,46 @@ Configuration is in /etc/tuber/tuber.json. The main configuration required is fo
 After cloning this repository you will need the following dependencies:
 
 ```bash
-dnf install npm python3 python3-devel postgresql-devel # Fedora/RHEL/CentOS
-apt install npm python3 python3-dev python3-pip libpq-dev # Debian/Ubuntu
-brew install npm python postgresql # MacOS
+dnf install npm python3 python3-devel python3-pip # Fedora/RHEL/CentOS
+apt install npm python3 python3-dev python3-pip # Debian/Ubuntu
+brew install npm python # MacOS
 ```
 
-Once you have the dependencies you can simply run make to build, then make develop to run the test server:
+On Windows you'll have to install nodejs [https://nodejs.org/en/download/](https://nodejs.org/en/download/) and python3 [https://www.python.org/downloads/](https://www.python.org/downloads/).
+Make sure to add both npm and python to your PATH during installation.
+
+Once the dependencies are installed you can start up the backend and frontend development servers:
+
+### Backend
+Copy contrib/tuber.json.devel to tuber.json:
+```bash
+# Linux/MacOS
+cp contrib/tuber.json.devel tuber.json
+#Windows
+copy contrib\tuber.json.devel tuber.json
+```
 
 ```bash
-make develop
+python -m venv venv
+venv/bin/activate # On windows this is venv\Scripts\activate.bat
+cd backend
+python setup.py develop
+../venv/bin/tuber # On windows this is ..\venv\Scripts\tuber.exe
 ```
 
-You can run the tests using make test, though you will need to install pytest first:
+The server should now start up and begin listening on port 8080.
+
+### Frontend
+
+In a separate terminal from the backend, install and serve the vue frontend:
 
 ```bash
-venv/bin/pip install pytest
-make test
+cd frontend
+npm install
+npm serve
 ```
+
+This will start the frontend on port 8081, however you should connect your browser to localhost:8080, as the backend proxies the frontend to provide a single endpoint to the browser so that the CORS environment of the development environment matches the production deployment.
 
 ### Database Migrations
 

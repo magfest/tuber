@@ -6,10 +6,7 @@
   ],
   "buildpacks": [
     {
-      "url": "heroku/python"
-    },
-    {
-      "url": "heroku/nodejs"
+      "url": "https://github.com/magfest/heroku-buildpack-subdir"
     }
   ],
   "env": {
@@ -24,7 +21,7 @@
     "STATIC_PATH": {
       "required": false,
       "description": "The relative location of the webroot.",
-      "value": "../dist"
+      "value": "../../frontend/dist"
     },
     "FLASK_ENV": {
       "required": false,
@@ -43,14 +40,11 @@
     }
   },
   "formation": {
-    "web": {
-      "quantity": 1
-    }
   },
   "name": "tuber",
   "scripts": {
-    "test-setup": "make build",
-    "test": "make test"
+    "test-setup": "bash contrib/build-tests.sh",
+    "test": "bash contrib/run-tests.sh"
   },
   "description": "Open source event management software, based on Flask and Vue.js.",
   "repository": "https://github.com/magfest/tuber",
