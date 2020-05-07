@@ -26,6 +26,12 @@ Tuber is an event management system.
 {{{ git_dir_setup_macro }}}
 
 %build
+echo FINDING
+find
+echo PWDING
+pwd
+echo LSING
+ls ../
 cd ../backend
 %py3_build
 cd ../frontend
