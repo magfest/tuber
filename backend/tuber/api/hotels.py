@@ -60,6 +60,7 @@ class HotelRoomSchema(ModelSchema):
 register_crud("hotel_rooms", HotelRoomSchema())
 
 class HotelLocationSchema(ModelSchema):
+    """Schema for the physical location of the hotel"""
     class Meta:
         model = HotelLocation
         sqla_session = db.session

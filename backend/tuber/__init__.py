@@ -1,3 +1,5 @@
+"""The base module for Tuber"""
+
 from flask import Flask, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_talisman import Talisman
@@ -13,25 +15,19 @@ import alembic
 from alembic.config import Config as AlembicConfig
 
 db = None
-app = None
+app = Flask(__name__)
 initialized = False
 alembic_config = None
 
-def init():
-    global initialized
-    if initialized:
-        return
+if not initialized:
     initialized = True
-    global db
-    global app
-    global alembic_config
+
     if config.sentry_dsn:
         sentry_sdk.init(
             dsn=config.sentry_dsn,
             integrations=[FlaskIntegration(), SqlalchemyIntegration(), RedisIntegration()]
         )
 
-    app = Flask(__name__)
     if config.flask_env == "production":
         csp = config.csp_directives
         if not csp:
@@ -79,12 +75,11 @@ def init():
     import tuber.static
     import tuber.api
 
+def migrate():
     if oneshot_db_create:
         # To avoid running migrations on sqlite dev databases just create the current
         # tables and stamp them as being up to date so that migrations won't run.
         # This should only run if there is not an existing db.
         db.create_all()
         alembic.command.stamp(alembic_config, "head")
-
-def migrate():
     alembic.command.upgrade(alembic_config, "head")

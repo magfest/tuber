@@ -7,7 +7,7 @@ conf = {
     "static_path": os.path.abspath("../dist"),
     "migrations_path": "migrations",
     "alembic_ini": "alembic.ini",
-    "database_url": "sqlite:////tmp/database.db",
+    "database_url": "sqlite:///database.db",
     "session_duration": 7200,
     "uber_api_token": "",
     "uber_api_url": "",
