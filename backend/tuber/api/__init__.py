@@ -4,6 +4,10 @@ from tuber.models import *
 from tuber.permissions import *
 from tuber import app, db
 from marshmallow import EXCLUDE
+from marshmallow_sqlalchemy import ModelSchema
+import inspect
+import json
+import sqlalchemy
 
 all_permissions = []
 
@@ -118,3 +122,44 @@ from .events import *
 from .importer import *
 from .emails import *
 from .badges import *
+
+def indent(string, level=4):
+    lines = string.split("\n")
+    return " "*level + ("\n" + " "*level).join(lines)
+
+def underline(string, char="-"):
+    length = len(string)
+    return string + "\n" + char*length
+
+for obj in list(locals().values()):
+    if inspect.isclass(obj):
+        if issubclass(obj, ModelSchema):
+            if not hasattr(obj.Meta, "model"):
+                continue
+            name = obj.Meta.model.__name__
+            description = "Schema for a {}".format(obj.Meta.model.__name__)
+            if obj.Meta.model.__doc__:
+                description = obj.Meta.model.__doc__
+            sample_obj = {}
+            for col in obj.Meta.model.__table__.columns:
+                if isinstance(col.type, sqlalchemy.sql.sqltypes.Integer):
+                    sample_obj[col.name] = 1
+                elif isinstance(col.type, sqlalchemy.sql.sqltypes.String):
+                    sample_obj[col.name] = ""
+                elif isinstance(col.type, sqlalchemy.sql.sqltypes.Boolean):
+                    sample_obj[col.name] = False
+                elif isinstance(col.type, sqlalchemy.sql.sqltypes.DateTime):
+                    sample_obj[col.name] = datetime.datetime.now()
+                else:
+                    sample_obj[col.name] = None
+            sample_json = json.dumps(obj().dump(sample_obj), indent=2, sort_keys=True)
+            sample_json = indent(sample_json, 8)
+
+            obj.__doc__ = """**{}**:
+
+    {}
+
+    .. sourcecode:: json
+
+{}
+    """.format(name, description, sample_json)

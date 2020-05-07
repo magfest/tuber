@@ -1,6 +1,13 @@
 from tuber import db
 
 class HotelRoomRequest(db.Model):
+    """The requested preferences for a staff hotel room.
+
+    :param badge: The id of the badge that created this request
+    :type badge: int.
+    :param declined: True if the user has declined a hotel room
+    :type declined: bool.
+    """
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     declined = db.Column(db.Boolean, nullable=True)
