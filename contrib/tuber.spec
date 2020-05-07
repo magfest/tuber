@@ -5,7 +5,7 @@ Summary: Event Management System
 License: MIT
 URL: https://tuber.hackafe.net/
 VCS: {{{ git_dir_vcs }}}
-Source: {{{ git_dir_pack }}}
+Source: {{{ git_pack }}}
 BuildRequires: python3-devel
 BuildRequires: npm
 BuildRequires: git
@@ -31,8 +31,8 @@ find
 echo PWDING
 pwd
 echo LSING
-ls ../
-cd ../backend
+ls
+cd backend
 %py3_build
 cd ../frontend
 npm install
