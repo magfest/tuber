@@ -1,10 +1,10 @@
 import tempfile
 import sqlite3
 import pytest
-import tuber.config
+import os
 
 fd, filename = tempfile.mkstemp()
-tuber.config.database_url = "sqlite:///" + filename
+os.environ['DATABASE_URL'] = "sqlite:///" + filename
 import tuber
 tuber.migrate()
 
@@ -21,7 +21,7 @@ def csrf(rv):
             token = cookie.split("; ")[0].split("=")[1]
             print(token)
             return token
-    
+
 db = sqlite3.connect(filename)
 
 def clear_table(table):
