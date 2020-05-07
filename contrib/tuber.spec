@@ -5,7 +5,7 @@ Summary: Event Management System
 License: MIT
 URL: https://tuber.hackafe.net/
 VCS: {{{ git_dir_vcs }}}
-Source: {{{ git_dir_pack }}}
+Source: {{{ git_pack }}}
 BuildRequires: python3-devel
 BuildRequires: npm
 BuildRequires: git
@@ -26,6 +26,12 @@ Tuber is an event management system.
 {{{ git_dir_setup_macro }}}
 
 %build
+echo FINDING
+find
+echo PWDING
+pwd
+echo LSING
+ls
 cd backend
 %py3_build
 cd ../frontend
@@ -33,7 +39,9 @@ npm install
 npm run build
 
 %install
+cd backend
 %py3_install
+cd ..
 mkdir -p %{buildroot}/usr/lib/systemd/system
 mkdir -p %{buildroot}/var/lib/tuber/
 mkdir -p %{buildroot}/usr/share/tuber/web/js/
