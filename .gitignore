@@ -1,0 +1,8 @@
+/venv/
+/tuber.egg-info/
+/node_modules/
+/.eggs/
+/.idea/
+/tuber/database.db
+/database.db
+/tuber.json
