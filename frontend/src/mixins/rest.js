@@ -6,7 +6,7 @@ function restFetch(method, url, data) {
   }
   data.csrf_token = window.$cookies.get('csrf_token');
   if (method === 'GET') {
-    const queryString = `?${Object.keys(data).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`).join('&')}`;
+    const queryString = `?${Object.keys(data).map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`).join('&')}`;
     url += queryString;
     return fetch(url, {
       method,
@@ -15,7 +15,7 @@ function restFetch(method, url, data) {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-    }).then(response => response.json());
+    }).then((response) => response.json());
   }
   return fetch(url, {
     method,
@@ -25,7 +25,7 @@ function restFetch(method, url, data) {
     },
     body: JSON.stringify(data),
     credentials: 'include',
-  }).then(response => response.json());
+  }).then((response) => response.json());
 }
 
 const schema = {

@@ -501,7 +501,7 @@ export default {
               const idb = parseInt(request, 10);
               const b = requests[idb];
               const nightsb = b.room_nights;
-              const differentNights = nightsa.filter(x => !nightsb.includes(x)).concat(nightsb.filter(x => !nightsa.includes(x)));
+              const differentNights = nightsa.filter((x) => !nightsb.includes(x)).concat(nightsb.filter((x) => !nightsa.includes(x)));
 
               if (differentNights.length > 0) {
                 edge -= (weights.room_nights * differentNights.length);

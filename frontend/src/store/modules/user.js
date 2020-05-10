@@ -11,10 +11,10 @@ const state = {
 
 // getters
 const getters = {
-  initial_setup: state => state.initial_setup,
-  user: state => state.user,
-  logged_in: state => state.logged_in,
-  perms: state => state.perms,
+  initial_setup: (state) => state.initial_setup,
+  user: (state) => state.user,
+  logged_in: (state) => state.logged_in,
+  perms: (state) => state.perms,
 };
 
 // actions
