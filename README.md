@@ -39,7 +39,7 @@ apt install npm python3 python3-dev python3-pip # Debian/Ubuntu
 brew install npm python # MacOS
 ```
 
-On Windows you'll have to install nodejs [https://nodejs.org/en/download/](https://nodejs.org/en/download/) and python3 [https://www.python.org/downloads/](https://www.python.org/downloads/).
+On Windows you'll have to install [nodejs](https://nodejs.org/en/download/), [Python3](https://www.python.org/downloads/) and [postgreSQL](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads).
 Make sure to add both npm and python to your PATH during installation.
 
 Once the dependencies are installed you can start up the backend and frontend development servers:
@@ -55,10 +55,21 @@ copy contrib\tuber.json.devel tuber.json
 
 ```bash
 python -m venv venv
-venv/bin/activate # On windows this is venv\Scripts\activate.bat
+
+# Linux/MacOS
+venv/bin/activate 
+
+# Windows 
+venv\Scripts\activate.bat
+
 cd backend
 python setup.py develop
-../venv/bin/tuber # On windows this is ..\venv\Scripts\tuber.exe
+
+# Linux/MacOS
+../venv/bin/tuber
+
+# Windows
+ ..\venv\Scripts\tuber.exe
 ```
 
 The server should now start up and begin listening on port 8080.
