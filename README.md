@@ -15,6 +15,9 @@ Table of Contents
   * [Backend](#backend)
   * [Frontend](#frontend)
   * [Database Migrations](#database-migrations)
+  * [Troubleshooting](#troubleshooting)
+    * [Mac Developer Setup](#mac-developer-setup)
+    * [Alembic with Multiple Heads](#alembic-with-multiple-heads)
 
 
 ## Deployment
@@ -43,7 +46,9 @@ dnf install copr
 tuber
 ```
 
-Configuration is in /etc/tuber/tuber.json. The main configuration required is for a database. The default database is sqlite, so for production deploys you should probably set up mariadb/mysql/postgres or any other database supported by SQLAlchemy.
+Configuration is in `/etc/tuber/tuber.json`. The main configuration required is for a database. The default database is sqlite, so for production deploys you should probably set up mariadb/mysql/postgres or any other database supported by SQLAlchemy.
+
+To set up the database, you will have to create a database and a user with all privileges on that database. Tuber will automatically create all necessary tables and handle future migrations at server startup. The database type, username, password, hostname, and database name all get combined as a database URI [as documented by SQLAlchemy](https://docs.sqlalchemy.org/en/13/core/engines.html). 
 
 ### Using Heroku
 
