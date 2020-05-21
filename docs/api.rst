@@ -45,3 +45,27 @@ Emails
 
 .. automodule:: tuber.api.emails
     :members:
+
+Badges
+^^^^^^
+
+.. automodule:: tuber.api.badges
+    :members:
+
+Events
+^^^^^^
+
+.. automodule:: tuber.api.events
+    :members:
+
+Users
+^^^^^
+
+.. automodule:: tuber.api.users
+    :members:
+
+Importer
+^^^^^^^^
+
+.. automodule:: tuber.api.importer
+    :members:
