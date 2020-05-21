@@ -3,7 +3,26 @@
 [![Copr build status](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/)
 [![Heroku CI Status](https://tuber-ci-badge.herokuapp.com/last.svg)](https://dashboard.heroku.com/pipelines/6ebd065d-db02-419d-80bd-6406f271d992/tests)
 
-## Installation
+Table of Contents
+=================
+
+* [Deployment](#deployment)
+  * [Using Packages](#using-packages)
+  * [Using Heroku](#using-heroku)
+  * [Using Docker](#using-docker)
+
+* [Developing](#developing)
+  * [Backend](#backend)
+  * [Frontend](#frontend)
+  * [Database Migrations](#database-migrations)
+  * [Troubleshooting](#troubleshooting)
+    * [Mac Developer Setup](#mac-developer-setup)
+    * [Alembic with Multiple Heads](#alembic-with-multiple-heads)
+
+
+## Deployment
+
+### Using Packages
 
 For production deploys it is recommended to use the RPM package, which will install Gunicorn and includes a basic nginx config file. All sessions and other state are stored in the database, so it is possible to scale horizontally by running multiple tuber servers in front of the same database.
 
@@ -27,7 +46,41 @@ dnf install copr
 tuber
 ```
 
-Configuration is in /etc/tuber/tuber.json. The main configuration required is for a database. The default database is sqlite, so for production deploys you should probably set up mariadb/mysql/postgres or any other database supported by SQLAlchemy.
+Configuration is in `/etc/tuber/tuber.json`. The main configuration required is for a database. The default database is sqlite, so for production deploys you should probably set up mariadb/mysql/postgres or any other database supported by SQLAlchemy.
+
+To set up the database, you will have to create a database and a user with all privileges on that database. Tuber will automatically create all necessary tables and handle future migrations at server startup. The database type, username, password, hostname, and database name all get combined as a database URI [as documented by SQLAlchemy](https://docs.sqlalchemy.org/en/13/core/engines.html). 
+
+### Using Heroku
+
+Heroku configuration is in a combination of app.json and Procfile.
+
+Opening a PR against magfest/tuber will automatically deploy a testing environment for your PR. Merging to master moves that code to staging.
+
+If you would like to deploy your own instance:
+
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+
+### Using Docker
+
+The latest version of Tuber is published to Docker Hub as `magfest/tuber:latest`. [You can view it here.](https://hub.docker.com/r/magfest/tuber)
+
+To deploy using docker first install docker on your platform, as described [here](https://docs.docker.com/get-docker/).
+
+With the docker daemon running, you can now pull and run tuber:
+
+```bash
+docker run -it --port 8080:8080 magfest/tuber:latest
+```
+
+This will start the container attached to the local terminal, and make it available on localhost:8080. This is useful as a test, but for production deployments you will want to set up a reverse proxy and a standalone postgres database container. The quickest way to accomplish this is with `docker-compose`.
+
+```bash
+git clone https://github.com/magfest/tuber.git
+cd tuber
+docker-compose up
+```
+
+Note: The sample docker-compose file does not currently configure SSL. You should either set up a reverse proxy to handle SSL, or edit `contrib/nginx.conf` to use your certificates and edit `docker-compose.yml` to allow access to port 443.
 
 ## Developing
 
@@ -39,7 +92,7 @@ apt install npm python3 python3-dev python3-pip # Debian/Ubuntu
 brew install npm python # MacOS
 ```
 
-On Windows you'll have to install nodejs [https://nodejs.org/en/download/](https://nodejs.org/en/download/) and python3 [https://www.python.org/downloads/](https://www.python.org/downloads/).
+On Windows you'll have to install [nodejs](https://nodejs.org/en/download/), [Python3](https://www.python.org/downloads/) and [postgreSQL](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads).
 Make sure to add both npm and python to your PATH during installation.
 
 Once the dependencies are installed you can start up the backend and frontend development servers:
@@ -55,10 +108,21 @@ copy contrib\tuber.json.devel tuber.json
 
 ```bash
 python -m venv venv
-venv/bin/activate # On windows this is venv\Scripts\activate.bat
+
+# Linux/MacOS
+venv/bin/activate 
+
+# Windows 
+venv\Scripts\activate.bat
+
 cd backend
 python setup.py develop
-../venv/bin/tuber # On windows this is ..\venv\Scripts\tuber.exe
+
+# Linux/MacOS
+../venv/bin/tuber
+
+# Windows
+ ..\venv\Scripts\tuber.exe
 ```
 
 The server should now start up and begin listening on port 8080.
@@ -95,15 +159,6 @@ venv/bin/alembic upgrade head
 ```
 
 Make sure to commit the migration along with the code that uses it!
-
-### Heroku
-
-Heroku configuration is in a combination of app.json and Procfile.
-
-Opening a PR against magfest/tuber will automatically deploy a testing environment for your PR. Merging to master moves that code to staging.
-
-If you would like to deploy your own instance:
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
 ### Troubleshooting
 #### Mac developer setup
