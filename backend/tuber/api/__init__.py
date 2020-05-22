@@ -50,7 +50,9 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
             db.session.add(row)
             if callable(onchange):
                 db.session.flush()
-                onchange(db, row)
+                res = onchange(db, row)
+                if res:
+                    return res
             db.session.commit()
             return jsonify(schema.dump(row))
     else:
@@ -69,7 +71,9 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
                 db.session.add(row)
                 if callable(onchange):
                     db.session.flush()
-                    onchange(db, row)
+                    res = onchange(db, row)
+                    if res:
+                        return res
                 db.session.commit()
                 return jsonify(schema.dump(row))
             return "",  403
@@ -80,7 +84,9 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
             db.session.delete(row)
             if callable(onchange):
                 db.session.flush()
-                onchange(db, row)
+                res = onchange(db, row)
+                if res:
+                    return res
             db.session.commit()
             return jsonify(schema.dump(row))
 

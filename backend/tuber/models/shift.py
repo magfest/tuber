@@ -75,7 +75,6 @@ class ShiftAssignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
     shift = db.Column(db.Integer, db.ForeignKey('shift.id'))
-    signuptime = db.Column(db.TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
 
 class ShiftSignup(db.Model):
     """A ShiftSignup tracks the intent of a user to signup for a shift. This is different than a
@@ -91,3 +90,4 @@ class ShiftSignup(db.Model):
     schedule_event = db.Column(db.Integer, db.ForeignKey('schedule_event.id'))
     starttime = db.Column(db.TIMESTAMP(timezone=True))
     duration = db.Float()
+    signuptime = db.Column(db.TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
