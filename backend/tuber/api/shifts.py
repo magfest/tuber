@@ -253,4 +253,8 @@ def shift_signup(event, shift):
 
 @app.route("/api/events/<int:event>/jobs/<int:job>/dryrun", methods=["POST"])
 def job_dryrun(event, job):
-    return jsonify(reschedule_job(job))
+    jobobj = db.session.query(Job).filter(Job.id == job).one()
+    for i in JobSchema.Meta.fields:
+        if i in request.json:
+            setattr(jobobj, i, request.json[i])
+    return jsonify(reschedule_job(jobobj))

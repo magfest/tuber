@@ -40,8 +40,8 @@ Users
 .. automodule:: tuber.api.users
     :members:
 
-Importer
-^^^^^^^^
+shifts
+^^^^^^
 
-.. automodule:: tuber.api.importer
+.. automodule:: tuber.api.shifts
     :members:
