@@ -5,8 +5,8 @@ const state = {
 
 // getters
 const getters = {
-  snackbar: state => state.snackbar,
-  snackbar_text: state => state.snackbar_text,
+  snackbar: (state) => state.snackbar,
+  snackbar_text: (state) => state.snackbar_text,
 };
 
 // actions

@@ -17,7 +17,7 @@ def check_matches(matches, row, env):
             return False
     return True
 
-def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=None):
+def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=None, onchange=None):
     g.url_params = {"event": event, "badge": badge, "department": department, "id": id}
     if isinstance(schema, dict):
         for key, val in schema.items():
@@ -48,6 +48,9 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
             for match in matches:
                 setattr(row, match, locals()[match])
             db.session.add(row)
+            if callable(onchange):
+                db.session.flush()
+                onchange(db, row)
             db.session.commit()
             return jsonify(schema.dump(row))
     else:
@@ -64,6 +67,9 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
                     setattr(row, attr, g.data[attr])
             if check_matches(matches, row, locals()):
                 db.session.add(row)
+                if callable(onchange):
+                    db.session.flush()
+                    onchange(db, row)
                 db.session.commit()
                 return jsonify(schema.dump(row))
             return "",  403
@@ -72,10 +78,13 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
             if not check_matches(matches, row, locals()):
                 return "", 403
             db.session.delete(row)
+            if callable(onchange):
+                db.session.flush()
+                onchange(db, row)
             db.session.commit()
             return jsonify(schema.dump(row))
 
-def register_crud(name, schema, methods=["GET", "POST", "PATCH", "DELETE"], permissions={}, url_scheme="event"):
+def register_crud(name, schema, methods=["GET", "POST", "PATCH", "DELETE"], permissions={}, url_scheme="event", onchange=None):
     default_permissions = {
         "GET": [name+".read"],
         "POST": [name+".create"],
@@ -105,11 +114,11 @@ def register_crud(name, schema, methods=["GET", "POST", "PATCH", "DELETE"], perm
     scheme = url_schemes[url_scheme]
     collective_methods = [x for x in methods if x in ["GET", "POST"]]
     if collective_methods:
-        app.add_url_rule(scheme['base_url'], f"rest_collective_{name}", partial(crud, schema, default_permissions, matches=scheme['matches']), methods=collective_methods)
+        app.add_url_rule(scheme['base_url'], f"rest_collective_{name}", partial(crud, schema, default_permissions, matches=scheme['matches'], onchange=onchange), methods=collective_methods)
 
     individual_methods = [x for x in methods if x in ["GET", "PATCH", "DELETE"]]
     if individual_methods:
-        app.add_url_rule(scheme['base_url']+"/<int:id>", f"rest_individual_{name}", partial(crud, schema, default_permissions, matches=scheme['matches']), methods=individual_methods)
+        app.add_url_rule(scheme['base_url']+"/<int:id>", f"rest_individual_{name}", partial(crud, schema, default_permissions, matches=scheme['matches'], onchange=onchange), methods=individual_methods)
 
     for method in methods: 
         for permission in default_permissions[method]:
@@ -122,6 +131,7 @@ from .events import *
 from .importer import *
 from .emails import *
 from .badges import *
+from .shifts import *
 
 def indent(string, level=4):
     lines = string.split("\n")
