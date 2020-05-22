@@ -128,10 +128,10 @@ Shifts
             "weighting": 1.0
         }]
 
-.. include:: shifts/schedule.rst
-.. include:: shifts/scheduleevents.rst
-.. include:: shifts/jobs.rst
-.. include:: shifts/shifts.rst
-.. include:: shifts/shiftassignments.rst
-.. include:: shifts/shiftsignups.rst
+.. include:: api/shifts/schedule.rst
+.. include:: api/shifts/scheduleevents.rst
+.. include:: api/shifts/jobs.rst
+.. include:: api/shifts/shifts.rst
+.. include:: api/shifts/shiftassignments.rst
+.. include:: api/shifts/shiftsignups.rst
   
