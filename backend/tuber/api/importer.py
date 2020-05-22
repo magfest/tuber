@@ -57,7 +57,7 @@ def run_staff_import(email, password, url, event):
             if not grant:
                 grant = Grant(user=user.id, role=role.id)
                 db.session.add(grant)
-            badge = db.session.query(Badge).filter(Badge.event_id == event, Badge.uber_id == attendee['id']).one_or_none()
+            badge = db.session.query(Badge).filter(Badge.event == event, Badge.uber_id == attendee['id']).one_or_none()
             if badge:
                 badge.printed_number = attendee['badge_num']
                 badge.printed_name = attendee['badge_printed_name']
@@ -72,7 +72,7 @@ def run_staff_import(email, password, url, event):
             if not badge:
                 badge = Badge(
                     uber_id = attendee['id'],
-                    event_id = event,
+                    event = event,
                     printed_number = attendee['badge_num'],
                     printed_name = attendee['badge_printed_name'],
                     search_name = "{} {}".format(attendee['first_name'].lower(), attendee['last_name'].lower()),
@@ -89,24 +89,24 @@ def run_staff_import(email, password, url, event):
     print("Adding departments...")
     departments = get_uber_csv(session, "Department", url)
     for department in departments:
-        current = db.session.query(Department).filter(Department.event_id == event, Department.uber_id == department['id']).one_or_none()
+        current = db.session.query(Department).filter(Department.event == event, Department.uber_id == department['id']).one_or_none()
         if not current:
             dept = Department(
                 uber_id = department['id'],
                 name = department['name'],
                 description = department['description'],
-                event_id = event
+                event = event
             )
             db.session.add(dept)
             
     print("Adding staffers to departments...")
     deptmembers = get_uber_csv(session, "DeptMembership", url)
     for dm in deptmembers:
-        badge = db.session.query(Badge).filter(Badge.event_id == event, Badge.uber_id == dm['attendee_id']).one_or_none()
+        badge = db.session.query(Badge).filter(Badge.event == event, Badge.uber_id == dm['attendee_id']).one_or_none()
         if not badge:
             print("Could not find badge {} to place in department {}.".format(dm['attendee_id'], dm['department_id']))
             continue
-        department = db.session.query(Department).filter(Department.event_id == event, Department.uber_id == dm['department_id']).one_or_none()
+        department = db.session.query(Department).filter(Department.event == event, Department.uber_id == dm['department_id']).one_or_none()
         if not department:
             print("Could not find department {} for attendee {}.".format(dm['department_id'], dm['attendee_id']))
             continue
@@ -155,7 +155,7 @@ def import_mock():
     event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
     if not event:
         return jsonify(success=False, reason="Could not locate event {}".format(request.json['event']))
-    badges = db.session.query(Badge).filter(Badge.event_id == event.id).all()
+    badges = db.session.query(Badge).filter(Badge.event == event.id).all()
     if badges:
         return jsonify(success=False, reason="You cannot generate mock data if there are already badges. Please delete the badges first if you really want junk data.")
     staff_badge_type = db.session.query(BadgeType).filter(BadgeType.name == "Staff").one_or_none()
@@ -187,7 +187,7 @@ def import_mock():
             site = random.choice(["net", "com", "org", "co.uk"])
             email="{}.{}@{}.{}".format(first_name, last_name, provider, site)
             badge = Badge(
-                event_id=event.id,
+                event=event.id,
                 badge_type=attendee_badge_type.id,
                 printed_number=(((i + request.json['staffers']) // 1000 + 1) * 1000) if 'staffers' in request.json else i,
                 printed_name=printed_name,
@@ -211,7 +211,7 @@ def import_mock():
             dept_names[name] = None
         for name in dept_names.keys():
             description = "The {} department.".format(name)
-            department = Department(name=name, description=description, event_id=event.id)
+            department = Department(name=name, description=description, event=event.id)
             db.session.add(department)
             departments.append(department)
     
@@ -236,7 +236,7 @@ def import_mock():
             site = random.choice(["net", "com", "org", "co.uk"])
             email="{}.{}@{}.{}".format(first_name, last_name, provider, site)
             badge = Badge(
-                event_id=event.id,
+                event=event.id,
                 badge_type=staff_badge_type.id,
                 printed_number=i,
                 printed_name=printed_name,

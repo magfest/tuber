@@ -8,8 +8,8 @@ const state = {
 
 // getters
 const getters = {
-  events: state => state.events,
-  event: state => state.event,
+  events: (state) => state.events,
+  event: (state) => state.event,
 };
 
 // actions

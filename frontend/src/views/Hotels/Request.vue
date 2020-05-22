@@ -136,18 +136,24 @@ export default {
       }
       return false;
     },
+    departments() {
+      const res = [];
+      for (let i = 0; i < this.alldepartments.length; i += 1) {
+        if (this.badge.departments.indexOf(this.alldepartments[i].id) >= 0) {
+          res.push(this.alldepartments[i]);
+        }
+      }
+      return res;
+    },
   },
   asyncComputed: {
-    departments() {
+    alldepartments() {
       const self = this;
       return new Promise((resolve) => {
         if (self.event.id) {
-          self.post('/api/hotels/department_membership', {
-            event: self.event.id,
-            user: self.user.id,
-          }).then((depts) => {
+          self.dump('departments').then((depts) => {
             if (depts.success) {
-              resolve(depts.departments);
+              resolve(depts);
             } else {
               resolve([]);
             }
@@ -183,22 +189,14 @@ export default {
       const self = this;
       return new Promise((resolve) => {
         if (self.$route.params.badge) {
-          self.post('/api/user/badge', { badge: self.$route.params.badge }).then((res) => {
-            if (res.success) {
-              resolve(res.badge);
-            } else {
-              resolve(null);
-            }
+          self.get(`/api/events/${self.$store.state.events.event.id}/badges`, { badge: self.$route.params.badge, full: true }).then((res) => {
+            resolve(res[0]);
           }).catch(() => {
             self.notify('Failed to retrieve badge.');
           });
         } else if (self.event.id && self.user.id) {
-          self.post('/api/user/badge', { event: self.event.id, user: self.user.id }).then((res) => {
-            if (res.success) {
-              resolve(res.badge);
-            } else {
-              resolve(null);
-            }
+          self.get(`/api/events/${self.$store.state.events.event.id}/badges`, { event: self.event.id, user: self.user.id, full: true }).then((res) => {
+            resolve(res[0]);
           }).catch(() => {
             self.notify('Failed to retrieve badge.');
           });
