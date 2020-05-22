@@ -37,7 +37,7 @@ export default {
         attendees: parseInt(self.attendees, 10),
         departments: parseInt(self.departments, 10),
         staffers: parseInt(self.staffers, 10),
-        event: self.event.id,
+        event: self.$store.state.events.event.id,
       }).then((resp) => {
         if (resp.success) {
           self.$store.commit('open_snackbar', 'Mock data generated successfully.');
