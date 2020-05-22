@@ -1,62 +1,9 @@
 Shifts
-^^^^^^
+""""""
 
-.. http:get:: /api/events/<id>/jobs/available
+.. http:get:: /api/shifts
 
-    Retrieve the list of shifts that are available to either the current user or a specific badge.
-
-    **Example Request**
-
-    .. tabs::
-
-        .. code-tab:: bash
-
-            $ curl -H "X-Auth-Token: <Token>" https://tuber.magfest.org/api/events/<id>/jobs/available
-
-    **Example Response**
-
-    .. sourcecode:: json
-        
-        [
-            {
-                "job": {
-                    "id": 1,
-                    "name": "Do the thing",
-                    "description": "",
-                    "department": null,
-                    "documentation": "",
-                    "method": {},
-                    "signuprules": {},
-                    "sticky": false,
-                    "schedules": [],
-                    "scheduleevents": [],
-                    "roles": [],
-                    "shifts": [1]
-                },
-                "shifts": [
-                    {
-                        "blocks": [
-                            "Shift is full."
-                        ],
-                        "id": 1,
-                        "job": 1,
-                        "schedule": null,
-                        "schedule_event": null,
-                        "starttime": "2020-05-22T21:15:52.159726",
-                        "duration": 3600.0,
-                        "slots": 4,
-                        "filledslots": 0,
-                        "weighting": 1.0
-                    }
-                ]
-            }
-        ]
-
-    :query string badge: If provided then the result will be the shifts available to the given badge.
-
-.. http:post:: /api/events/<id>/shifts/<id>/signup
-
-    Sign up for the given shift. If you want to sign up a different badge then the post body should be an object with key badge set the the desired badge id.
+    Retrieve a list of shifts.
 
     **Example Request**
 
@@ -64,53 +11,7 @@ Shifts
 
         .. code-tab:: bash
 
-            $ curl -H "X-Auth-Token: <Token>" --header 'Content-Type: application/json' -X POST --data '{"badge": 4}' https://tuber.magfest.org/api/events/<id>/shifts/<id>/signup
-
-    **Example Response**
-
-    .. sourcecode:: json
-        
-        {
-            "shift": {
-                "id": 1,
-                "job": 1,
-                "schedule": null,
-                "schedule_event": null,
-                "starttime": "2020-05-22T21:15:52.159726",
-                "duration": 3600.0,
-                "slots": 4,
-                "filledslots": 0,
-                "weighting": 1.0
-            },
-            "shift_signup": {
-                "id": 1,
-                "badge": 1,
-                "job": 1,
-                "shift": 1,
-                "schedule": null,
-                "scheduleevent": null,
-                "starttime": "2020-05-22T21:15:52.159726",
-                "duration": 3600.0
-            },
-            "shift_assignment": {
-                "id": 1,
-                "badge": 1,
-                "shift": 1,
-                "signuptime": "2020-05-22T21:15:52.159726"
-            }
-        }
-
-.. http:post:: /api/events/<id>/jobs/<id>/dryrun
-
-    This endpoint lets you check what the resulting shifts based on a hypothetical job definition. Calling this endpoint will not commit anything to the database, but will let you see what would have resulted from a PATCH to the corresponding job.
-
-    **Example Request**
-
-    .. tabs::
-
-        .. code-tab:: bash
-
-            $ curl -H "X-Auth-Token: <Token>" --header 'Content-Type: application/json' -X POST --data '{"method": {"name": "copy"}}' https://tuber.magfest.org/api/events/<id>/jobs/<id>/dryrun
+            $ curl -H "X-Auth-Token: <Token>" https://tuber.magfest.org/api/shifts
 
     **Example Response**
 
@@ -128,10 +29,116 @@ Shifts
             "weighting": 1.0
         }]
 
-.. include:: api/shifts/schedule.rst
-.. include:: api/shifts/scheduleevents.rst
-.. include:: api/shifts/jobs.rst
-.. include:: api/shifts/shifts.rst
-.. include:: api/shifts/shiftassignments.rst
-.. include:: api/shifts/shiftsignups.rst
-  
+    :query string full: If true returns a list of objects. If false, returns a list of id numbers.
+
+.. http:get:: /api/shifts/<id>
+
+    Retrieve a single shift.
+
+    **Example Request**
+
+    .. tabs::
+
+        .. code-tab:: bash
+
+            $ curl -H "X-Auth-Token: <Token>" https://tuber.magfest.org/api/shifts/1
+
+    **Example Response**
+
+    .. sourcecode:: json
+        
+        {
+            "id": 1,
+            "job": 1,
+            "schedule": null,
+            "schedule_event": null,
+            "starttime": "2020-05-22T21:15:52.159726",
+            "duration": 3600.0,
+            "slots": 4,
+            "filledslots": 0,
+            "weighting": 1.0
+        }
+    
+.. http:post:: /api/shifts
+
+    Create a new shift object.
+
+    **Example Request**
+
+    .. tabs::
+
+        .. code-tab:: bash
+
+            $ curl -H "X-Auth-Token: <Token>" -X POST --header "Content-Type: application/json" --data '{"job": 1, "schedule": 2, "slots": 4}' https://tuber.magfest.org/api/shifts
+
+    **Example Response**
+
+    .. sourcecode:: json
+        
+        {
+            "id": 1,
+            "job": 1,
+            "schedule": 2,
+            "schedule_event": null,
+            "starttime": "2020-05-22T21:15:52.159726",
+            "duration": 3600.0,
+            "slots": 4,
+            "filledslots": 0,
+            "weighting": 1.0
+        }
+    
+.. http:patch:: /api/shifts/<id>
+
+    Update a shift.
+
+    **Example Request**
+
+    .. tabs::
+
+        .. code-tab:: bash
+
+            $ curl -H "X-Auth-Token: <Token>" -X PATCH --header "Content-Type: application/json" --data '{"duration": 7200.0}' https://tuber.magfest.org/api/shifts/<id>
+
+    **Example Response**
+
+    .. sourcecode:: json
+        
+        {
+            "id": 1,
+            "job": 1,
+            "schedule": 2,
+            "schedule_event": null,
+            "starttime": "2020-05-22T21:15:52.159726",
+            "duration": 7200.0,
+            "slots": 4,
+            "filledslots": 0,
+            "weighting": 1.0
+        }
+
+.. http:delete:: /api/shifts/<id>
+
+    Delete a shift.
+
+    **Example Request**
+
+    .. tabs::
+
+        .. code-tab:: bash
+
+            $ curl -H "X-Auth-Token: <Token>" -X DELETE https://tuber.magfest.org/api/shifts/1
+
+    **Example Response**
+
+    .. sourcecode:: json
+        
+        {
+            "id": 1,
+            "job": 1,
+            "schedule": 2,
+            "schedule_event": null,
+            "starttime": "2020-05-22T21:15:52.159726",
+            "duration": 7200.0,
+            "slots": 4,
+            "filledslots": 0,
+            "weighting": 1.0
+        }
