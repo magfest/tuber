@@ -1,11 +1,9 @@
-import tempfile
 import sqlite3
 import pytest
 import json
 import os
 
-database = "sqlite:///"+os.path.join(tempfile.mkdtemp(), "database.db")
-os.environ['DATABASE_URL'] = database
+os.environ['DATABASE_URL'] = "sqlite:///:memory:"
 import tuber
 tuber.migrate()
 tuber.app.config['TESTING'] = True
