@@ -44,7 +44,7 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
             rows = db.session.query(model.id).filter(*get_filters).all()
             return jsonify([x.id for x in rows])
         if request.method == "POST":
-            row = model(**{key:val for key, val in g.data.items() if key in schema.Meta.fields})
+            row = schema.load(data={key:val for key, val in g.data.items() if key in schema.Meta.fields})
             for match in matches:
                 setattr(row, match, locals()[match])
             db.session.add(row)
