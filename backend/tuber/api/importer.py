@@ -17,6 +17,8 @@ import io
 @app.route("/api/importer/csv", methods=["GET", "POST"])
 def csv_import():
     if request.method == "GET":
+        if not check_permission("export.csv"):
+            return "Permission Denied", 403
         export_type = request.args['csv_type']
         model = globals()[export_type]
         data = db.session.query(model).all()
@@ -29,6 +31,8 @@ def csv_import():
         response.headers.set('Content-Disposition', 'attachment; filename={}.csv'.format(export_type))
         return response
     elif request.method == "POST":
+        if not check_permission("import.csv"):
+            return "Permission Denied", 403
         import_type = request.form['csv_type']
         model = globals()[import_type]
         raw_import = request.form['raw_import'] == "true"
