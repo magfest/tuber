@@ -3,7 +3,8 @@
 set -e
 
 cd backend
-pytest
+coverage -m pytest
+bash <(curl -s https://codecov.io/bash)
 
 cd ../frontend
 npm run test
