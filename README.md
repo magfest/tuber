@@ -2,6 +2,7 @@
 
 [![Copr build status](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/)
 [![Heroku CI Status](https://tuber-ci-badge.herokuapp.com/last.svg)](https://dashboard.heroku.com/pipelines/6ebd065d-db02-419d-80bd-6406f271d992/tests)
+[![codecov](https://codecov.io/gh/magfest/tuber/branch/master/graph/badge.svg)](https://codecov.io/gh/magfest/tuber)
 
 Table of Contents
 =================
