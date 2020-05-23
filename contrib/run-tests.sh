@@ -3,7 +3,7 @@
 set -e
 
 cd backend
-coverage -m pytest
+coverage run -m pytest
 bash <(curl -s https://codecov.io/bash)
 
 cd ../frontend
