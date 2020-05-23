@@ -3,7 +3,7 @@
 set -e
 
 cd backend
-coverage run -m pytest
+coverage run --source=tuber -m pytest
 bash <(curl -s https://codecov.io/bash)
 
 cd ../frontend
