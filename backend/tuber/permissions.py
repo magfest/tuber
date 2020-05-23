@@ -44,8 +44,12 @@ def get_user():
                     if "event" in request.args:
                         event = request.args['event']
                 if request.method == "POST":
-                    if "event" in request.json:
-                        event = request.json['event']
+                    if request.json:
+                        data = request.json
+                    else:
+                        data = request.form
+                    if "event" in data:
+                        event = int(data['event'])
             else:
                 db.session.delete(session)
             db.session.commit()

@@ -1,10 +1,11 @@
 from tuber import app, config, db
-from flask import send_from_directory, send_file, request, jsonify
+from flask import send_from_directory, send_file, request, jsonify, Response
 from tuber.models import *
 from tuber.permissions import *
 from tuber.worker import worker_conn
 from sqlalchemy import or_
 from rq import Queue
+import sqlalchemy
 import requests
 import datetime
 import random
@@ -12,6 +13,59 @@ import names
 import uuid
 import csv
 import io
+
+@app.route("/api/importer/csv", methods=["GET", "POST"])
+def csv_import():
+    if request.method == "GET":
+        export_type = request.args['csv_type']
+        model = globals()[export_type]
+        data = db.session.query(model).all()
+        cols = model.__table__.columns.keys()
+        def generate():
+            yield ','.join(cols)+"\n"
+            for row in data:
+                yield ','.join([str(getattr(row, x)) for x in cols])+"\n"
+        response = Response(generate(), mimetype="text/csv")
+        response.headers.set('Content-Disposition', 'attachment; filename={}.csv'.format(export_type))
+        return response
+    elif request.method == "POST":
+        import_type = request.form['csv_type']
+        model = globals()[import_type]
+        raw_import = request.form['raw_import'] == "true"
+        full_import = request.form['full_import'] == "true"
+        file = request.files['files']
+        data = file.read().decode('UTF-8').replace("\r\n", "\n")
+        if full_import:
+            db.session.query(model).delete()
+        rows = data.split("\n")
+        cols = rows[0].split(",")
+        rows = rows[1:]
+        def convert(key, val):
+            col = model.__table__.columns[key]
+            if col.nullable:
+                if val == 'None':
+                    return None
+            coltype = type(col.type)
+            if coltype is sqlalchemy.sql.sqltypes.Integer:
+                if val == '':
+                    return None
+                return int(val)
+            if coltype is sqlalchemy.sql.sqltypes.Boolean:
+                if val.lower() == "true":
+                    return True
+                return False
+            return val
+            
+        count = 0
+        for row in rows:
+            if not row.strip():
+                continue
+            row = row.split(",")
+            new = model(**{key: convert(key, val) for key,val in zip(cols, row)})
+            db.session.add(new)
+            count += 1
+        db.session.commit()
+        return str(count), 200
 
 def get_uber_csv(session, model, url):
     data = session.post(url+"/devtools/export_model", data={"selected_model": model}).text

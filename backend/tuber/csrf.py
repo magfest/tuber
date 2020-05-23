@@ -22,7 +22,15 @@ def validate_csrf():
             g.data = dict(request.json)
             del g.data['csrf_token']
             return
-        return f"{request.method} Method requires json."
+        if not request.form is None:
+            if not 'csrf_token' in request.form:
+                return f"You must pass a csrf token in the body with all {request.method} requests that include a csrf cookie."
+            if request.form['csrf_token'] != request.cookies.get('csrf_token'):
+                return "Invalid csrf token."
+            g.data = dict(request.form)
+            del g.data['csrf_token']
+            return
+        return f"{request.method} Method requires json or form data."
 
 @app.after_request
 def insert_csrf(response):
