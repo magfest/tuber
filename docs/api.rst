@@ -4,32 +4,14 @@ Tuber API
 Endpoints
 ---------
 
-Hotels
-^^^^^^
-
-.. http:get:: /api/hotels
-
-    Retrieve a list of hotels.
-
-    **Example Request**
-
-    .. tabs::
-
-        .. code-tab:: bash
-
-            $ curl -H "X-Auth-Token: <Token>" https://tuber.magfest.org/api/hotels
-
-    **Example Response**
-
-    .. sourcecode:: json
-        
-        [{
-            "id": 1,
-            "name": "The Gaylord",
-            "description": "An awesome venue in Maryland!"
-        }]
-
-    :query string full: If true returns a list of objects. If false, returns a list of id numbers.
+.. include:: api/hotels.rst
+.. include:: api/shiftmanagement.rst
+.. include:: api/schedule.rst
+.. include:: api/scheduleevents.rst
+.. include:: api/jobs.rst
+.. include:: api/shifts.rst
+.. include:: api/shiftassignments.rst
+.. include:: api/shiftsignups.rst
 
 Resources
 ---------
@@ -64,8 +46,8 @@ Users
 .. automodule:: tuber.api.users
     :members:
 
-Importer
-^^^^^^^^
+shifts
+^^^^^^
 
-.. automodule:: tuber.api.importer
+.. automodule:: tuber.api.shifts
     :members:

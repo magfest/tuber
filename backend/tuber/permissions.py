@@ -50,6 +50,8 @@ def get_user():
                         data = request.form
                     if "event" in data:
                         event = int(data['event'])
+                g.event = event
+                g.badge = db.session.query(Badge).filter(Badge.user == g.user.id, Badge.event == event).one_or_none()
             else:
                 db.session.delete(session)
             db.session.commit()

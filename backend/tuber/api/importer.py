@@ -35,8 +35,8 @@ def csv_import():
             return "Permission Denied", 403
         import_type = request.form['csv_type']
         model = globals()[import_type]
-        raw_import = request.form['raw_import'] == "true"
-        full_import = request.form['full_import'] == "true"
+        raw_import = request.form['raw_import'].lower().strip() == "true"
+        full_import = request.form['full_import'].lower().strip() == "true"
         file = request.files['files']
         data = file.read().decode('UTF-8').replace("\r\n", "\n")
         if full_import:
