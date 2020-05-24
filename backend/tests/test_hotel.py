@@ -6,13 +6,13 @@ import json
 def test_staffer_auth(mock_post, client):
     """Make sure the staffer login system is able to authenticate against uber"""
     mock_post.return_value.json = lambda: {"result": [{"id": "123", "email": "test@test.com", "staffing": True}]}
-    rv = client.post('/api/uber_login', data=json.dumps({"token": "123"}), content_type="application/json")
-    token = csrf(rv)
-    assert(not json.loads(rv.data)['success'])
+    rv = client.post('/api/uber_login', json={"token": "123"})
+    print(rv.data)
+    assert(rv.is_json)
+    assert(not rv.json['success'])
 
-    rv = client.post('/api/uber_login', data=json.dumps({"token": "123", "csrf_token": token}), content_type="application/json")
-    assert(not json.loads(rv.data)['success'])
+    rv = client.post('/api/uber_login', json={"token": "123"})
+    assert(not rv.json['success'])
 
-    rv = client.post('/api/uber_login', data=json.dumps({"token": "abc", "csrf_token": token}), content_type="application/json")
-    assert(not json.loads(rv.data)['success'])
-    clear_table("user")
+    rv = client.post('/api/uber_login', json={"token": "abc"})
+    assert(not rv.json['success'])

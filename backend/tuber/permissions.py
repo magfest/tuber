@@ -46,6 +46,8 @@ def get_user():
                 if request.method == "POST":
                     if "event" in request.json:
                         event = request.json['event']
+                g.event = event
+                g.badge = db.session.query(Badge).filter(Badge.user == g.user.id, Badge.event == event).one_or_none()
             else:
                 db.session.delete(session)
             db.session.commit()
