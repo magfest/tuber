@@ -1,5 +1,4 @@
 from unittest.mock import patch
-from util import *
 import json
 
 @patch('tuber.api.hotels.requests.post')

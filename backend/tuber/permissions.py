@@ -44,8 +44,12 @@ def get_user():
                     if "event" in request.args:
                         event = request.args['event']
                 if request.method == "POST":
-                    if "event" in request.json:
-                        event = request.json['event']
+                    if request.json:
+                        data = request.json
+                    else:
+                        data = request.form
+                    if "event" in data:
+                        event = int(data['event'])
                 g.event = event
                 g.badge = db.session.query(Badge).filter(Badge.user == g.user.id, Badge.event == event).one_or_none()
             else:

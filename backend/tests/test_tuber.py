@@ -1,4 +1,4 @@
-from util import *
+from conftest import csrf
 import json
 
 def test_csrf(client_fresh):

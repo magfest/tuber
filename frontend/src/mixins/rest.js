@@ -66,6 +66,35 @@ function post(url, data) {
   return restFetch('POST', url, data);
 }
 
+function download(url, data) {
+  if (data === undefined) {
+    data = {};
+  }
+  data.csrf_token = window.$cookies.get('csrf_token');
+  const queryString = `?${Object.keys(data).map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`).join('&')}`;
+  url += queryString;
+  window.location.href = url;
+}
+
+function upload(url, data) {
+  if (data === undefined) {
+    data = {};
+  }
+  data.csrf_token = window.$cookies.get('csrf_token');
+  const form = new FormData();
+  const keys = Object.keys(data);
+  for (let i = 0; i < keys.length; i += 1) {
+    form.append(keys[i], data[keys[i]]);
+  }
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+    },
+    body: form,
+    credentials: 'include',
+  }).then((response) => response.json());
+}
+
 function list(endpoint) {
   const url = schema[endpoint].url.replace('<event>', this.$store.getters.event.id);
   return restFetch('GET', url);
@@ -185,10 +214,10 @@ function mapAsyncObjects(endpoints) {
 
 Vue.mixin({
   methods: {
-    restFetch, mapAsync, mapAsyncObjects, save, remove, load, dump, list, get, mapAsyncDump, post,
+    restFetch, mapAsync, mapAsyncObjects, save, remove, load, dump, list, get, mapAsyncDump, post, download, upload,
   },
 });
 
 export {
-  restFetch, mapAsync, mapAsyncObjects, save, remove, load, dump, list, get, mapAsyncDump, post,
+  restFetch, mapAsync, mapAsyncObjects, save, remove, load, dump, list, get, mapAsyncDump, post, download, upload,
 };
