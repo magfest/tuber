@@ -22,7 +22,7 @@ const actions = {
   check_initial_setup({ commit }) {
     return new Promise((resolve) => {
       get('/api/check_initial_setup').then((response) => {
-        commit('update_initial_setup', response.initial_setup);
+        commit('update_initial_setup', response);
         resolve();
       }).catch(() => {
         commit('open_snackbar', 'Failed to check if server is in initial setup mode.');
@@ -32,20 +32,17 @@ const actions = {
   check_logged_in({ commit }) {
     return new Promise((resolve) => {
       get('/api/check_login').then((response) => {
-        if (response.success) {
-          get('/api/user/permissions').then((perms) => {
-            commit('set_perms', perms.permissions);
-            commit('login', response);
-            resolve();
-          }).catch(() => {
-            commit('open_snackbar', 'Failed to retrieve user permissions.');
-          });
-        } else {
-          commit('logout');
+        get('/api/user/permissions').then((perms) => {
+          commit('set_perms', perms);
+          commit('login', response);
           resolve();
-        }
+        }).catch(() => {
+          commit('open_snackbar', 'Failed to retrieve user permissions.');
+        });
       }).catch(() => {
-        commit('open_snackbar', 'Failed to check if logged in.');
+        commit('open_snackbar', 'You are not logged in.');
+        commit('logout');
+        resolve();
       });
     });
   },
@@ -57,7 +54,7 @@ const mutations = {
     state.initial_setup = value;
   },
   login(state, data) {
-    if (data.success) {
+    if (data) {
       Vue.set(state, 'logged_in', true);
       Vue.set(state, 'user', data.user);
       Vue.set(state, 'session', data.session);

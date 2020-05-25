@@ -68,7 +68,7 @@ def change_password():
     g.user.password = sha256_crypt.hash(g.data['password'])
     db.session.add(g.user)
     db.session.commit()
-    return "", 200
+    return "null", 200
 
 @app.route("/api/check_initial_setup")
 def check_initial_setup():
@@ -92,7 +92,7 @@ def initial_setup():
         db.session.add(perm)
         db.session.add(grant)
         db.session.commit()
-        return "", 200
+        return "null", 200
     return "", 406
 
 @app.route("/api/login", methods=["POST"])
@@ -114,7 +114,7 @@ def logout():
     if g.user:
         sessions = db.session.query(Session).filter(Session.user == g.user.id).delete()
         db.session.commit()
-    return "", 200
+    return "null", 200
 
 @app.route("/api/check_login")
 def check_login():

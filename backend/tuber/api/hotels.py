@@ -256,7 +256,7 @@ def hotel_approve():
             approval.room_night = room_night.id
             db.session.add(approval)
         db.session.commit()
-        return "", 200
+        return "null", 200
     return "", 403
 
 @app.route("/api/hotels/room_nights", methods=["GET"])
@@ -318,7 +318,7 @@ def hotel_room():
                         setattr(rn, attr, room[attr])
                 db.session.add(rn)
             db.session.commit()
-            return "", 200
+            return "null", 200
         if not room_blocks:
             return "No room blocks defined.", 412
         if not room_locations:
@@ -340,7 +340,7 @@ def hotel_room():
                 return "Could not find hotel room {}".format(room), 404
             db.session.delete(rn)
         db.session.commit()
-        return "", 200
+        return "null", 200
 
 @app.route("/api/hotels/settings/room_night", methods=["GET", "POST"])
 def hotel_room_night_settings():
@@ -384,7 +384,7 @@ def hotel_room_night_settings():
                 room_night.hidden = i['hidden']
                 db.session.add(room_night)
             db.session.commit()
-            return "", 200
+            return "null", 200
         return "", 403
 
 @app.route("/api/hotels/settings/room_block", methods=["GET", "POST"])
@@ -423,7 +423,7 @@ def hotel_room_block_settings():
                 room_block.event = request.json['event']
                 db.session.add(room_block)
             db.session.commit()
-            return "", 200
+            return "null", 200
     return "", 403
 
 @app.route('/hotels/request_complete.png')
@@ -498,7 +498,7 @@ def hotel_room_assignments():
                         rna = RoomNightAssignment(badge=badge, room_night=req.room_night, hotel_room=request.json['hotel_room'])
                         db.session.add(rna)
         db.session.commit()
-        return "", 200
+        return "null", 200
 
 @app.route("/api/hotels/badges")
 def hotel_badges():

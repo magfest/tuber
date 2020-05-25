@@ -204,7 +204,7 @@ def import_uber_staff():
         worker_queue.enqueue(run_staff_import, email, password, url, event.id, job_timeout=1800)
     else:
         run_staff_import(email, password, url, event.id)
-    return "", 200
+    return "null", 200
 
 @app.route("/api/importer/mock", methods=["POST"])
 def import_mock():
@@ -343,4 +343,4 @@ def import_mock():
     print("Committing...")
     db.session.commit()
     print("Done!")
-    return "", 200
+    return "null", 200
