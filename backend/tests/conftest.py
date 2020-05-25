@@ -3,10 +3,12 @@ import pytest
 import json
 import os
 
-os.environ['DATABASE_URL'] = "sqlite:///:memory:"
 import tuber
-tuber.migrate()
-tuber.app.config['TESTING'] = True
+settings_override = {
+        'TESTING': True,
+        'SQLALCHEMY_DATABASE_URI': "sqlite:///:memory:"
+    }
+tuber.app.config.update(settings_override)
 
 def csrf(client):
     for cookie in client.cookie_jar:
