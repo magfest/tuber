@@ -39,7 +39,7 @@ export default {
         username: this.username,
         password: this.password,
       }).then((resp) => {
-        if (resp.success) {
+        if (resp) {
           self.$store.dispatch('check_logged_in').then(() => {
             self.$router.push({ name: 'home' });
           }).catch(() => {

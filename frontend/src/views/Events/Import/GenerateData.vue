@@ -38,12 +38,8 @@ export default {
         departments: parseInt(self.departments, 10),
         staffers: parseInt(self.staffers, 10),
         event: self.$store.state.events.event.id,
-      }).then((resp) => {
-        if (resp.success) {
-          self.$store.commit('open_snackbar', 'Mock data generated successfully.');
-        } else {
-          self.$store.commit('open_snackbar', 'Failed to generate mock data.');
-        }
+      }).then(() => {
+        self.$store.commit('open_snackbar', 'Mock data generated successfully.');
       }).catch(() => {
         self.$store.commit('open_snackbar', 'Network error while generating mock data.');
       });

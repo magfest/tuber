@@ -307,15 +307,11 @@ export default {
           if (self.event.id) {
             self.get('/api/hotels/hotel_room', {
               event: self.event.id,
-            }).then((res) => {
-              if (res.success) {
-                for (let i = 0; i < res.hotel_rooms.length; i += 1) {
-                  res.hotel_rooms[i].minimized = false;
-                }
-                resolve(res.hotel_rooms);
-              } else {
-                resolve([]);
+            }).then((hotelRooms) => {
+              for (let i = 0; i < hotelRooms.length; i += 1) {
+                hotelRooms[i].minimized = false;
               }
+              resolve(hotelRooms);
             }).catch(() => {
               self.notify('Failed to get hotel rooms.');
             });
@@ -333,16 +329,12 @@ export default {
           if (self.event.id) {
             self.get('/api/hotels/settings/room_night', {
               event: self.event.id,
-            }).then((res) => {
-              if (res.success) {
-                const rn = {};
-                for (let i = 0; i < res.room_nights.length; i += 1) {
-                  rn[res.room_nights[i].id] = res.room_nights[i];
-                }
-                resolve(rn);
-              } else {
-                resolve({});
+            }).then((roomNights) => {
+              const rn = {};
+              for (let i = 0; i < roomNights.length; i += 1) {
+                rn[roomNights[i].id] = roomNights[i];
               }
+              resolve(rn);
             }).catch(() => {
               self.notify('Failed to get room nights.');
             });
@@ -360,12 +352,8 @@ export default {
           if (self.event.id) {
             self.get('/api/hotels/settings/room_block', {
               event: self.event.id,
-            }).then((res) => {
-              if (res.success) {
-                resolve(res.room_blocks);
-              } else {
-                resolve([]);
-              }
+            }).then((roomBlocks) => {
+              resolve(roomBlocks);
             }).catch(() => {
               self.notify('Failed to get room blocks.');
             });
@@ -383,12 +371,8 @@ export default {
           if (self.event.id) {
             self.get('/api/hotels/settings/room_location', {
               event: self.event.id,
-            }).then((res) => {
-              if (res.success) {
-                resolve(res.room_locations);
-              } else {
-                resolve([]);
-              }
+            }).then((roomLocations) => {
+              resolve(roomLocations);
             }).catch(() => {
               self.notify('Failed to get room locations.');
             });
@@ -406,13 +390,8 @@ export default {
           if (self.event.id) {
             self.get('/api/hotels/all_requests', {
               event: self.event.id,
-            }).then((response) => {
-              if (response.success) {
-                resolve(response.requests);
-              } else {
-                self.notify('Failed to load requests.');
-                resolve({});
-              }
+            }).then((requests) => {
+              resolve(requests);
             }).catch(() => {
               self.notify('Failed to load requests.');
             });
@@ -430,13 +409,8 @@ export default {
           if (self.event.id) {
             self.get('/api/hotels/room_assignments', {
               event: self.event.id,
-            }).then((response) => {
-              if (response.success) {
-                resolve(response.room_assignments);
-              } else {
-                self.notify('Failed to load assignments.');
-                resolve({});
-              }
+            }).then((roomAssignments) => {
+              resolve(roomAssignments);
             }).catch(() => {
               self.notify('Failed to load assignments.');
             });
@@ -454,13 +428,8 @@ export default {
           if (self.event.id) {
             self.get('/api/hotels/badges', {
               event: self.event.id,
-            }).then((response) => {
-              if (response.success) {
-                resolve(response.badges);
-              } else {
-                self.$store.commit('open_snackbar', 'Failed to load badges.');
-                resolve([]);
-              }
+            }).then((badges) => {
+              resolve(badges);
             }).catch(() => {
               self.$store.commit('open_snackbar', 'Failed to load badges.');
             });
@@ -623,13 +592,9 @@ export default {
       if (self.event.id) {
         self.post('/api/hotels/hotel_room', {
           event: self.event.id,
-        }).then((res) => {
-          if (res.success) {
-            self.$asyncComputed.rooms.update();
-            self.select_room(null, res.room.id);
-          } else {
-            self.notify('Failed to create hotel room.');
-          }
+        }).then((room) => {
+          self.$asyncComputed.rooms.update();
+          self.select_room(null, room.id);
         }).catch(() => {
           self.notify('Failed to create hotel room.');
         });
@@ -641,13 +606,9 @@ export default {
         self.dodelete('/api/hotels/hotel_room', {
           event: self.event.id,
           rooms,
-        }).then((res) => {
-          if (res.success) {
-            self.$asyncComputed.rooms.update();
-            self.$asyncComputed.assignments.update();
-          } else {
-            self.notify('Failed to delete hotel room.');
-          }
+        }).then(() => {
+          self.$asyncComputed.rooms.update();
+          self.$asyncComputed.assignments.update();
         }).catch(() => {
           self.notify('Failed to delete hotel room.');
         });
@@ -660,16 +621,11 @@ export default {
         self.post('/api/hotels/hotel_room', {
           event: self.event.id,
           rooms: [room],
-        }).then((res) => {
-          if (res.success) {
-            self.$asyncComputed.rooms.update();
-            self.loading = false;
-            self.open_room_modal = false;
-            self.notify(`Room ${room.id} saved successfully.`);
-          } else {
-            self.notify('Failed to save hotel room.');
-            self.loading = false;
-          }
+        }).then(() => {
+          self.$asyncComputed.rooms.update();
+          self.loading = false;
+          self.open_room_modal = false;
+          self.notify(`Room ${room.id} saved successfully.`);
         }).catch(() => {
           self.notify('Failed to save hotel room.');
           self.loading = false;
@@ -745,13 +701,9 @@ export default {
           badges,
           room_nights: roomNightIDs,
           hotel_room: roomID,
-        }).then((res) => {
-          if (res.success) {
-            self.$asyncComputed.assignments.update();
-            this.selected_roommates = [];
-          } else {
-            self.notify('Failed to assign hotel room.');
-          }
+        }).then(() => {
+          self.$asyncComputed.assignments.update();
+          this.selected_roommates = [];
         }).catch(() => {
           self.notify('Failed to assign hotel room.');
         });

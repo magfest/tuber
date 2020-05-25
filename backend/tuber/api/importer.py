@@ -191,9 +191,9 @@ def import_uber_staff():
     print("Importing staff...")
     event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
     if not event:
-        return jsonify({"success": False})
+        return "", 412
     if not check_permission("import.staff", event=request.json['event']):
-        return jsonify({"success": False})
+        return "", 403
 
     email = request.json['email']
     password = request.json['password']
@@ -204,18 +204,18 @@ def import_uber_staff():
         worker_queue.enqueue(run_staff_import, email, password, url, event.id, job_timeout=1800)
     else:
         run_staff_import(email, password, url, event.id)
-    return jsonify({"success": True})
+    return "null", 200
 
 @app.route("/api/importer/mock", methods=["POST"])
 def import_mock():
     if not 'event' in request.json:
-        return jsonify(success=False, reason="Event is a required parament.")
+        return "Event is a required parament.", 406
     event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
     if not event:
-        return jsonify(success=False, reason="Could not locate event {}".format(request.json['event']))
+        return "Could not locate event {}".format(request.json['event']), 404
     badges = db.session.query(Badge).filter(Badge.event == event.id).all()
     if badges:
-        return jsonify(success=False, reason="You cannot generate mock data if there are already badges. Please delete the badges first if you really want junk data.")
+        return "You cannot generate mock data if there are already badges. Please delete the badges first if you really want junk data.", 412
     staff_badge_type = db.session.query(BadgeType).filter(BadgeType.name == "Staff").one_or_none()
     if not staff_badge_type:
         staff_badge_type = BadgeType(name="Staff", description="Helps run the show")
@@ -343,4 +343,4 @@ def import_mock():
     print("Committing...")
     db.session.commit()
     print("Done!")
-    return jsonify(success=True)
+    return "null", 200

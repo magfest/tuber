@@ -150,20 +150,18 @@ router.beforeEach((to, from, next) => {
   if ((to.name === 'hotelsrequest' || to.name === 'hotelsapprove' || to.name === 'hotelsapprovals') && (Object.prototype.hasOwnProperty.call(to.query, 'id'))) {
     post('/api/hotels/staffer_auth', {
       token: to.query.id,
-    }).then((resp) => {
-      if (resp.success) {
-        store.dispatch('check_logged_in').then(() => {
-          store.dispatch('get_events').then(() => {
-            next();
-          }).catch(() => {
-            store.commit('open_snackbar', 'Failed to retrieve events from server.');
-            next();
-          });
+    }).then(() => {
+      store.dispatch('check_logged_in').then(() => {
+        store.dispatch('get_events').then(() => {
+          next();
         }).catch(() => {
-          store.commit('open_snackbar', 'Failed to check whether currently logged in.');
+          store.commit('open_snackbar', 'Failed to retrieve events from server.');
           next();
         });
-      }
+      }).catch(() => {
+        store.commit('open_snackbar', 'Failed to check whether currently logged in.');
+        next();
+      });
     }).catch(() => {
       store.commit('open_snackbar', 'Failed to verify uber authentication.');
       next();

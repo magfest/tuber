@@ -152,11 +152,7 @@ export default {
       return new Promise((resolve) => {
         if (self.event.id) {
           self.dump('departments').then((depts) => {
-            if (depts.success) {
-              resolve(depts);
-            } else {
-              resolve([]);
-            }
+            resolve(depts);
           }).catch(() => {
             self.notify('Failed to retrieve department membership.');
           });
@@ -167,16 +163,12 @@ export default {
     },
     request() {
       const self = this;
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         if (self.badge) {
           self.get('/api/hotels/request', {
             badge: self.badge.id,
-          }).then((res) => {
-            if (res.success) {
-              resolve(res.request);
-            } else {
-              reject(Error('Failed to retrieve request'));
-            }
+          }).then((request) => {
+            resolve(request);
           }).catch(() => {
             self.notify('Failed to fetch your request.');
           });
@@ -189,7 +181,7 @@ export default {
       const self = this;
       return new Promise((resolve) => {
         if (self.$route.params.badge) {
-          self.get(`/api/events/${self.$store.state.events.event.id}/badges`, { badge: self.$route.params.badge, full: true }).then((res) => {
+          self.get(`/api/events/${self.$store.state.events.event.id}/badges`, { id: self.$route.params.badge, full: true }).then((res) => {
             resolve(res[0]);
           }).catch(() => {
             self.notify('Failed to retrieve badge.');
@@ -224,14 +216,9 @@ export default {
       self.post('/api/hotels/request', {
         badge: self.badge.id,
         request: self.request,
-      }).then((res) => {
-        if (res.success) {
-          self.loading = false;
-          self.confirmation = true;
-        } else {
-          self.loading = false;
-          self.notify(`Failed to submit hotel request: ${res.reason}`);
-        }
+      }).then(() => {
+        self.loading = false;
+        self.confirmation = true;
       }).catch(() => {
         self.notify('Failed to submit hotel request.');
         self.loading = false;

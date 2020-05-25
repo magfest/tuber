@@ -39,20 +39,16 @@ export default {
         username: this.username,
         password: this.password,
         email: this.email,
-      }).then((resp) => {
-        if (resp.success) {
-          self.$store.dispatch('check_initial_setup').then(() => {
-            self.$router.push({ name: 'home' });
-          }).catch(() => {
-            self.notify('Failed to check if server is in initial setup mode.');
-          });
-          self.notify('Created admin account successfully!');
-        } else {
-          self.notify('Failed to create admin account.');
-        }
+      }).then(() => {
+        self.$store.dispatch('check_initial_setup').then(() => {
+          self.$router.push({ name: 'eventslist' });
+        }).catch(() => {
+          self.notify('Failed to check if server is in initial setup mode.');
+        });
+        self.notify('Created admin account successfully!');
       }).catch(() => {
         self.initial_setup_loading = false;
-        self.notify('Network error while creating admin account.');
+        self.notify('Failed to run initial setup.');
       });
     },
   },

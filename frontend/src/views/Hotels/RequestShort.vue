@@ -86,11 +86,7 @@ export default {
             event: self.event.id,
             user: self.user.id,
           }).then((depts) => {
-            if (depts.success) {
-              resolve(depts.departments);
-            } else {
-              resolve([]);
-            }
+            resolve(depts);
           }).catch(() => {
             self.notify('Failed to retrieve department membership.');
           });
@@ -101,16 +97,12 @@ export default {
     },
     request() {
       const self = this;
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         if (self.badge) {
           self.get('/api/hotels/request', {
             badge: self.badge.id,
-          }).then((res) => {
-            if (res.success) {
-              resolve(res.request);
-            } else {
-              reject(Error('Failed to retrieve request'));
-            }
+          }).then((request) => {
+            resolve(request);
           }).catch(() => {
             self.notify('Failed to fetch your request.');
           });
@@ -122,12 +114,8 @@ export default {
     badge() {
       const self = this;
       return new Promise((resolve) => {
-        self.post('/api/user/badge', { badge: self.badge_id }).then((res) => {
-          if (res.success) {
-            resolve(res.badge);
-          } else {
-            resolve(null);
-          }
+        self.post('/api/user/badge', { badge: self.badge_id }).then((badge) => {
+          resolve(badge);
         }).catch(() => {
           self.notify('Failed to retrieve badge.');
         });
@@ -154,12 +142,8 @@ export default {
         self.post('/api/hotels/request', {
           badge: self.badge.id,
           request: self.request,
-        }).then((res) => {
-          if (res.success) {
-            resolve(true);
-          } else {
-            resolve(false);
-          }
+        }).then(() => {
+          resolve(true);
         }).catch(() => {
           resolve(false);
         });

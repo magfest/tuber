@@ -15,7 +15,12 @@ function restFetch(method, url, data) {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-    }).then((response) => response.json());
+    }).then((response) => {
+      if (response.status === 200) {
+        return response.json();
+      }
+      throw response.data;
+    });
   }
   return fetch(url, {
     method,
@@ -25,7 +30,12 @@ function restFetch(method, url, data) {
     },
     body: JSON.stringify(data),
     credentials: 'include',
-  }).then((response) => response.json());
+  }).then((response) => {
+    if (response.status === 200) {
+      return response.json();
+    }
+    throw response.data;
+  });
 }
 
 const schema = {
@@ -55,6 +65,15 @@ const schema = {
   },
   permissions: {
     url: '/api/permissions',
+  },
+  room_nights: {
+    url: '/api/events/<event>/hotel_room_nights',
+  },
+  room_locations: {
+    url: '/api/events/<event>/hotel_locations',
+  },
+  room_blocks: {
+    url: '/api/events/<event>/hotel_room_blocks',
   },
 };
 
