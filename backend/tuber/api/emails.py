@@ -154,13 +154,13 @@ def generate_emails(email):
 @app.route('/api/emails/csv')
 def email_csv():
     if not check_permission('email.read', event=request.args['event']):
-        return jsonify(success=False, reason="Permission Denied")
+        return "Permission Denied", 403
     event = db.session.query(Event).filter(Event.id == request.args['event']).one()
     if not 'email' in request.args:
-        return jsonify(success=False, reason="email is a required parameter")
+        return "email is a required parameter", 406
     email = db.session.query(Email).filter(Email.id == request.args['email']).one_or_none()
     if not email:
-        return jsonify(success=False, reason="Could not find requested email {}".format(request.args['email']))
+        return "Could not find requested email {}".format(request.args['email']), 404
 
     def stream_emails():
         yield "Badge ID,To,From,Subject,Body\n"
@@ -176,22 +176,20 @@ def email_csv():
 @app.route('/api/emails/trigger', methods=['POST'])
 def api_email_trigger():
     if not check_permission('email.send', event=request.json['event']):
-        return jsonify(success=False, reason="Permission Denied")
+        return "Permission Denied", 403
     event = db.session.query(Event).filter(Event.id == request.json['event']).one()
     if not 'email' in request.json:
-        return jsonify(success=False, reason="email is a required parameter")
+        return "email is a required parameter", 400
     email = db.session.query(Email).filter(Email.id == request.json['email']).one_or_none()
     if not email:
-        return jsonify(success=False, reason="Could not find requested email {}".format(request.json['email']))
+        return "Could not find requested email {}".format(request.json['email']), 404
     if not email.active:
-        return jsonify(success=False, reason="Email must be activated before triggering.")
+        return "Email must be activated before triggering.", 400
     source = db.session.query(EmailSource).filter(EmailSource.id == email.source).one_or_none()
     if not source:
-        return jsonify(success=False, reason="Could not find EmailSource to send email from")
+        return "Could not find EmailSource to send email from", 400
     if not source.active:
-        return jsonify(success=False, reason="The email source for this email is inactive.")
-
-    return jsonify(success=True) # TODO: Removed before going back to prod
+        return "The email source for this email is inactive.", 400
 
     def stream_emails():
         temp_session = db.create_session({})()

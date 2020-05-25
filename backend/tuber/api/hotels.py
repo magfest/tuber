@@ -306,13 +306,13 @@ def hotel_room():
             for room in request.json['rooms']:
                 rn = db.session.query(HotelRoom).filter(HotelRoom.id == room['id']).one_or_none()
                 if not rn:
-                    return jsonify(success=False, reason="Could not find hotel room {}".format(room['id']))
+                    return "Could not find hotel room {}".format(room['id']), 404
                 if 'hotel_block' in room:
                     if not room['hotel_block'] in room_block_ids:
-                        return jsonify(success=False, reason="Could not find hotel block {}".format(room['hotel_block']))
+                        return "Could not find hotel block {}".format(room['hotel_block']), 404
                 if 'hotel_location' in room:
                     if not room['hotel_location'] in room_location_ids:
-                        return jsonify(success=False, reason="Could not find hotel location {}".format(room['hotel_location']))
+                        return "Could not find hotel location {}".format(room['hotel_location']), 404
                 for attr in ['name', 'notes', 'messages', 'hotel_block', 'hotel_location', 'completed']:
                     if attr in room:
                         setattr(rn, attr, room[attr])
@@ -454,12 +454,12 @@ def hotel_room_assignments():
         if 'badge' in request.args:
             badge = db.session.query(Badge).filter(Badge.id == request.args['badge']).one_or_none()
             if not badge:
-                return jsonify(success=False, reason="Could not locate badge {}".format(request.args['badge']))
+                return "Could not locate badge {}".format(request.args['badge']), 404
             if badge.event != request.args['event']:
-                return jsonify(success=False, reason="Permission Denied")
+                return "Permission Denied", 403
             rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.badge == badge.id).all()
             res = {x.id: [y.hotel_room for y in rnas if y.room_night == x.id] for x in room_nights}
-            return jsonify(success=True, room_assignments=res)
+            return jsonify(res)
         badges = db.session.query(Badge).filter(Badge.event == request.args['event']).all()
         badge_ids = [x.id for x in badges]
         rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.badge.in_(badge_ids)).all()

@@ -5,7 +5,7 @@
       <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>Room Night Settings</v-card-title>
         <v-card-text>
-          <v-data-table show-select item-key="id" v-model="selected" :headers="room_nights_headers" :items="room_nights">
+          <v-data-table show-select item-key="id" v-model="selected.room_nights" :headers="room_nights_headers" :items="room_nights">
             <template v-slot:item.restricted="{ item }">
               <v-icon>
                 {{ item.restricted ? "check_box" : "check_box_outline_blank" }}
@@ -20,7 +20,7 @@
           <br>
         </v-card-text>
         <v-card-actions>
-            <v-btn @click="delete_room_nights">Delete</v-btn>
+            <v-btn @click="remove_selected('room_nights')">Delete</v-btn>
         </v-card-actions>
       </v-card>
       <br>
@@ -30,28 +30,27 @@
           </v-card-title>
           <v-card-text>
             <v-form>
-                <v-text-field label="Name" v-model="room_night.name"></v-text-field>
-                <v-checkbox label="Restricted" v-model="room_night.restricted"></v-checkbox>
-                <v-text-field label="Restriction Type" v-if="room_night.restricted" v-model="room_night.restriction_type"></v-text-field>
-                <v-checkbox label="Hidden" v-model="room_night.hidden"></v-checkbox>
-                <v-btn type="submit" @click.prevent="add_room_night" hidden="true"></v-btn>
+                <v-text-field label="Name" v-model="form.room_nights.name"></v-text-field>
+                <v-checkbox label="Restricted" v-model="form.room_nights.restricted"></v-checkbox>
+                <v-text-field label="Restriction Type" v-if="form.room_nights.restricted" v-model="form.room_nights.restriction_type"></v-text-field>
+                <v-checkbox label="Hidden" v-model="form.room_nights.hidden"></v-checkbox>
             </v-form>
         </v-card-text>
         <v-card-actions>
-            <v-btn type="submit" @click.prevent="add_room_night">Add</v-btn>
+            <v-btn type="submit" @click.prevent="add('room_nights')">Add</v-btn>
         </v-card-actions>
       </v-card>
       <br>
       <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>Room Block Settings</v-card-title>
         <v-card-text>
-          <v-data-table show-select item-key="id" v-model="selected" :headers="room_blocks_headers" :items="room_blocks">
+          <v-data-table show-select item-key="id" v-model="selected.room_blocks" :headers="room_blocks_headers" :items="room_blocks">
 
           </v-data-table>
           <br>
         </v-card-text>
         <v-card-actions>
-            <v-btn @click="delete_room_blocks">Delete</v-btn>
+            <v-btn @click="remove_selected('room_blocks')">Delete</v-btn>
         </v-card-actions>
       </v-card>
       <br>
@@ -61,26 +60,25 @@
           </v-card-title>
           <v-card-text>
             <v-form>
-              <v-text-field label="Name" v-model="room_block.name"></v-text-field>
-              <v-text-field label="Description" v-model="room_block.description"></v-text-field>
-              <v-btn type="submit" @click.prevent="add_room_block" hidden="true"></v-btn>
+              <v-text-field label="Name" v-model="form.room_blocks.name"></v-text-field>
+              <v-text-field label="Description" v-model="form.room_blocks.description"></v-text-field>
             </v-form>
         </v-card-text>
         <v-card-actions>
-            <v-btn type="submit" @click.prevent="add_room_block">Add</v-btn>
+            <v-btn type="submit" @click.prevent="add('room_blocks')">Add</v-btn>
         </v-card-actions>
       </v-card>
       <br>
       <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title>Room Location Settings</v-card-title>
         <v-card-text>
-          <v-data-table show-select item-key="id" v-model="selected" :headers="room_locations_headers" :items="room_locations">
+          <v-data-table show-select item-key="id" v-model="selected.room_locations" :headers="room_locations_headers" :items="room_locations">
 
           </v-data-table>
           <br>
         </v-card-text>
         <v-card-actions>
-            <v-btn @click="delete_room_locations">Delete</v-btn>
+            <v-btn @click="remove_selected('room_locations')">Delete</v-btn>
         </v-card-actions>
       </v-card>
       <br>
@@ -90,13 +88,12 @@
           </v-card-title>
           <v-card-text>
             <v-form>
-              <v-text-field label="Name" v-model="room_location.name"></v-text-field>
-              <v-text-field label="Address" v-model="room_location.address"></v-text-field>
-              <v-btn type="submit" @click.prevent="add_room_location" hidden="true"></v-btn>
+              <v-text-field label="Name" v-model="form.room_locations.name"></v-text-field>
+              <v-text-field label="Address" v-model="form.room_locations.address"></v-text-field>
             </v-form>
         </v-card-text>
         <v-card-actions>
-            <v-btn type="submit" @click.prevent="add_room_location">Add</v-btn>
+            <v-btn type="submit" @click.prevent="add('room_locations')">Add</v-btn>
         </v-card-actions>
       </v-card>
     </div>
@@ -108,6 +105,7 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import { mapAsyncDump } from '../../mixins/rest';
 
 export default {
   name: 'HotelSettings',
@@ -115,20 +113,26 @@ export default {
   },
   data: () => ({
     loading: false,
-    selected: [],
-    room_night: {
-      name: '',
-      restricted: false,
-      restriction_type: '',
-      hidden: false,
+    selected: {
+      selected_room_blocks: [],
+      selected_room_locations: [],
+      selected_room_nights: [],
     },
-    room_block: {
-      name: '',
-      description: '',
-    },
-    room_location: {
-      name: '',
-      address: '',
+    form: {
+      room_nights: {
+        name: '',
+        restricted: false,
+        restriction_type: '',
+        hidden: false,
+      },
+      room_blocks: {
+        name: '',
+        description: '',
+      },
+      room_locations: {
+        name: '',
+        address: '',
+      },
     },
     room_nights_headers: [
       {
@@ -177,202 +181,35 @@ export default {
     ]),
   },
   asyncComputed: {
-    room_nights: {
-      get() {
-        const self = this;
-        return new Promise((resolve) => {
-          if (self.event.id) {
-            self.get('/api/hotels/settings/room_night', {
-              event: self.event.id,
-            }).then((res) => {
-              if (res.success) {
-                resolve(res.room_nights);
-              } else {
-                resolve([]);
-              }
-            }).catch(() => {
-              self.notify('Failed to retrieve hotel settings.');
-            });
-          } else {
-            resolve([]);
-          }
-        });
-      },
-      default: [],
-    },
-    room_blocks: {
-      get() {
-        const self = this;
-        return new Promise((resolve) => {
-          if (self.event.id) {
-            self.get('/api/hotels/settings/room_block', {
-              event: self.event.id,
-            }).then((res) => {
-              if (res.success) {
-                resolve(res.room_blocks);
-              } else {
-                resolve([]);
-              }
-            }).catch(() => {
-              self.notify('Failed to get hotel room blocks.');
-            });
-          } else {
-            resolve([]);
-          }
-        });
-      },
-      default: [],
-    },
-    room_locations: {
-      get() {
-        const self = this;
-        return new Promise((resolve) => {
-          if (self.event.id) {
-            self.get('/api/hotels/settings/room_location', {
-              event: self.event.id,
-            }).then((res) => {
-              if (res.success) {
-                resolve(res.room_locations);
-              } else {
-                resolve([]);
-              }
-            }).catch(() => {
-              self.notify('Failed to get hotel room locations.');
-            });
-          } else {
-            resolve([]);
-          }
-        });
-      },
-      default: [],
-    },
-  },
-  mounted() {
+    ...mapAsyncDump([
+      'room_nights',
+      'room_blocks',
+      'room_locations',
+    ]),
   },
   methods: {
-    add_room_night() {
+    add(entity) {
       const self = this;
       self.loading = true;
-      self.room_nights.push(self.room_night);
-      self.post('/api/hotels/settings/room_night', {
-        event: self.event.id,
-        room_nights: self.room_nights,
-      }).then((res) => {
+      self.save(entity, self.form[entity]).then(() => {
         self.loading = false;
-        if (res.success) {
-          self.room_night.name = '';
-          self.notify('Room Night Added.');
-          self.$asyncComputed.room_nights.update();
-        } else {
-          self.notify(`Failed to add Room Night: ${res.reason}`);
-        }
+        self.$asyncComputed[entity].update();
       }).catch(() => {
-        self.notify('Failed to update hotel settings.');
+        self.loading = false;
       });
     },
-    delete_room_nights() {
+    remove_selected(entity) {
       const self = this;
-      this.selected.forEach((item) => {
-        const idx = self.room_nights.indexOf(item);
-        self.room_nights.splice(idx, 1);
-      });
-      self.post('/api/hotels/settings/room_night', {
-        event: self.event.id,
-        room_nights: self.room_nights,
-      }).then((res) => {
-        if (res.success) {
-          self.notify('Room Nights Deleted.');
-          self.$asyncComputed.room_nights.update();
-        } else {
-          self.notify('Failed to delete Room Nights.');
-          self.$asyncComputed.room_nights.update();
-        }
-      }).catch(() => {
-        self.notify('Failed to delete hotel room nights.');
-      });
-    },
-    add_room_block() {
-      const self = this;
+      const promises = [];
       self.loading = true;
-      self.room_blocks.push(self.room_block);
-      self.post('/api/hotels/settings/room_block', {
-        event: self.event.id,
-        room_blocks: self.room_blocks,
-      }).then((res) => {
+      this.selected[entity].forEach((item) => {
+        promises.push(self.remove(entity, item));
+      });
+      Promise.all(promises).then(() => {
         self.loading = false;
-        if (res.success) {
-          self.room_block.name = '';
-          self.room_block.description = '';
-          self.notify('Room Block Added.');
-          self.$asyncComputed.room_block.update();
-        } else {
-          self.notify(`Failed to add Room Block: ${res.reason}`);
-        }
+        self.$asyncComputed[entity].update();
       }).catch(() => {
-        self.notify('Failed to add hotel block.');
-      });
-    },
-    delete_room_blocks() {
-      const self = this;
-      this.selected.forEach((item) => {
-        const idx = self.room_blocks.indexOf(item);
-        self.room_blocks.splice(idx, 1);
-      });
-      self.post('/api/hotels/settings/room_block', {
-        event: self.event.id,
-        room_blocks: self.room_blocks,
-      }).then((res) => {
-        if (res.success) {
-          self.notify('Room Blocks Deleted.');
-          self.$asyncComputed.room_blocks.update();
-        } else {
-          self.notify(`Failed to delete Room Blocks: ${res.reason}`);
-          self.$asyncComputed.room_blocks.update();
-        }
-      }).catch(() => {
-        self.notify('Failed to delete hotel room blocks.');
-      });
-    },
-    add_room_location() {
-      const self = this;
-      self.loading = true;
-      self.room_locations.push(self.room_location);
-      self.post('/api/hotels/settings/room_location', {
-        event: self.event.id,
-        room_locations: self.room_locations,
-      }).then((res) => {
         self.loading = false;
-        if (res.success) {
-          self.room_location.name = '';
-          self.room_location.address = '';
-          self.notify('Room Location Added.');
-          self.$asyncComputed.room_location.update();
-        } else {
-          self.notify(`Failed to add Room Location: ${res.reason}`);
-        }
-      }).catch(() => {
-        self.notify('Failed to add hotel room location.');
-      });
-    },
-    delete_room_locations() {
-      const self = this;
-      this.selected.forEach((item) => {
-        const idx = self.room_locations.indexOf(item);
-        self.room_locations.splice(idx, 1);
-      });
-      self.post('/api/hotels/settings/room_location', {
-        event: self.event.id,
-        room_locations: self.room_locations,
-      }).then((res) => {
-        if (res.success) {
-          self.notify('Room Location Deleted.');
-          self.$asyncComputed.room_locations.update();
-        } else {
-          self.notify(`Failed to delete Room Location: ${res.reason}`);
-          self.$asyncComputed.room_locations.update();
-        }
-      }).catch(() => {
-        self.notify('Failed to delete hotel room location.');
       });
     },
   },

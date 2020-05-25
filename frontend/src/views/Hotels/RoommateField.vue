@@ -67,11 +67,8 @@ export default {
           if (self.event.id) {
             self.post('/api/hotels/department_names', {
               event: self.event.id,
-            }).then((res) => {
-              if (res.success) {
-                resolve(res.departments);
-              }
-              resolve({});
+            }).then((departments) => {
+              resolve(departments);
             }).catch(() => {
               self.notify('Failed to retrieve department names.');
             });
@@ -90,24 +87,20 @@ export default {
               self.post('/api/hotels/roommate_lookup', {
                 event: self.event.id,
                 badge: id,
-              }).then((res) => {
-                if (res.success) {
-                  for (let i = 0; i < res.roommate.departments.length; i += 1) {
-                    if (Object.prototype.hasOwnProperty.call(self.department_names, res.roommate.departments[i])) {
-                      res.roommate.departments[i] = self.department_names[res.roommate.departments[i]].name;
-                    }
+              }).then((roommate) => {
+                for (let i = 0; i < roommate.departments.length; i += 1) {
+                  if (Object.prototype.hasOwnProperty.call(self.department_names, roommate.departments[i])) {
+                    roommate.departments[i] = self.department_names[roommate.departments[i]].name;
                   }
-                  if (res.roommate.departments.length === 0) {
-                    res.roommate.text = res.roommate.name;
-                  } else {
-                    res.roommate.text = `${res.roommate.name} (${res.roommate.departments.join(', ')})`;
-                  }
-                  resRoommates.push(res.roommate);
-                  if (self.value.length === resRoommates.length) {
-                    resolve(resRoommates);
-                  }
+                }
+                if (roommate.departments.length === 0) {
+                  roommate.text = roommate.name;
                 } else {
-                  resolve([]);
+                  roommate.text = `${roommate.name} (${roommate.departments.join(', ')})`;
+                }
+                resRoommates.push(roommate);
+                if (self.value.length === resRoommates.length) {
+                  resolve(resRoommates);
                 }
               }).catch(() => {
                 self.notify('Failed to lookup roommates.');
@@ -135,26 +128,24 @@ export default {
       self.post('/api/hotels/roommate_search', {
         event: self.event.id,
         search: value,
-      }).then((resp) => {
-        if (resp.success) {
-          resp.results.forEach((el) => {
-            for (let i = 0; i < el.departments.length; i += 1) {
-              if (Object.prototype.hasOwnProperty.call(self.department_names, el.departments[i])) {
-                el.departments[i] = self.department_names[el.departments[i]].name;
-              }
+      }).then((results) => {
+        results.forEach((el) => {
+          for (let i = 0; i < el.departments.length; i += 1) {
+            if (Object.prototype.hasOwnProperty.call(self.department_names, el.departments[i])) {
+              el.departments[i] = self.department_names[el.departments[i]].name;
             }
-            if (el.departments.length === 0) {
-              el.text = el.name;
-            } else {
-              el.text = `${el.name} (${el.departments.join(', ')})`;
-            }
-          });
-          if (self.roommates) {
-            resp.results.push(...self.roommates);
           }
-          self.options = resp.results;
-          self.optionsLoading = false;
+          if (el.departments.length === 0) {
+            el.text = el.name;
+          } else {
+            el.text = `${el.name} (${el.departments.join(', ')})`;
+          }
+        });
+        if (self.roommates) {
+          results.push(...self.roommates);
         }
+        self.options = results;
+        self.optionsLoading = false;
       }).catch(() => {
         self.notify('Failed to search for roommate names.');
       });

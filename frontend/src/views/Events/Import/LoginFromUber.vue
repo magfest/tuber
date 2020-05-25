@@ -34,14 +34,9 @@ export default {
         password: this.password,
         uber_url: this.uber_url,
         event: this.event.id,
-      }).then((resp) => {
-        if (resp.success) {
-          self.$store.commit('open_snackbar', 'Import started successfully. It will complete in the background.');
-          self.loading = false;
-        } else {
-          self.$store.commit('open_snackbar', 'Failed to import staff.');
-          self.loading = false;
-        }
+      }).then(() => {
+        self.$store.commit('open_snackbar', 'Import started successfully. It will complete in the background.');
+        self.loading = false;
       }).catch(() => {
         self.$store.commit('open_snackbar', 'Network error while importing staff.');
         self.loading = false;

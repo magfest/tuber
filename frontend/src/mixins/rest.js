@@ -66,6 +66,15 @@ const schema = {
   permissions: {
     url: '/api/permissions',
   },
+  room_nights: {
+    url: '/api/events/<event>/hotel_room_nights',
+  },
+  room_locations: {
+    url: '/api/events/<event>/hotel_locations',
+  },
+  room_blocks: {
+    url: '/api/events/<event>/hotel_room_blocks',
+  },
 };
 
 function get(url, data) {

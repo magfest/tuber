@@ -101,13 +101,9 @@ export default {
       self.post('/api/emails/trigger', {
         email: email.id,
         event: self.event.id,
-      }).then((res) => {
+      }).then(() => {
         self.loading = false;
-        if (res.success) {
-          self.notify('Email triggered successfully.');
-        } else {
-          self.notify(res.reason);
-        }
+        self.notify('Email triggered successfully.');
       }).catch(() => {
         self.loading = false;
         self.notify('Failed to trigger email.');

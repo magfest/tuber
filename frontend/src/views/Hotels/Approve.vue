@@ -99,8 +99,8 @@ export default {
             event: self.event.id,
             user: self.user.id,
           }).then((depts) => {
-            if (depts.success) {
-              resolve(depts.departments);
+            if (depts) {
+              resolve(depts);
             } else {
               resolve([]);
             }
@@ -119,11 +119,7 @@ export default {
           self.get('/api/hotels/room_nights', {
             event: self.event.id,
           }).then((res) => {
-            if (res.success) {
-              resolve(res.room_nights);
-            } else {
-              resolve([]);
-            }
+            resolve(res);
           }).catch(() => {
             self.notify('Failed to load room nights.');
           });
@@ -150,10 +146,6 @@ export default {
         room_night_request: request.id,
         department,
         approved: request.approved,
-      }).then((res) => {
-        if (!res.success) {
-          self.notify(`Could not approve room night: ${res.reason}`);
-        }
       }).catch(() => {
         self.notify('Failed to approve room night.');
       });
