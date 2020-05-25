@@ -1,6 +1,8 @@
 .DS_Store
 node_modules
 /dist
+.coverage
+coverage.xml
 
 tuber.json
 database.db

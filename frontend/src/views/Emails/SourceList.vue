@@ -95,7 +95,7 @@ export default {
       });
     },
     edit_email_source(emailSource) {
-      this.email_source = Object.assign({}, emailSource);
+      this.email_source = { ...emailSource };
       this.edit_modal_active = true;
     },
   },

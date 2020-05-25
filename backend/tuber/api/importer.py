@@ -1,10 +1,11 @@
 from tuber import app, config, db
-from flask import send_from_directory, send_file, request, jsonify
+from flask import send_from_directory, send_file, request, jsonify, Response
 from tuber.models import *
 from tuber.permissions import *
 from tuber.worker import worker_conn
 from sqlalchemy import or_
 from rq import Queue
+import sqlalchemy
 import requests
 import datetime
 import random
@@ -12,6 +13,63 @@ import names
 import uuid
 import csv
 import io
+
+@app.route("/api/importer/csv", methods=["GET", "POST"])
+def csv_import():
+    if request.method == "GET":
+        if not check_permission("export.csv"):
+            return "Permission Denied", 403
+        export_type = request.args['csv_type']
+        model = globals()[export_type]
+        data = db.session.query(model).all()
+        cols = model.__table__.columns.keys()
+        def generate():
+            yield ','.join(cols)+"\n"
+            for row in data:
+                yield ','.join([str(getattr(row, x)) for x in cols])+"\n"
+        response = Response(generate(), mimetype="text/csv")
+        response.headers.set('Content-Disposition', 'attachment; filename={}.csv'.format(export_type))
+        return response
+    elif request.method == "POST":
+        if not check_permission("import.csv"):
+            return "Permission Denied", 403
+        import_type = request.form['csv_type']
+        model = globals()[import_type]
+        raw_import = request.form['raw_import'].lower().strip() == "true"
+        full_import = request.form['full_import'].lower().strip() == "true"
+        file = request.files['files']
+        data = file.read().decode('UTF-8').replace("\r\n", "\n")
+        if full_import:
+            db.session.query(model).delete()
+        rows = data.split("\n")
+        cols = rows[0].split(",")
+        rows = rows[1:]
+        def convert(key, val):
+            col = model.__table__.columns[key]
+            if col.nullable:
+                if val == 'None':
+                    return None
+            coltype = type(col.type)
+            if coltype is sqlalchemy.sql.sqltypes.Integer:
+                if val == '':
+                    return None
+                return int(val)
+            if coltype is sqlalchemy.sql.sqltypes.Boolean:
+                if val.lower() == "true":
+                    return True
+                return False
+            return val
+            
+        count = 0
+        for row in rows:
+            if not row.strip():
+                continue
+            row = row.split(",")
+            new = model(**{key: convert(key, val) for key,val in zip(cols, row)})
+            db.session.add(new)
+            count += 1
+        db.session.commit()
+        return str(count), 200
 
 def get_uber_csv(session, model, url):
     data = session.post(url+"/devtools/export_model", data={"selected_model": model}).text
@@ -57,7 +115,7 @@ def run_staff_import(email, password, url, event):
             if not grant:
                 grant = Grant(user=user.id, role=role.id)
                 db.session.add(grant)
-            badge = db.session.query(Badge).filter(Badge.event_id == event, Badge.uber_id == attendee['id']).one_or_none()
+            badge = db.session.query(Badge).filter(Badge.event == event, Badge.uber_id == attendee['id']).one_or_none()
             if badge:
                 badge.printed_number = attendee['badge_num']
                 badge.printed_name = attendee['badge_printed_name']
@@ -72,7 +130,7 @@ def run_staff_import(email, password, url, event):
             if not badge:
                 badge = Badge(
                     uber_id = attendee['id'],
-                    event_id = event,
+                    event = event,
                     printed_number = attendee['badge_num'],
                     printed_name = attendee['badge_printed_name'],
                     search_name = "{} {}".format(attendee['first_name'].lower(), attendee['last_name'].lower()),
@@ -89,24 +147,24 @@ def run_staff_import(email, password, url, event):
     print("Adding departments...")
     departments = get_uber_csv(session, "Department", url)
     for department in departments:
-        current = db.session.query(Department).filter(Department.event_id == event, Department.uber_id == department['id']).one_or_none()
+        current = db.session.query(Department).filter(Department.event == event, Department.uber_id == department['id']).one_or_none()
         if not current:
             dept = Department(
                 uber_id = department['id'],
                 name = department['name'],
                 description = department['description'],
-                event_id = event
+                event = event
             )
             db.session.add(dept)
             
     print("Adding staffers to departments...")
     deptmembers = get_uber_csv(session, "DeptMembership", url)
     for dm in deptmembers:
-        badge = db.session.query(Badge).filter(Badge.event_id == event, Badge.uber_id == dm['attendee_id']).one_or_none()
+        badge = db.session.query(Badge).filter(Badge.event == event, Badge.uber_id == dm['attendee_id']).one_or_none()
         if not badge:
             print("Could not find badge {} to place in department {}.".format(dm['attendee_id'], dm['department_id']))
             continue
-        department = db.session.query(Department).filter(Department.event_id == event, Department.uber_id == dm['department_id']).one_or_none()
+        department = db.session.query(Department).filter(Department.event == event, Department.uber_id == dm['department_id']).one_or_none()
         if not department:
             print("Could not find department {} for attendee {}.".format(dm['department_id'], dm['attendee_id']))
             continue
@@ -155,7 +213,7 @@ def import_mock():
     event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
     if not event:
         return "Could not locate event {}".format(request.json['event']), 404
-    badges = db.session.query(Badge).filter(Badge.event_id == event.id).all()
+    badges = db.session.query(Badge).filter(Badge.event == event.id).all()
     if badges:
         return "You cannot generate mock data if there are already badges. Please delete the badges first if you really want junk data.", 412
     staff_badge_type = db.session.query(BadgeType).filter(BadgeType.name == "Staff").one_or_none()
@@ -187,7 +245,7 @@ def import_mock():
             site = random.choice(["net", "com", "org", "co.uk"])
             email="{}.{}@{}.{}".format(first_name, last_name, provider, site)
             badge = Badge(
-                event_id=event.id,
+                event=event.id,
                 badge_type=attendee_badge_type.id,
                 printed_number=(((i + request.json['staffers']) // 1000 + 1) * 1000) if 'staffers' in request.json else i,
                 printed_name=printed_name,
@@ -211,7 +269,7 @@ def import_mock():
             dept_names[name] = None
         for name in dept_names.keys():
             description = "The {} department.".format(name)
-            department = Department(name=name, description=description, event_id=event.id)
+            department = Department(name=name, description=description, event=event.id)
             db.session.add(department)
             departments.append(department)
     
@@ -236,7 +294,7 @@ def import_mock():
             site = random.choice(["net", "com", "org", "co.uk"])
             email="{}.{}@{}.{}".format(first_name, last_name, provider, site)
             badge = Badge(
-                event_id=event.id,
+                event=event.id,
                 badge_type=staff_badge_type.id,
                 printed_number=i,
                 printed_name=printed_name,
