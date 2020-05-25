@@ -7,6 +7,7 @@ import datetime
 import uuid
 from tuber.api import *
 from marshmallow_sqlalchemy import ModelSchema
+import requests
 
 def allow_self_edits(event=0, department=0):
     if set(g.data.keys()) & set(['id', 'active', 'badges', 'sessions']):
@@ -26,7 +27,7 @@ class UserWriteSchema(ModelSchema):
     class Meta:
         model = User
         sqla_session = db.session
-        fields = ['id', 'username', 'email', 'active']
+        fields = ['id', 'username', 'email', 'active', 'password']
 
 register_crud("users", {UserSchema(): ["GET"], UserWriteSchema(): ["POST", "PATCH", "DELETE"]}, url_scheme="global", permissions={"GET": [[allow_self_reads, "users.read"]], "PATCH": [[allow_self_edits, "users.update"]]})
 
