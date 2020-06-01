@@ -1,2 +1,0 @@
-import './rest';
-import './permissions';
