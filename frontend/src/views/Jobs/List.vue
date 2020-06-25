@@ -14,14 +14,21 @@
 <script>
   import { mapAsyncDump } from '../../mixins/rest';
   import NewJob from '../../components/jobs/NewJob';
+  import axios from 'axios';
 
   export default {
     name: 'ListJobs',
     components: { NewJob },
-    asyncComputed: {
-      ...mapAsyncDump([
-        'jobs'
-      ])
+    mounted(){
+      axios.get(
+        `/api/events/1/jobs`,
+        {
+          credentials: 'include',
+          params: {
+            'csrf_token': $cookies.get('csrf_token')
+          }
+        }
+      )
     }
   };
 </script>
