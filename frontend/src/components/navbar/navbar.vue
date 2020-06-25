@@ -102,6 +102,38 @@ export default {
           ],
         },
         {
+          name: 'Shifts',
+          alt: 'Manage Shifts',
+          icon: '',
+          items: [
+            {
+              name: 'View Shifts',
+              alt: 'View Shifts',
+              icon: '',
+              path: '/shifts',
+              permissions: [
+                'shifts.read'
+              ]
+            },
+          ]
+        },
+        {
+          name: 'Jobs',
+          alt: 'Manage Jobs',
+          icon: '',
+          items: [
+            {
+              name: 'List Jobs',
+              alt: 'View Jobs',
+              icon: '',
+              path: '/jobs',
+              permissions: [
+                'jobs.read'
+              ]
+            }
+          ]
+        },
+        {
           name: 'Global Settings',
           alt: 'Change Settings for Tuber',
           icon: 'settings_applications',

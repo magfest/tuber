@@ -75,6 +75,12 @@ const schema = {
   room_blocks: {
     url: '/api/events/<event>/hotel_room_blocks',
   },
+  shifts: {
+    url: '/api/events/<event>/shifts',
+  },
+  jobs: {
+    url: '/api/events/<event>/jobs'
+  }
 };
 
 function get(url, data) {

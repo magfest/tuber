@@ -29,11 +29,7 @@
     "@vue/cli-service": "^4.3.1",
     "@vue/eslint-config-airbnb": "^5.0.2",
     "@vue/test-utils": "1.0.0-beta.29",
-    "babel-eslint": "^10.1.0",
     "chai": "^4.1.2",
-    "eslint": "^6.8.0",
-    "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-vue": "^6.2.2",
     "kill-port": "^1.6.0",
     "null-loader": "^4.0.0",
     "sass": "^1.26.5",
@@ -41,42 +37,6 @@
     "vue-cli-plugin-vuetify": "^2.0.5",
     "vue-template-compiler": "^2.6.11",
     "vuetify-loader": "^1.4.3"
-  },
-  "eslintConfig": {
-    "root": true,
-    "plugins": [
-      "promise"
-    ],
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/essential",
-      "@vue/airbnb",
-      "plugin:promise/recommended"
-    ],
-    "rules": {
-      "max-len": 0,
-      "no-param-reassign": 0,
-      "no-shadow": 0,
-      "no-continue": 0,
-      "promise/always-return": 0,
-      "promise/no-callback-in-promise": 0,
-      "promise/no-nesting": 0
-    },
-    "parserOptions": {
-      "parser": "babel-eslint"
-    },
-    "overrides": [
-      {
-        "files": [
-          "**/__tests__/*.{j,t}s?(x)"
-        ],
-        "env": {
-          "mocha": true
-        }
-      }
-    ]
   },
   "postcss": {
     "plugins": {

@@ -19,6 +19,13 @@ import EmailList from './views/Emails/List.vue';
 import EmailSourceList from './views/Emails/SourceList.vue';
 import store from './store/store';
 
+// ---------- SHIFTS -------------
+import ShiftsList from './views/Shifts/List';
+
+//----------- JOBS ------------
+import JobsList from './views/Jobs/List';
+import NewJob from './views/Jobs/NewJob';
+
 Vue.use(Router);
 
 const router = new Router({
@@ -120,6 +127,21 @@ const router = new Router({
       name: 'emailsourcelist',
       component: EmailSourceList,
     },
+    {
+      path: '/shifts',
+      name: 'shiftsList',
+      component: ShiftsList
+    },
+    {
+      path: '/jobs',
+      name: 'jobsList',
+      component: JobsList
+    },
+    {
+      path: '/jobs/new',
+      name: 'newJob',
+      component: NewJob,
+    }
   ],
 });
 
