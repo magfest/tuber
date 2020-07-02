@@ -138,6 +138,7 @@ from .importer import *
 from .emails import *
 from .badges import *
 from .shifts import *
+from .checklists import *
 
 def indent(string, level=4):
     lines = string.split("\n")
