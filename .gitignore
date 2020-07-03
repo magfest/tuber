@@ -1,3 +1,4 @@
 .vscode/
 database.db
 workspace.xml
+venv/
