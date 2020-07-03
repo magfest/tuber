@@ -1,5 +1,6 @@
 <template>
   <div class="home">
+    Welcome to Tuber
   </div>
 </template>
 

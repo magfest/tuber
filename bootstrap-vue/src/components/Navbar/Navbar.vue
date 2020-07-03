@@ -5,6 +5,12 @@
     <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 
     <b-collapse id="nav-collapse" is-nav>
+      <b-navbar-nav>
+        <hotel-nav/>
+        <settings-nav/>
+        <shifts-nav/>
+        <b-nav-item to="#">Logout</b-nav-item>
+      </b-navbar-nav>
       <b-navbar-nav class="ml-auto">
         <EventSelector/>
       </b-navbar-nav>
@@ -15,12 +21,13 @@
 <script>
 
   import EventSelector from './EventSelector';
+  import HotelNav from './HotelNav';
+  import SettingsNav from './SettingsNav';
+  import ShiftsNav from './ShiftsNav';
+
   export default {
     name: 'Navbar',
-    components: { EventSelector },
+    components: { ShiftsNav, SettingsNav, HotelNav, EventSelector },
   };
 </script>
 
-<style scoped>
-
-</style>
