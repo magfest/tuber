@@ -4,6 +4,9 @@
     <b-table
       :items="userTableData"
       :tbody-tr-class="rowClass"
+      :fields="fields"
+      stacked="md"
+      hover
     ></b-table>
   </div>
 </template>
@@ -18,9 +21,18 @@
       return {
         users: [],
         fields: [
-          'Username',
-          'Email',
-          'Status'
+          {
+            key: 'username',
+            label: 'Username',
+          },
+          {
+            key: 'email',
+            label: 'Email',
+          },
+          {
+            key: 'status',
+            label: 'Active',
+          }
         ]
       }
     },
@@ -32,7 +44,7 @@
             username: user.username,
             email: user.email,
             status: user.active,
-            _rowVariant: user.active ? 'success' : ''
+            _rowVariant: user.active ? 'success' : '',
           }
         })
       }

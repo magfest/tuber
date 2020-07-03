@@ -4,6 +4,8 @@
     <b-dropdown-item>Approve Requests</b-dropdown-item>
     <b-dropdown-item>Assign Rooms</b-dropdown-item>
     <b-dropdown-item>Settings</b-dropdown-item>
+    <b-dropdown-divider></b-dropdown-divider>
+    <b-dropdown-header>Reports</b-dropdown-header>
   </b-nav-item-dropdown>
 </template>
 <script>

@@ -32,6 +32,9 @@ axios.interceptors.request.use(
   request => csrf_request(request)
 )
 
+import Notifications from 'vue-notification';
+Vue.use(Notifications);
+
 
 new Vue({
   router,

@@ -3,7 +3,7 @@
     <b-dropdown-header>Event</b-dropdown-header>
     <b-dropdown-item>Email Settings</b-dropdown-item>
     <b-dropdown-item>Email Source Settings</b-dropdown-item>
-    <b-dropdown-item>Import</b-dropdown-item>
+    <b-dropdown-item :to="{name: 'Import'}">Import</b-dropdown-item>
     <b-dropdown-divider></b-dropdown-divider>
     <b-dropdown-header>Global Settings</b-dropdown-header>
     <b-dropdown-item :to="{name: 'GlobalSettings-Users'}">Users</b-dropdown-item>

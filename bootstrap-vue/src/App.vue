@@ -1,6 +1,7 @@
 <template>
   <div id="app" class="d-flex flex-column">
     <div class="backgroundImage" :style="{'background-image': `url(${imageUrl})`}"></div>
+    <notifications group="main"/>
     <Navbar/>
     <router-view class="slow mt-3 container"/>
     <Footer class="mt-auto"/>
@@ -10,7 +11,7 @@
 <script>
   import axios from 'axios';
   import Navbar from './components/Navbar/Navbar';
-  import Footer from "./components/Footer"; 
+  import Footer from "./components/Footer";
 
 
   export default {
@@ -37,9 +38,9 @@
       return require("@/assets/magfestwave.png");
     }
   }
-    
+
   }
-  
+
 </script>
 
 <style>
@@ -49,13 +50,13 @@
   background-size: contain;
   background-position: center;
   content: "";
-  opacity: 0.1;
+  opacity: 0.04;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
   position: absolute;
-  z-index: -1;   
+  z-index: -1;
 }
 
 #app{

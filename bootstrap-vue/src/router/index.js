@@ -3,6 +3,8 @@ import VueRouter from 'vue-router'
 import Home from '../views/Home.vue'
 import Login from '../views/Login';
 import Users from '../views/GlobalSettings/Users';
+import Import from '../views/GlobalSettings/Import';
+import MockData from '../components/Settings/MockData';
 
 //------------ Global settings ----------------
 
@@ -33,6 +35,18 @@ Vue.use(VueRouter)
       name: 'Login',
       component: Login
     },
+    {
+      path: '/import',
+      name: 'Import',
+      component: Import,
+      children: [
+        {
+          path: 'mock',
+          name: 'MockData',
+          component: MockData,
+        }
+      ]
+    }
 ]
 
 const router = new VueRouter({
