@@ -1,9 +1,8 @@
 <template>
+<div class="navbar-font">
   <b-navbar toggleable="lg" type="dark" variant="dark">
     <b-navbar-brand :to="{name: 'Home'}">Tuber</b-navbar-brand>
-
     <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
-
     <b-collapse id="nav-collapse" is-nav>
       <b-navbar-nav>
         <hotel-nav/>
@@ -16,6 +15,7 @@
       </b-navbar-nav>
     </b-collapse>
   </b-navbar>
+</div>
 </template>
 
 <script>
@@ -30,4 +30,14 @@
     components: { ShiftsNav, SettingsNav, HotelNav, EventSelector },
   };
 </script>
+
+<style scoped lang="scss">
+.navbar-font {
+  font-size: 24px !important;
+  font-family: 'Montserrat', sans-serif;
+  .navbar-brand {
+    font-size: 40px;
+  }
+}
+</style>
 

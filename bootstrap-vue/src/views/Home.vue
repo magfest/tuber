@@ -1,5 +1,5 @@
 <template>
-  <div class="home">
+  <div class="home d-flex justify-content-center p-3">
     Welcome to Tuber
   </div>
 </template>
@@ -12,3 +12,12 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.home{
+  font-size: 60px;
+  font-family: 'Montserrat', sans-serif;
+  text-align: center;
+}
+
+</style>

@@ -1,5 +1,5 @@
 <template>
-  <b-nav-item-dropdown id="settings-dropdown" to="#" text="settings">
+  <b-nav-item-dropdown id="settings-dropdown" to="#" text="Settings">
     <b-dropdown-header>Event</b-dropdown-header>
     <b-dropdown-item>Email Settings</b-dropdown-item>
     <b-dropdown-item>Email Source Settings</b-dropdown-item>
@@ -15,3 +15,6 @@
     name: 'settings-nav'
   };
 </script>
+
+<style scoped>
+</style>
