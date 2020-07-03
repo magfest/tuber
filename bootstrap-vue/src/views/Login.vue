@@ -2,17 +2,16 @@
   <div class="container">
     <b-form @submit="onSubmit" @reset="onReset">
       <b-form-group
-        id="email-form-group"
-        label="Email"
-        label-for="email-input"
-        description="Email address used for login to Tuber"
+        id="username-form-group"
+        label="Username"
+        label-for="username-input"
+        description="Username address used for login to Tuber"
       >
         <b-form-input
-          id="email-input"
-          v-model="form.email"
-          type="email"
+          id="username-input"
+          v-model="form.username"
           required
-          placeholder="Enter Email"
+          placeholder="Enter username"
         />
       </b-form-group>
       <b-form-group
@@ -48,7 +47,7 @@
     data(){
       return {
         form: {
-          email: '',
+          username: '',
           password: ''
         }
       }
@@ -60,7 +59,7 @@
         axios.post(
           'login',
           {
-            username: this.form.email,
+            username: this.form.username,
             password: this.form.password
           }
         )
@@ -68,7 +67,7 @@
 
       onReset(evt){
         evt.preventDefault()
-        this.form.email = '';
+        this.form.username = '';
         this.form.password = '';
       }
     }
