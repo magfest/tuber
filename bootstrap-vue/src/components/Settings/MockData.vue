@@ -9,6 +9,7 @@
         <b-form-input
           id="attendee-input"
           v-model="attendees"
+          type="number"
           required
         />
       </b-form-group>
@@ -20,7 +21,8 @@
         <b-form-input
           id="staffers-input"
           v-model="staffers"
-          requried
+          type="number"
+          required
         />
       </b-form-group>
       <b-form-group
@@ -31,6 +33,7 @@
         <b-form-input
           id="department-input"
           v-model="departments"
+          type="number"
           required
         ></b-form-input>
       </b-form-group>
@@ -73,9 +76,9 @@
       generate(evt){
         evt.preventDefault();
         axios.post('importer/mock', {
-          attendees: this.attendees,
-          departments: this.departments,
-          staffers: this.staffers,
+          attendees: parseInt(this.attendees),
+          departments: parseInt(this.departments),
+          staffers: parseInt(this.staffers),
           event: this.event.id
         })
           .then(() => {
