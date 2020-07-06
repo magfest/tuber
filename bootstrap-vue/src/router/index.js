@@ -5,6 +5,7 @@ import Login from '../views/Login';
 import Users from '../views/GlobalSettings/Users';
 import Import from '../views/GlobalSettings/Import';
 import MockData from '../components/Settings/MockData';
+import Events from '../views/GlobalSettings/Events';
 
 //------------ Global settings ----------------
 
@@ -29,6 +30,11 @@ Vue.use(VueRouter)
       path: '/users',
       name: 'GlobalSettings-Users',
       component: Users,
+    },
+    {
+      path: '/events',
+      name: 'GlobalSettings-Events',
+      component: Events,
     },
     {
       path: '/login',

@@ -3,7 +3,10 @@
     <div class="backgroundImage" :style="{'background-image': `url(${imageUrl})`}"></div>
     <notifications group="main"/>
     <Navbar/>
-    <router-view class="slow mt-3 container"/>
+    <div class="mt-3 container">
+      <InitialSetup v-if="initialSetup" @setup="checkSetup"/>
+      <router-view class="slow" v-else/>
+    </div>
     <Footer class="mt-auto"/>
   </div>
 </template>
@@ -12,32 +15,48 @@
   import axios from 'axios';
   import Navbar from './components/Navbar/Navbar';
   import Footer from "./components/Footer";
+  import InitialSetup from './views/InitialSetup';
 
 
   export default {
-    components: { Navbar, Footer },
+    components: { InitialSetup, Navbar, Footer },
     data(){
       return {
+        initialSetup: true,
       }
     },
 
     mounted(){
-      axios.get('check_login')
-        .then(() => {
-          this.$store.dispatch('events/getEvents')
-        })
-        .catch((e) => {
-          if (this.$route.name !== 'Login'){
-            this.$router.push({name: 'Login'})
-          }
-        })
+      this.checkLogin();
+      this.checkSetup();
     },
 
-      computed: {
-    imageUrl() {
-      return require("@/assets/magfestwave.png");
+    computed: {
+      imageUrl() {
+        return require("@/assets/magfestwave.png");
+      }
+    },
+
+    methods: {
+      checkLogin(){
+        axios.get('check_login')
+          .then(() => {
+            this.$store.dispatch('events/getEvents')
+          })
+          .catch((e) => {
+            if (this.$route.name !== 'Login'){
+              this.$router.push({name: 'Login'})
+            }
+          })
+      },
+
+      checkSetup(){
+        axios.get('check_initial_setup')
+          .then(response => {
+            this.initialSetup = response.data
+          })
+      }
     }
-  }
 
   }
 

@@ -7,7 +7,7 @@
     <b-dropdown-divider></b-dropdown-divider>
     <b-dropdown-header>Global Settings</b-dropdown-header>
     <b-dropdown-item :to="{name: 'GlobalSettings-Users'}">Users</b-dropdown-item>
-    <b-dropdown-item>Items</b-dropdown-item>
+    <b-dropdown-item :to="{name: 'GlobalSettings-Events'}">Events</b-dropdown-item>
   </b-nav-item-dropdown>
 </template>
 <script>
