@@ -12,21 +12,26 @@ services:
     networks:
       - tuber
 
-  tuber:
-    build: ./
-    environment:
-      - FLASK_ENV=production
-      - FORCE_HTTPS=false
-      - STATIC_PATH=/app/dist
+  frontend:
+    build: ./frontend
+    image: magfest/tuber:latest-frontend
     ports:
-      - "8080:8080"
+      - "8000"
+    networks:
+      - tuber
+
+  backend:
+    build: ./backend
+    image: magfest/tuber:latest-backend
+    ports:
+      - "8080"
     networks:
       - tuber
 
   postgres:
     image: postgres:10.4
     ports:
-      - "5432:5432"
+      - "5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     networks:
