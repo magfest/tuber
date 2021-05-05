@@ -38,10 +38,28 @@ def crud(schema, permissions, matches=[], event=0, badge=0, department=0, id=Non
                 if hasattr(model, param):
                     get_filters.append(getattr(model, param) == g.data[param])
             get_filters.extend(filters)
+            limit = 0
+            offset = 0
+            if 'limit' in g.data:
+                limit = int(g.data['limit'])
+            if 'page' in g.data:
+                if not limit:
+                    limit = 10
+                offset = int(g.data['page']) * limit
+            if 'offset' in g.data:
+                if not limit:
+                    limit = 10
+                offset = int(g.data['offset'])
             if 'full' in g.data and g.data['full'].lower() == "true":
-                rows = db.session.query(model).filter(*get_filters).all()
+                rows = db.session.query(model).filter(*get_filters)
+                if limit:
+                    rows = rows.offset(offset).limit(limit)
+                rows = rows.all()
                 return jsonify(schema.dump(rows, many=True))
-            rows = db.session.query(model.id).filter(*get_filters).all()
+            rows = db.session.query(model.id).filter(*get_filters)
+            if limit:
+                rows = rows.offset(offset).limit(limit)
+            rows = rows.all()
             return jsonify([x.id for x in rows])
         if request.method == "POST":
             row = schema.load(data={key:val for key, val in g.data.items() if key in schema.Meta.fields})
