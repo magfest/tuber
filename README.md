@@ -27,9 +27,25 @@ Tuber needs a database, a session store, and a job store as well as a web server
 
 There are numerous ways to configure things, but we try to make the most common was as simple as possible to implement.
 
+### Using Docker
+
+The latest version of Tuber is published to Docker Hub as `magfest/tuber:latest-frontend` and `magfest/tuber:latest-backend`. [You can view them here.](https://hub.docker.com/r/magfest/tuber)
+
+To deploy using docker first install docker on your platform, as described [here](https://docs.docker.com/get-docker/).
+
+With the docker daemon running, you can now pull and run tuber:
+
+```bash
+docker-compose up
+```
+
+This will set up a small production-style stack of containers, using postgres for the database, nginx as a reverse proxy, and redis as the session and job store. Once it finishes starting you should be able to access your instance at [http://localhost:80](http://localhost:80)
+
+Note: The sample docker-compose file does not currently configure SSL. You should either set up a reverse proxy to handle SSL, or edit `contrib/nginx.conf` to use your certificates and edit `docker-compose.yml` to allow access to port 443.
+
 ### Using Packages
 
-For production deploys it is recommended to use the RPM package, which will install Gunicorn and includes a basic nginx config file. All sessions and other state are stored in the database, so it is possible to scale horizontally by running multiple tuber servers in front of the same database.
+We provide a packaged version which will install Gunicorn and includes a basic nginx config file. All sessions and other state are stored in the database, so it is possible to scale horizontally by running multiple tuber servers in front of the same database.
 
 This software is currently only packaged for RHEL/Fedora. Builds are available on COPR:
 
@@ -64,22 +80,6 @@ Opening a PR against magfest/tuber will automatically deploy a testing environme
 If you would like to deploy your own instance:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
-
-### Using Docker
-
-The latest version of Tuber is published to Docker Hub as `magfest/tuber:latest-frontend` and `magfest/tuber:latest-backend`. [You can view them here.](https://hub.docker.com/r/magfest/tuber)
-
-To deploy using docker first install docker on your platform, as described [here](https://docs.docker.com/get-docker/).
-
-With the docker daemon running, you can now pull and run tuber:
-
-```bash
-docker-compose up
-```
-
-This will set up a small production-style stack of containers, using postgres for the database, nginx as a reverse proxy, and redis as the session and job store. Once it finishes starting you should be able to access your instance at [http://localhost:80](http://localhost:80)
-
-Note: The sample docker-compose file does not currently configure SSL. You should either set up a reverse proxy to handle SSL, or edit `contrib/nginx.conf` to use your certificates and edit `docker-compose.yml` to allow access to port 443.
 
 ## Developing
 
