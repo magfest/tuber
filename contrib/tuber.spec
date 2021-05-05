@@ -43,6 +43,7 @@ mkdir -p %{buildroot}/usr/share/tuber/web/js/
 mkdir -p %{buildroot}/usr/share/tuber/web/css/
 mkdir -p %{buildroot}/usr/share/tuber/migrations/
 mkdir -p %{buildroot}/etc/tuber
+mkdir -p %{buildroot}/etc/default
 cp contrib/nginx.conf.rhel %{buildroot}/usr/share/tuber/nginx.conf
 cp contrib/tuber.service %{buildroot}/usr/lib/systemd/system/
 cp contrib/tuber %{buildroot}/etc/default/
