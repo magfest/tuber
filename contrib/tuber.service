@@ -3,6 +3,7 @@ Description=Tuber gunicorn daemon
 After=network.target
 
 [Service]
+EnvironmentFile=/etc/default/tuber
 ExecStart=/usr/bin/gunicorn-3 tuber.wsgi:app
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID

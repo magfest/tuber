@@ -7,6 +7,7 @@ URL: https://tuber.hackafe.net/
 VCS: {{{ git_dir_vcs }}}
 Source: {{{ git_pack }}}
 BuildRequires: python3-devel
+BuildRequires: python3-pip
 BuildRequires: npm
 BuildRequires: git
 Requires: python3-passlib
@@ -26,12 +27,6 @@ Tuber is an event management system.
 {{{ git_dir_setup_macro }}}
 
 %build
-echo FINDING
-find
-echo PWDING
-pwd
-echo LSING
-ls
 cd backend
 %py3_build
 cd ../frontend
@@ -48,10 +43,9 @@ mkdir -p %{buildroot}/usr/share/tuber/web/js/
 mkdir -p %{buildroot}/usr/share/tuber/web/css/
 mkdir -p %{buildroot}/usr/share/tuber/migrations/
 mkdir -p %{buildroot}/etc/tuber
-cp contrib/nginx.conf %{buildroot}/usr/share/tuber/nginx.conf
+cp contrib/nginx.conf.rhel %{buildroot}/usr/share/tuber/nginx.conf
 cp contrib/tuber.service %{buildroot}/usr/lib/systemd/system/
-cp contrib/tuber.json %{buildroot}/etc/tuber/
-cp contrib/tuber.json %{buildroot}/usr/share/tuber/
+cp contrib/tuber %{buildroot}/etc/default/
 cp frontend/dist/js/app.*.js %{buildroot}/usr/share/tuber/web/js/
 cp frontend/dist/js/chunk-vendors.*.js %{buildroot}/usr/share/tuber/web/js/
 cp frontend/dist/css/app.*.css %{buildroot}/usr/share/tuber/web/css/
@@ -61,7 +55,7 @@ cp frontend/dist/favicon.ico %{buildroot}/usr/share/tuber/web/
 cp -r backend/migrations/* %{buildroot}/usr/share/tuber/migrations/
 
 %files
-%config /etc/tuber/tuber.json
+%config /etc/default/tuber
 /usr/lib/systemd/system/tuber.service
 /usr/bin/tuber
 /usr/share/tuber

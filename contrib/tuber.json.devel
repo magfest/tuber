@@ -1,6 +1,0 @@
-{
-    "flask_env": "development",
-    "static_path": "dist",
-    "migrations_path": "migrations",
-    "database_url": "sqlite:///database.db"
-}

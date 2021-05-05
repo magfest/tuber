@@ -1,6 +1,0 @@
-{
-    "flask_env": "production",
-    "static_path": "/usr/share/tuber/web",
-    "migrations_path": "/usr/share/tuber/migrations",
-    "database_url": "sqlite:///var/lib/tuber/database.db"
-}
