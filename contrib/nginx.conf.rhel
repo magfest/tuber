@@ -1,0 +1,21 @@
+server {
+  listen 80;
+  root /usr/share/tuber/web;
+  index index.html;
+
+  client_max_body_size 0;
+  proxy_request_buffering off;
+  proxy_read_timeout 7200;
+  
+  location /api {
+    proxy_pass http://backend:8080/api;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_read_timeout 3600s;
+  }
+
+  location / {
+      try_files $uri /index.html;
+  }
+}

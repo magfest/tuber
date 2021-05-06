@@ -1,7 +1,12 @@
 <template>
-     <v-card :loading="loading">
+     <v-card max-width="1000" :raised="true" class="mx-auto" :loading="loading">
         <v-card-title class="headline grey lighten-2" primary-title>
-            Edit Event
+            <div v-if="'id' in value">
+                Edit Event
+            </div>
+            <div v-else>
+                Create Event
+            </div>
         </v-card-title>
         <br>
         <v-card-text>

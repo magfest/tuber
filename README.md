@@ -3,6 +3,8 @@
 [![Copr build status](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/)
 [![Heroku CI Status](https://tuber-ci-badge.herokuapp.com/last.svg)](https://dashboard.heroku.com/pipelines/6ebd065d-db02-419d-80bd-6406f271d992/tests)
 [![codecov](https://codecov.io/gh/magfest/tuber/branch/master/graph/badge.svg)](https://codecov.io/gh/magfest/tuber)
+[![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/magfest/tuber)](https://hub.docker.com/repository/docker/magfest/tuber)
+[![Read the Docs](https://img.shields.io/readthedocs/magfest-tuber)](https://magfest-tuber.readthedocs.io/en/latest/)
 
 Table of Contents
 =================
@@ -124,7 +126,7 @@ python setup.py develop
  ..\venv\Scripts\tuber.exe
 ```
 
-The server should now start up and begin listening on port 8080.
+The server should now start up and begin listening on port 8081.
 
 ### Frontend
 

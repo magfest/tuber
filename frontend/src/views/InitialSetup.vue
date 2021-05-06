@@ -1,7 +1,7 @@
 <template>
   <div>
     <br>
-    <v-card max-width="1000" :raised="true" class="mx-auto" :loading="initial_setup_loading">
+    <v-card max-width="1000" :raised="true" class="mx-auto" :loading="initial_setup_loading" v-if="$store.getters.initial_setup">
       <v-card-title>Welcome to Tuber!</v-card-title>
       <v-card-text>
         <v-form>
@@ -16,6 +16,7 @@
         </v-form>
       </v-card-text>
     </v-card>
+    <event-form @saved="$router.push({name: 'eventlist'})" v-else></event-form>
   </div>
 </template>
 
@@ -23,8 +24,13 @@
 </style>
 
 <script>
+import EventForm from './Events/Form.vue';
+
 export default {
   name: 'InitialSetup',
+  components: {
+    EventForm,
+  },
   data: () => ({
     initial_setup_loading: false,
     username: '',
@@ -41,7 +47,7 @@ export default {
         email: this.email,
       }).then(() => {
         self.$store.dispatch('check_initial_setup').then(() => {
-          self.$router.push({ name: 'eventslist' });
+          self.$router.push({ name: 'eventlist' });
         }).catch(() => {
           self.notify('Failed to check if server is in initial setup mode.');
         });
