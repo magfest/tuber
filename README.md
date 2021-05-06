@@ -126,7 +126,7 @@ python setup.py develop
  ..\venv\Scripts\tuber.exe
 ```
 
-The server should now start up and begin listening on port 8080.
+The server should now start up and begin listening on port 8081.
 
 ### Frontend
 
