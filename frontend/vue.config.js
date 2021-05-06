@@ -1,6 +1,11 @@
 module.exports = {
   devServer: {
-    public: "localhost:8081"
+    public: "localhost:8081",
+    proxy: {
+      '^/api': {
+        target: "http://localhost:8080"
+      }
+    }
   },
   productionSourceMap: false,
   chainWebpack: config => {

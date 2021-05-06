@@ -1,11 +1,11 @@
 <template>
   <v-app>
     <Navbar/>
-    <v-content>
+    <v-main>
       <transition name="slide">
         <router-view/>
       </transition>
-    </v-content>
+    </v-main>
     <snackbar/>
   </v-app>
 </template>

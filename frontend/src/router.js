@@ -170,7 +170,15 @@ router.beforeEach((to, from, next) => {
     store.dispatch('check_logged_in').then(() => {
       if (store.getters.logged_in) {
         store.dispatch('get_events').then(() => {
-          next();
+          if (store.getters.events.length === 0) {
+            if (to.name !== 'initialsetup') {
+              next({ name: 'initialsetup' });
+            } else {
+              next();
+            }
+          } else {
+            next();
+          }
         }).catch(() => {
           store.commit('open_snackbar', 'Failed to fetch events.');
           next();

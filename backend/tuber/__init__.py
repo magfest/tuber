@@ -7,10 +7,6 @@ import tuber.config as config
 import json
 import sys
 import os
-import sentry_sdk
-from sentry_sdk.integrations.flask import FlaskIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-from sentry_sdk.integrations.redis import RedisIntegration
 import alembic
 from alembic.config import Config as AlembicConfig
 
@@ -21,12 +17,6 @@ alembic_config = None
 
 if not initialized:
     initialized = True
-
-    if config.sentry_dsn:
-        sentry_sdk.init(
-            dsn=config.sentry_dsn,
-            integrations=[FlaskIntegration(), SqlalchemyIntegration(), RedisIntegration()]
-        )
 
     if config.flask_env == "production":
         csp = config.csp_directives
@@ -52,7 +42,6 @@ if not initialized:
             
     if config.force_https:
         talisman = Talisman(app, content_security_policy=csp)
-    app.static_folder = config.static_path
 
     oneshot_db_create = False
     if config.database_url.startswith("sqlite://"):
@@ -72,7 +61,6 @@ if not initialized:
     db = SQLAlchemy(app)
     import tuber.csrf
     import tuber.models
-    import tuber.static
     import tuber.api
 
 def migrate():
