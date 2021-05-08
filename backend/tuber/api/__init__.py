@@ -3,15 +3,18 @@ from flask import send_from_directory, send_file, request, jsonify, g, _request_
 from tuber.models import *
 from tuber.permissions import *
 from tuber.csrf import validate_csrf
-from tuber import app, db
+from tuber import app, db, config
 from marshmallow import EXCLUDE
 from marshmallow_sqlalchemy import ModelSchema
 import inspect
 import json
 import time
+import uuid
 import sqlalchemy
-from multiprocessing.pool import ThreadPool
-pool = ThreadPool(processes=1)
+
+if config.enable_circuitbreaker:
+    from multiprocessing.pool import ThreadPool
+    pool = ThreadPool(processes=config.circuitbreaker_threads)
 
 all_permissions = []
 
@@ -202,12 +205,43 @@ for obj in list(locals().values()):
 {}
     """.format(name, description, sample_json)
 
+@app.route("/api/slow", methods=["GET"])
+def slow_call():
+    #if check_permission("circuitbreaker.test"):
+        for i in range(10):
+            time.sleep(1)
+            g.progress(i*0.1)
+        return "That took some time", 200
+    #return "Permission Denied", 403
+
+@app.route("/api/fast", methods=["GET"])
+def fast_call():
+    if check_permission("circuitbreaker.test"):
+        time.sleep(0.1)
+        return "Super speedy", 200
+    return "Permission Denied", 403
+
+# This wraps all view functions with a circuit breaker that allows soft timeouts.
+# Basically, if a view function takes more than the timeout to render a page then
+# the client gets a 202 and receives a claim ticket while the view function keeps
+# running in the background. The result gets pushed to either redis or the sql db
+# and the client can retrieve it (or the status while it's pending) later.
+#
+# The main design goal is for this to be transparent to people writing flask view
+# functions, so make sure the environment matches whether this wrapper is enabled
+# or not.
+#
+# View functions that often take a long time can be made aware of this behavior
+# and can push status/progress updates into the job while they work.
 def job_wrapper(func):
     def wrapped(*args, **kwargs):
         def yo_dawg(request_context, before_request_funcs):
             with app.test_request_context(**request_context):
                 for before_request_func in before_request_funcs:
                     before_request_func()
+                def progress(amount):
+                    print(f"Progress Callback {amount}")
+                g.progress = progress
                 return func(*args, **kwargs)
         request_context = {
             "path": request.path,
@@ -215,11 +249,25 @@ def job_wrapper(func):
             "query_string": request.query_string,
             "method": request.method,
             "headers": dict(request.headers),
-            "data": bytes(request.data),
+            "data": g.raw_data,
         }
-        result = pool.apply_async(yo_dawg, (request_context, app.before_request_funcs[None]))
-        return result.get()
+        start_time = time.time()
+        jobid = str(uuid.uuid4())
+        def store_result(ret):
+            if time.time() - start_time > 0.9 * config.circuitbreaker_timeout:
+                print(f"Storing result as {jobid}", ret)
+            else:
+                print("Not storing result", ret)
+                if hasattr(ret, "data"):
+                    print(ret.data)
+        result = pool.apply_async(yo_dawg, (request_context, app.before_request_funcs[None]), callback=store_result)
+        result.wait(timeout=config.circuitbreaker_timeout)
+        if result.ready():
+            return result.get()
+        else:
+            return jsonify(job=jobid), 202
     return wrapped
 
-for key, val in app.view_functions.items():
-    app.view_functions[key] = job_wrapper(val)
+if config.enable_circuitbreaker:
+    for key, val in app.view_functions.items():
+        app.view_functions[key] = job_wrapper(val)

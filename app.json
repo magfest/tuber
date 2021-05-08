@@ -27,11 +27,6 @@
       "description": "Flask mode.",
       "value": "production"
     },
-    "BACKGROUND_TASKS": {
-      "required": false,
-      "description": "Run tasks in a seperate container?",
-      "value": "False"
-    },
     "FORCE_HTTPS": {
       "required": false,
       "description": "Redirect HTTP connections to HTTPS",

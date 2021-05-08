@@ -4,6 +4,8 @@ import uuid
 
 @app.before_request
 def validate_csrf():
+    if not hasattr(g, "raw_data"):
+        g.raw_data = request.get_data()
     if 'csrf_token' in request.cookies:
         if request.method == "GET":
             if request.path.startswith("/api"):

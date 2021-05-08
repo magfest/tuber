@@ -199,11 +199,7 @@ def import_uber_staff():
     password = request.json['password']
     url = request.json['uber_url']
 
-    if config.background_tasks:
-        worker_queue = Queue(connection=worker_conn)
-        worker_queue.enqueue(run_staff_import, email, password, url, event.id, job_timeout=1800)
-    else:
-        run_staff_import(email, password, url, event.id)
+    run_staff_import(email, password, url, event.id)
     return "null", 200
 
 @app.route("/api/importer/mock", methods=["POST"])
