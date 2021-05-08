@@ -1,13 +1,17 @@
 from functools import partial
-from flask import send_from_directory, send_file, request, jsonify, g
+from flask import send_from_directory, send_file, request, jsonify, g, _request_ctx_stack
 from tuber.models import *
 from tuber.permissions import *
+from tuber.csrf import validate_csrf
 from tuber import app, db
 from marshmallow import EXCLUDE
 from marshmallow_sqlalchemy import ModelSchema
 import inspect
 import json
+import time
 import sqlalchemy
+from multiprocessing.pool import ThreadPool
+pool = ThreadPool(processes=1)
 
 all_permissions = []
 
@@ -197,3 +201,25 @@ for obj in list(locals().values()):
 
 {}
     """.format(name, description, sample_json)
+
+def job_wrapper(func):
+    def wrapped(*args, **kwargs):
+        def yo_dawg(request_context, before_request_funcs):
+            with app.test_request_context(**request_context):
+                for before_request_func in before_request_funcs:
+                    before_request_func()
+                return func(*args, **kwargs)
+        request_context = {
+            "path": request.path,
+            "base_url": request.base_url,
+            "query_string": request.query_string,
+            "method": request.method,
+            "headers": dict(request.headers),
+            "data": bytes(request.data),
+        }
+        result = pool.apply_async(yo_dawg, (request_context, app.before_request_funcs[None]))
+        return result.get()
+    return wrapped
+
+for key, val in app.view_functions.items():
+    app.view_functions[key] = job_wrapper(val)

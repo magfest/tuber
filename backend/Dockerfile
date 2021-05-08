@@ -20,5 +20,6 @@ ENV DATABASE_URL=sqlite:///database.db
 ENV FLASK_ENV=production
 ENV SESSION_STORAGE=redis://6379
 ENV JOB_STORAGE=redis://6379
+ENV WORKERS=8
 
-CMD gunicorn -b 0.0.0.0:8080 tuber.wsgi:app
+CMD /bin/sh entrypoint.sh
