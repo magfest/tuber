@@ -14,6 +14,8 @@ def csrf(client):
 
 @pytest.fixture(params=[True, False])
 def tuber(redis=False):
+    os.environ['FORCE_HTTPS'] = "false"
+    os.environ['FLASK_ENV'] = "development"
     os.environ['REDIS_URL'] = ""
     os.environ['DATABASE_URL'] = "sqlite:///:memory:"
     os.environ['CIRCUITBREAKER_TIMEOUT'] = "5"
