@@ -1,5 +1,5 @@
 from tuber import app, config, db
-from flask import send_from_directory, send_file, request, jsonify, Response
+from flask import send_from_directory, send_file, request, jsonify, Response, escape
 from tuber.models import *
 from tuber.permissions import *
 from sqlalchemy import or_
@@ -207,7 +207,7 @@ def import_mock():
         return "Event is a required parament.", 406
     event = db.session.query(Event).filter(Event.id == request.json['event']).one_or_none()
     if not event:
-        return "Could not locate event {}".format(request.json['event']), 404
+        return "Could not locate event {}".format(escape(request.json['event'])), 404
     badges = db.session.query(Badge).filter(Badge.event == event.id).all()
     if badges:
         return "You cannot generate mock data if there are already badges. Please delete the badges first if you really want junk data.", 412

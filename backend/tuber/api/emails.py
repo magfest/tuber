@@ -1,5 +1,5 @@
 from tuber import app, config, db
-from flask import send_from_directory, send_file, request, jsonify, Response, stream_with_context
+from flask import send_from_directory, send_file, request, jsonify, Response, stream_with_context, escape
 from tuber.models import *
 from tuber.permissions import *
 from passlib.hash import sha256_crypt
@@ -160,7 +160,7 @@ def email_csv():
         return "email is a required parameter", 406
     email = db.session.query(Email).filter(Email.id == request.args['email']).one_or_none()
     if not email:
-        return "Could not find requested email {}".format(request.args['email']), 404
+        return "Could not find requested email {}".format(escape(request.args['email'])), 404
 
     def stream_emails():
         yield "Badge ID,To,From,Subject,Body\n"
@@ -182,7 +182,7 @@ def api_email_trigger():
         return "email is a required parameter", 400
     email = db.session.query(Email).filter(Email.id == request.json['email']).one_or_none()
     if not email:
-        return "Could not find requested email {}".format(request.json['email']), 404
+        return "Could not find requested email {}".format(escape(request.json['email'])), 404
     if not email.active:
         return "Email must be activated before triggering.", 400
     source = db.session.query(EmailSource).filter(EmailSource.id == email.source).one_or_none()

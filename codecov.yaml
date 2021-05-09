@@ -1,2 +1,6 @@
 fixes:
   - "::backend/"
+coverage:
+  range: 60..85
+  round: down
+  precision: 2
