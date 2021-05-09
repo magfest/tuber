@@ -16,6 +16,7 @@ conf = {
     "enable_circuitbreaker": True,
     "circuitbreaker_timeout": 1,
     "circuitbreaker_threads": 10,
+    "redis_url": "",
 }
 
 environment = {}

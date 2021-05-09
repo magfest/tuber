@@ -28,7 +28,9 @@ def handle_permission_denied(error):
 def get_user():
     g.user = None
     g.perms = []
-    g.raw_data = request.get_data()
+    g.session = ""
+    if not hasattr(g, "raw_data"):
+        g.raw_data = request.get_data()
     if 'session' in request.cookies:
         res = db.session.query(Session, User).join(User, Session.user == User.id).filter(Session.secret == request.cookies.get('session')).one_or_none()
         if res:

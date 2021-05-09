@@ -2,7 +2,6 @@ from tuber import app, config, db
 from flask import send_from_directory, send_file, request, jsonify, Response
 from tuber.models import *
 from tuber.permissions import *
-from tuber.worker import worker_conn
 from sqlalchemy import or_
 from rq import Queue
 import sqlalchemy

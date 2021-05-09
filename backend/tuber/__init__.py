@@ -3,19 +3,24 @@
 from flask import Flask, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_talisman import Talisman
+import redis
 import tuber.config as config
 import json
 import sys
 import os
+import re
 import alembic
 from alembic.config import Config as AlembicConfig
 
 db = None
+r = None
 app = Flask(__name__)
 initialized = False
 alembic_config = None
 
+print("Importing...")
 if not initialized:
+    print("Initializing...")
     initialized = True
 
     if config.flask_env == "production":
@@ -57,6 +62,18 @@ if not initialized:
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     alembic_config = AlembicConfig(config.alembic_ini)
+
+    print(config.redis_url)
+    if config.redis_url:
+        m = re.search("redis://([a-z0-9\.]+)(:(\d+))?(/(\d+))?", config.redis_url)
+        redis_host = m.group(1)
+        redis_port = 6379
+        if m.group(3):
+            redis_port = int(m.group(3))
+        redis_db = 0
+        if m.group(5):
+            redis_db = int(m.group(5))
+        r = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
 
     db = SQLAlchemy(app)
     import tuber.csrf
