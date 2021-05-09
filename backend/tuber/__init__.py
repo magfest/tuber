@@ -45,8 +45,8 @@ if not initialized:
                 ],
             }
             
-    if config.force_https:
-        talisman = Talisman(app, content_security_policy=csp)
+        if config.force_https:
+            talisman = Talisman(app, content_security_policy=csp)
 
     oneshot_db_create = False
     if config.database_url.startswith("sqlite://"):

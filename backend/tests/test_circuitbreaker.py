@@ -25,7 +25,6 @@ def test_job_retrieval(client):
         assert "result" in result.json
         if result.json['progress']['complete']:
             break
-    print(result.json)
     assert result.json['result']['status_code'] == 200
     assert result.json['result']['data'] == "success"
     assert result.json['result']['mimetype'] == "text/html"

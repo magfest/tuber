@@ -94,3 +94,19 @@ def client(tuber):
         client.delete = delete
         yield client
     tuber.db.drop_all()
+
+@pytest.fixture
+def prod_client():
+    os.environ['REDIS_URL'] = ""
+    os.environ['DATABASE_URL'] = "sqlite:///:memory:"
+    os.environ['CIRCUITBREAKER_TIMEOUT'] = "5"
+    os.environ['FORCE_HTTPS'] = "true"
+    os.environ['FLASK_ENV'] = "production"
+    tuber = importlib.import_module('tuber')
+    tuber.db.create_all()
+    with tuber.app.test_client() as client:
+        yield client
+    tuber.db.drop_all()
+    for key in list(sys.modules.keys()):
+        if key.startswith("tuber"):
+            del sys.modules[key]
