@@ -28,8 +28,9 @@ def fast_call():
 
 @app.route("/api/jobs", methods=["GET"])
 def get_jobs():
-    if not g.session:
+    if not 'session' in request.cookies:
         return "Permission Denied", 403
+    g.session = request.cookies.get('session')
     if r:
         if 'job' in request.args:
             progress = json.loads(r.get(f"{g.session}/{request.args['job']}/progress"))
@@ -68,6 +69,9 @@ def get_jobs():
 
 @app.route("/api/jobs/<jobid>", methods=["GET"])
 def get_job(jobid):
+    if not 'session' in request.cookies:
+        return "Permission Denied", 403
+    g.session = request.cookies.get('session')
     if r:
         if not r.exists(f"{g.session}/{jobid}/progress"):
             return "", 404
@@ -98,12 +102,14 @@ def get_job(jobid):
 #
 # View functions that often take a long time can be made aware of this behavior
 # and can push status/progress updates into the job while they work.
-def job_wrapper(func):
+def job_wrapper(func, before_request_funcs):
     def wrapped(*args, **kwargs):
-        def yo_dawg(request_context, before_request_funcs):
+        def yo_dawg(request_context):
             with app.test_request_context(**request_context):
                 for before_request_func in before_request_funcs:
-                    before_request_func()
+                    result = before_request_func()
+                    if result:
+                        return result
                 def progress(amount, status_msg=""):
                     if not hasattr(g, "log"):
                         g.log = status_msg
@@ -125,13 +131,14 @@ def job_wrapper(func):
                             db.session.commit()
                 g.progress = progress
                 return func(*args, **kwargs)
+
         request_context = {
             "path": request.path,
             "base_url": request.base_url,
             "query_string": request.query_string,
             "method": request.method,
             "headers": dict(request.headers),
-            "data": g.raw_data,
+            "data": request.get_data(),
         }
         start_time = time.time()
         jobid = str(uuid.uuid4())
@@ -172,23 +179,27 @@ def job_wrapper(func):
                     job.progress = json.dumps(progress)
                     db.session.add(job)
                     db.session.commit()
-        session = g.session
-        result = pool.apply_async(yo_dawg, (request_context, app.before_request_funcs[None]), callback=lambda x: store_result(x, session))
+        session = ""
+        if 'session' in request.cookies:
+            session = request.cookies.get('session')
+        result = pool.apply_async(yo_dawg, (request_context,), callback=lambda x: store_result(x, session))
         result.wait(timeout=config.circuitbreaker_timeout)
         if result.ready():
             return result.get()
         else:
             if r:
-                r.set(f"{g.session}/{jobid}/progress", json.dumps({"complete": False}))
+                r.set(f"{session}/{jobid}/progress", json.dumps({"complete": False}))
             else:
-                job = BackgroundJob(uuid=jobid, session=g.session, progress=json.dumps({"complete": False}))
+                job = BackgroundJob(uuid=jobid, session=session, progress=json.dumps({"complete": False}))
                 db.session.add(job)
                 db.session.commit()
             return jsonify(job=jobid), 202
     return wrapped
 
 if config.enable_circuitbreaker:
+    before_request_funcs = app.before_request_funcs[None]
+    app.before_request_funcs = {None: []}
     for key, val in app.view_functions.items():
         if val in [get_job, get_jobs]:
             continue
-        app.view_functions[key] = job_wrapper(val)
+        app.view_functions[key] = job_wrapper(val, before_request_funcs)

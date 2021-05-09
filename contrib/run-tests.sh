@@ -3,7 +3,7 @@
 set -e
 
 cd backend
-CIRCUITBREAKER_TIMEOUT=60 coverage run --source=tuber -m pytest
+coverage run --source=tuber -m pytest
 bash <(curl -s https://codecov.io/bash) -C $HEROKU_TEST_RUN_COMMIT_VERSION
 
 cd ../frontend
