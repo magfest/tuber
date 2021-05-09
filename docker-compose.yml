@@ -16,20 +16,33 @@ services:
     build: ./frontend
     image: magfest/tuber:latest-frontend
     ports:
-      - "8000"
+      - "8000:8000"
     networks:
       - tuber
 
   backend:
     build: ./backend
     image: magfest/tuber:latest-backend
-    ports:
-      - "8080"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://tuber:tuber@postgres/tuber
+      REDIS_URL: redis://redis:6379/0
+      VERBOSE: "true"
+      FLASK_ENV: production
+      WORKERS: 4
+      CIRCUITBREAKER_THREADS: 4
+    scale: 1
     networks:
       - tuber
 
   postgres:
     image: postgres:10.4
+    environment:
+      POSTGRES_PASSWORD: tuber
+      POSTGRES_USER: tuber
+      POSTGRES_DB: tuber
     ports:
       - "5432"
     volumes:

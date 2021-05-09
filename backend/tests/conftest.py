@@ -1,14 +1,10 @@
+import importlib
+import fakeredis
 import sqlite3
 import pytest
 import json
+import sys
 import os
-
-import tuber
-settings_override = {
-        'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': "sqlite:///:memory:"
-    }
-tuber.app.config.update(settings_override)
 
 def csrf(client):
     for cookie in client.cookie_jar:
@@ -16,17 +12,39 @@ def csrf(client):
             return cookie.value
     return ""
 
+@pytest.fixture(params=[True, False])
+def tuber(redis=False):
+    os.environ['FORCE_HTTPS'] = "false"
+    os.environ['FLASK_ENV'] = "development"
+    os.environ['REDIS_URL'] = ""
+    os.environ['DATABASE_URL'] = "sqlite:///:memory:"
+    os.environ['CIRCUITBREAKER_TIMEOUT'] = "5"
+    mod = importlib.import_module('tuber')
+    settings_override = {
+        'TESTING': True,
+        'SQLALCHEMY_DATABASE_URI': "sqlite:///:memory:"
+    }
+    mod.app.config.update(settings_override)
+    if redis:
+        redis = fakeredis.FakeStrictRedis()
+        tuber.r = redis
+    yield mod
+    for key in list(sys.modules.keys()):
+        if key.startswith("tuber"):
+            del sys.modules[key]
+
 @pytest.fixture
-def client_fresh():
+def client_fresh(tuber):
     """Creates a client with a fresh database and no active sessions. Initial setup will not yet be completed.
     """
     tuber.db.create_all()
     with tuber.app.test_client() as client:
         yield client
     tuber.db.drop_all()
+    del sys.modules['tuber']
 
 @pytest.fixture
-def client():
+def client(tuber):
     """Creates a test client with initial setup complete and the admin user logged in already.
     Also patches the get/post/patch/delete functions to handle CSRF tokens for you.
     """
@@ -78,3 +96,19 @@ def client():
         client.delete = delete
         yield client
     tuber.db.drop_all()
+
+@pytest.fixture
+def prod_client():
+    os.environ['REDIS_URL'] = ""
+    os.environ['DATABASE_URL'] = "sqlite:///:memory:"
+    os.environ['CIRCUITBREAKER_TIMEOUT'] = "5"
+    os.environ['FORCE_HTTPS'] = "true"
+    os.environ['FLASK_ENV'] = "production"
+    tuber = importlib.import_module('tuber')
+    tuber.db.create_all()
+    with tuber.app.test_client() as client:
+        yield client
+    tuber.db.drop_all()
+    for key in list(sys.modules.keys()):
+        if key.startswith("tuber"):
+            del sys.modules[key]

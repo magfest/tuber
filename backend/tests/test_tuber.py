@@ -6,9 +6,14 @@ def test_csrf(client_fresh):
     rv = client_fresh.get('/api/check_initial_setup')
     token = csrf(client_fresh)
     assert(token)
-    rv = client_fresh.post('/api/check_initial_setup', data="{}", content_type="application/json")
+    rv = client_fresh.post('/api/initial_setup', data="{}", content_type="application/json")
     assert("You must pass a csrf token" in str(rv.data))
-    rv = client_fresh.post('/api/check_initial_setup', data=json.dumps({"csrf_token": token}), content_type="application/json")
+    rv = client_fresh.post('/api/initial_setup', json={
+        "csrf_token": token,
+        "username": "admin", 
+        "email": "admin@magfest.org", 
+        "password": "admin"
+    })
     assert(not "csrf" in str(rv.data))
 
 def test_initial_setup(client_fresh):

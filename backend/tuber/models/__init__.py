@@ -4,3 +4,4 @@ from .event import *
 from .hotel import *
 from .email import *
 from .shift import *
+from .backgroundjob import *

@@ -31,16 +31,15 @@ setup(
         'passlib',
         'flask',
         'gunicorn',
-        'psycopg2-binary',
         'flask-talisman',
-        'sentry-sdk[flask]',
         'redis',
         'rq',
         'lupa',
         'boto3',
         'jinja2',
         'marshmallow-sqlalchemy',
-        'names'
+        'names',
+        'psycopg2'
     ],
     setup_requires=[
         'py2app'

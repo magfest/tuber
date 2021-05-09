@@ -1,0 +1,4 @@
+venv/
+tuber.egg-info/
+.eggs/
+database.db
