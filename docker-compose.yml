@@ -25,13 +25,15 @@ services:
     image: magfest/tuber:latest-backend
     depends_on:
       - postgres
+      - redis
     environment:
       DATABASE_URL: postgresql://tuber:tuber@postgres/tuber
+      REDIS_URL: redis://redis:6379/0
       VERBOSE: "true"
-      FLASK_ENV: development
-      WORKERS: 24
-    ports:
-      - "8080:8080"
+      FLASK_ENV: production
+      WORKERS: 4
+      CIRCUITBREAKER_THREADS: 4
+    scale: 1
     networks:
       - tuber
 

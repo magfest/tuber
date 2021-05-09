@@ -38,7 +38,8 @@ setup(
         'boto3',
         'jinja2',
         'marshmallow-sqlalchemy',
-        'names'
+        'names',
+        'psycopg2'
     ],
     setup_requires=[
         'py2app'
