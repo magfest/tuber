@@ -19,8 +19,8 @@ class Email(db.Model):
 class EmailTrigger(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     trigger = db.Column(db.String(128), nullable=False)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
-    context = db.Column(db.String(4096))
+    badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=True)
+    context = db.Column(db.JSON())
 
 class EmailSource(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -43,6 +43,7 @@ class EmailReceipt(db.Model):
     email = db.Column(db.Integer, db.ForeignKey('email.id'))
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
     source = db.Column(db.Integer, db.ForeignKey('email_source.id'))
+    trigger = db.Column(db.Integer, db.ForeignKey('email_trigger.id'), nullable=True)
     to_address = db.Column(db.String(1024), nullable=False)
     from_address = db.Column(db.String(1024), nullable=False)
     subject = db.Column(db.String(4096), nullable=False)

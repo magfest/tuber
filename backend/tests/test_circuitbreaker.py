@@ -19,6 +19,7 @@ def test_job_retrieval(client):
     start_time = time.time()
     while time.time() - start_time < 15:
         result = client.get("/api/jobs", query_string={"job": job_id})
+        time.sleep(0.2)
         assert result.status_code == 200
         assert "progress" in result.json
         assert "complete" in result.json['progress']

@@ -1,5 +1,5 @@
 from tuber import app, config, db
-from flask import send_from_directory, send_file, request, jsonify
+from flask import send_from_directory, send_file, request, jsonify, escape
 from tuber.models import *
 from tuber.permissions import *
 from sqlalchemy import and_
@@ -306,13 +306,13 @@ def hotel_room():
             for room in request.json['rooms']:
                 rn = db.session.query(HotelRoom).filter(HotelRoom.id == room['id']).one_or_none()
                 if not rn:
-                    return "Could not find hotel room {}".format(room['id']), 404
+                    return "Could not find hotel room {}".format(escape(room['id'])), 404
                 if 'hotel_block' in room:
                     if not room['hotel_block'] in room_block_ids:
-                        return "Could not find hotel block {}".format(room['hotel_block']), 404
+                        return "Could not find hotel block {}".format(escape(room['hotel_block'])), 404
                 if 'hotel_location' in room:
                     if not room['hotel_location'] in room_location_ids:
-                        return "Could not find hotel location {}".format(room['hotel_location']), 404
+                        return "Could not find hotel location {}".format(escape(room['hotel_location'])), 404
                 for attr in ['name', 'notes', 'messages', 'hotel_block', 'hotel_location', 'completed']:
                     if attr in room:
                         setattr(rn, attr, room[attr])
@@ -337,7 +337,7 @@ def hotel_room():
                 db.session.delete(rna)
             rn = db.session.query(HotelRoom).filter(HotelRoom.id == room).one_or_none()
             if not rn:
-                return "Could not find hotel room {}".format(room), 404
+                return "Could not find hotel room {}".format(escape(room)), 404
             db.session.delete(rn)
         db.session.commit()
         return "null", 200
@@ -454,7 +454,7 @@ def hotel_room_assignments():
         if 'badge' in request.args:
             badge = db.session.query(Badge).filter(Badge.id == request.args['badge']).one_or_none()
             if not badge:
-                return "Could not locate badge {}".format(request.args['badge']), 404
+                return "Could not locate badge {}".format(escape(request.args['badge'])), 404
             if badge.event != request.args['event']:
                 return "Permission Denied", 403
             rnas = db.session.query(RoomNightAssignment).filter(RoomNightAssignment.badge == badge.id).all()
