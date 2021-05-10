@@ -51,6 +51,7 @@ def test_all_requests(client):
             time.sleep(0.2)
     assert rv.status_code == 200
     rv = client.get("/api/hotels/all_requests", query_string={"event": 1})
+    assert rv.status_code == 200
     assert rv.json
     for id, badge in rv.json.items():
         assert 'antirequested_roommates' in badge
@@ -88,6 +89,7 @@ def test_requests(client):
             time.sleep(0.2)
     assert rv.status_code == 200
     rv = client.get("/api/hotels/requests", query_string={"event": 1})
+    assert rv.status_code == 200
     assert rv.json
     for dept in rv.json:
         assert 'id' in dept

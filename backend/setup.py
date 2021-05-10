@@ -26,7 +26,6 @@ setup(
     ],
     install_requires=[
         'requests',
-        'Flask-SQLAlchemy',
         'alembic',
         'passlib',
         'flask',

@@ -1,8 +1,11 @@
 """The base module for Tuber"""
 
-from flask import Flask, g
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, g, _app_ctx_stack
 from flask_talisman import Talisman
+import sqlalchemy
+from sqlalchemy.orm import scoped_session, sessionmaker, relationship
+from sqlalchemy.ext.declarative import declarative_base
+from types import SimpleNamespace
 import redis
 import tuber.config as config
 import json
@@ -18,9 +21,7 @@ app = Flask(__name__)
 initialized = False
 alembic_config = None
 
-print("Importing...")
 if not initialized:
-    print("Initializing...")
     initialized = True
 
     if config.flask_env == "production":
@@ -63,7 +64,6 @@ if not initialized:
 
     alembic_config = AlembicConfig(config.alembic_ini)
 
-    print(config.redis_url)
     if config.redis_url:
         m = re.search("redis://([a-z0-9\.]+)(:(\d+))?(/(\d+))?", config.redis_url)
         redis_host = m.group(1)
@@ -75,16 +75,29 @@ if not initialized:
             redis_db = int(m.group(5))
         r = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
 
-    db = SQLAlchemy(app)
+    #db = SQLAlchemy(app)
+    db = sqlalchemy
+    db.Model = declarative_base()
+    db.relationship = relationship
+    engine = sqlalchemy.create_engine(config.database_url, connect_args={"check_same_thread": False})
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack.__ident_func__)
+    db.Model.query = db.session.query_property()
     import tuber.csrf
     import tuber.models
     import tuber.api
+
+def create_tables():
+    db.Model.metadata.create_all(bind=engine)
+
+def drop_tables():
+    db.Model.metadata.drop_all(bind=engine)
 
 def migrate():
     if oneshot_db_create:
         # To avoid running migrations on sqlite dev databases just create the current
         # tables and stamp them as being up to date so that migrations won't run.
         # This should only run if there is not an existing db.
-        db.create_all()
+        create_tables()
         alembic.command.stamp(alembic_config, "head")
     alembic.command.upgrade(alembic_config, "head")

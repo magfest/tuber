@@ -1,11 +1,13 @@
 from tuber import db
 
 class BadgeToDepartment(db.Model):
+    __tablename__ = "badge_to_department"
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     department = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
 
 class Badge(db.Model):
+    __tablename__ = "badge"
     id = db.Column(db.Integer, primary_key=True)
     event = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     badge_type = db.Column(db.Integer, db.ForeignKey('badge_type.id'))
@@ -30,6 +32,7 @@ class Badge(db.Model):
         return '<Badge %r %r>' % (self.first_name, self.last_name)
 
 class Department(db.Model):
+    __tablename__ = "department"
     id = db.Column(db.Integer, primary_key=True)
     uber_id = db.Column(db.String(128), unique=True, nullable=True)
     description = db.Column(db.String(256), nullable=True)
@@ -38,6 +41,7 @@ class Department(db.Model):
     badges = db.relationship("Badge", secondary="badge_to_department", back_populates="departments")
 
 class BadgeType(db.Model):
+    __tablename__ = "badge_type"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), unique=True, nullable=False)
     description = db.Column(db.String(256), nullable=False)
@@ -46,6 +50,7 @@ class BadgeType(db.Model):
         return '<BadgeType %r>' % self.name
 
 class RibbonType(db.Model):
+    __tablename__ = "ribbon_type"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), unique=True, nullable=False)
     description = db.Column(db.String(256), nullable=False)
@@ -54,6 +59,7 @@ class RibbonType(db.Model):
         return '<RibbonType %r>' % self.name
 
 class RibbonToBadge(db.Model):
+    __tablename__ = "ribbon_to_badge"
     id = db.Column(db.Integer, primary_key=True)
     ribbon = db.Column(db.Integer, db.ForeignKey('ribbon_type.id'))
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'))

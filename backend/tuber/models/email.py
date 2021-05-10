@@ -1,6 +1,7 @@
 from tuber import db
 
 class Email(db.Model):
+    __tablename__ = "email"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), unique=True, nullable=False)
     description = db.Column(db.String(256), nullable=False)
@@ -17,12 +18,14 @@ class Email(db.Model):
         return '<Email %r>' % self.name
 
 class EmailTrigger(db.Model):
+    __tablename__ = "email_trigger"
     id = db.Column(db.Integer, primary_key=True)
     trigger = db.Column(db.String(128), nullable=False)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=True)
     context = db.Column(db.JSON())
 
 class EmailSource(db.Model):
+    __tablename__ = "email_source"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), unique=True, nullable=False)
     description = db.Column(db.String(256), nullable=True)
@@ -39,6 +42,7 @@ class EmailSource(db.Model):
         return '<EmailSource %r>' % self.name
 
 class EmailReceipt(db.Model):
+    __tablename__ = "email_receipt"
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.Integer, db.ForeignKey('email.id'))
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'))

@@ -5,6 +5,7 @@ class Schedule(db.Model):
     """A Schedule is used to store ScheduleEvents that are used for shift 
     creation and the public event schedule.
     """
+    __tablename__ = "schedule"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     description = db.Column(db.String)
@@ -14,6 +15,7 @@ class Schedule(db.Model):
 class ScheduleEvent(db.Model):
     """A ScheduleEvent is used to store when something will happen during an Event.
     """
+    __tablename__ = "schedule_event"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     description = db.Column(db.String)
@@ -22,16 +24,19 @@ class ScheduleEvent(db.Model):
     schedule = db.Column(db.Integer, db.ForeignKey('schedule.id'))
 
 class JobScheduleAssociation(db.Model):
+    __tablename__ = "job_schedule_association"
     id = db.Column(db.Integer, primary_key=True)
     job = db.Column(db.Integer, db.ForeignKey('job.id'))
     schedule = db.Column(db.Integer, db.ForeignKey('schedule.id'))
 
 class JobScheduleEventAssociation(db.Model):
+    __tablename__ = "job_schedule_event_association"
     id = db.Column(db.Integer, primary_key=True)
     job = db.Column(db.Integer, db.ForeignKey('job.id'))
     schedule_event = db.Column(db.Integer, db.ForeignKey('schedule_event.id'))
 
 class JobRoleAssociation(db.Model):
+    __tablename__ = "job_role_association"
     id = db.Column(db.Integer, primary_key=True)
     job = db.Column(db.Integer, db.ForeignKey('job.id'))
     role = db.Column(db.Integer, db.ForeignKey('role.id'))
@@ -41,6 +46,7 @@ class Job(db.Model):
     job description for the human as well as scheduling rules for the system to
     create Shifts. All Shifts are linked to a Job.
     """
+    __tablename__ = "job"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     description = db.Column(db.String)
@@ -58,6 +64,7 @@ class Job(db.Model):
 class Shift(db.Model):
     """A Shift is a block of time that a staffer can sign up to work. All Shifts are linked to a Job.
     """
+    __tablename__ = "shift"
     id = db.Column(db.Integer, primary_key=True)
     job = db.Column(db.Integer, db.ForeignKey('job.id'))
     schedule = db.Column(db.Integer, db.ForeignKey('schedule.id'))
@@ -72,6 +79,7 @@ class ShiftAssignment(db.Model):
     """A ShiftAssignment connect badges to shifts that they will work. They store the current state,
     and may be blown away when jobs or schedules are changed without direct user intervention.
     """
+    __tablename__ = "shift_assignment"
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
     shift = db.Column(db.Integer, db.ForeignKey('shift.id'))
@@ -82,6 +90,7 @@ class ShiftSignup(db.Model):
     user's desires are still known if a new, similar shift is created. Thus it must hold a copy
     of the associated shift so that it can be compared to potential replacement shifts.
     """
+    __tablename__ = "shift_signup"
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
     job = db.Column(db.Integer, db.ForeignKey('job.id'))

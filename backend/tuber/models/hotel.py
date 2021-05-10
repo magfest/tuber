@@ -8,6 +8,7 @@ class HotelRoomRequest(db.Model):
     :param declined: True if the user has declined a hotel room
     :type declined: bool.
     """
+    __tablename__ = "hotel_room_request"
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     declined = db.Column(db.Boolean, nullable=True)
@@ -22,6 +23,7 @@ class HotelRoomRequest(db.Model):
     room_night_justification = db.Column(db.String(512), nullable=True)
 
 class HotelRoomBlock(db.Model):
+    __tablename__ = "hotel_room_block"
     id = db.Column(db.Integer, primary_key=True)
     event = db.Column(db.Integer, db.ForeignKey('event.id'))
     name = db.Column(db.String(128), nullable=True)
@@ -29,6 +31,7 @@ class HotelRoomBlock(db.Model):
     rooms = db.relationship("HotelRoom")
 
 class HotelRoom(db.Model):
+    __tablename__ = "hotel_room"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=True)
     notes = db.Column(db.String(512), nullable=True)
@@ -39,16 +42,19 @@ class HotelRoom(db.Model):
     room_night_assignments = db.relationship('RoomNightAssignment')
 
 class HotelRoommateRequest(db.Model):
+    __tablename__ = "hotel_roommate_request"
     id = db.Column(db.Integer, primary_key=True)
     requester = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     requested = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
 
 class HotelAntiRoommateRequest(db.Model):
+    __tablename__ = "hotel_anti_roommate_request"
     id = db.Column(db.Integer, primary_key=True)
     requester = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     requested = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
 
 class HotelLocation(db.Model):
+    __tablename__ = "hotel_location"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(32), nullable=False)
     address = db.Column(db.String(128), nullable=False)
@@ -56,6 +62,7 @@ class HotelLocation(db.Model):
     rooms = db.relationship("HotelRoom")
 
 class HotelRoomNight(db.Model):
+    __tablename__ = "hotel_room_night"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(16), nullable=False)
     event = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
@@ -67,18 +74,21 @@ class HotelRoomNight(db.Model):
     approvals = db.relationship("RoomNightApproval")
 
 class RoomNightRequest(db.Model):
+    __tablename__ = "room_night_request"
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     requested = db.Column(db.Boolean)
     room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
 
 class RoomNightAssignment(db.Model):
+    __tablename__ = "room_night_assignment"
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
     room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
     hotel_room = db.Column(db.Integer, db.ForeignKey('hotel_room.id'))
 
 class RoomNightApproval(db.Model):
+    __tablename__ = "room_night_approval"
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)

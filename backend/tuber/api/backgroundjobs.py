@@ -74,17 +74,23 @@ def get_job(jobid):
     g.session = request.cookies.get('session')
     if r:
         if not r.exists(f"{g.session}/{jobid}/progress"):
+            print("Couldn't find result in redis")
             return "", 404
         result = r.get(f"{g.session}/{jobid}/result")
         if not result:
+            print("Found pending result in redis.")
             return "", 202
+        print("Found completed result in redis")
         result = json.loads(result)
     else:
         job = db.session.query(BackgroundJob).filter(BackgroundJob.uuid == jobid, BackgroundJob.session == g.session).one()
         if not job:
+            print("Couldn't find result in db")
             return "", 404
         if not job.result:
+            print("Found pending result in db", job.progress, job.result)
             return "", 202
+        print("Found completed result in db", job.progress, job.result)
         result = json.loads(job.result)
     if result['mimetype'] == "application/json":
         return jsonify(result['data']), result['status_code']
@@ -142,8 +148,10 @@ def job_wrapper(func, before_request_funcs):
         }
         start_time = time.time()
         jobid = str(uuid.uuid4())
+        path = request.path
         def store_result(ret, session):
             if time.time() - start_time > 0.9 * config.circuitbreaker_timeout:
+                print("Storing result...")
                 data = {}
                 if type(ret) is Response:
                     resp = ret
@@ -159,8 +167,10 @@ def job_wrapper(func, before_request_funcs):
                 data['execution_time'] = time.time() - start_time
                 data['headers'] = dict(resp.headers)
                 data['status_code'] = resp.status_code
+                data['path'] = path
                 stored = json.dumps(data)
                 if r:
+                    print("Storing in redis")
                     r.set(f"{session}/{jobid}/result", stored)
                     progress = r.get(f"{session}/{jobid}/progress")
                     if progress:
@@ -170,6 +180,7 @@ def job_wrapper(func, before_request_funcs):
                     progress['complete'] = True
                     r.set(f"{session}/{jobid}/progress", json.dumps(progress))
                 else:
+                    print("Storing in db")
                     job = db.session.query(BackgroundJob).filter(BackgroundJob.uuid == jobid).one_or_none()
                     if not job:
                         job = BackgroundJob(uuid=jobid, progress=json.dumps({"complete": True}))
@@ -177,8 +188,12 @@ def job_wrapper(func, before_request_funcs):
                     progress = json.loads(job.progress)
                     progress['complete'] = True
                     job.progress = json.dumps(progress)
+                    print("Storing:", job.result, job.progress)
                     db.session.add(job)
                     db.session.commit()
+                    print("Done committing")
+            else:
+                print("Not storing result.")
         session = ""
         if 'session' in request.cookies:
             session = request.cookies.get('session')

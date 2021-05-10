@@ -1,6 +1,7 @@
 from tuber import db
 
 class Event(db.Model):
+    __tablename__ = "event"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), unique=True, nullable=False)
     description = db.Column(db.String(256), nullable=False)
