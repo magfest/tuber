@@ -205,9 +205,14 @@ def job_wrapper(func, before_request_funcs):
             if r:
                 r.set(f"{session}/{jobid}/progress", json.dumps({"complete": False}))
             else:
-                job = BackgroundJob(uuid=jobid, session=session, progress=json.dumps({"complete": False}))
-                db.session.add(job)
-                db.session.commit()
+                print("Checking for initial job")
+                job = db.session.query(BackgroundJob).filter(BackgroundJob.uuid == jobid).one_or_none()
+                if not job:
+                    print("Creating initial job")
+                    job = BackgroundJob(uuid=jobid, session=session, progress=json.dumps({"complete": False}))
+                    db.session.add(job)
+                    db.session.commit()
+                    print("Initial job created")
             return jsonify(job=jobid), 202
     return wrapped
 
