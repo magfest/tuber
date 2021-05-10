@@ -197,23 +197,17 @@ def job_wrapper(func, before_request_funcs):
         session = ""
         if 'session' in request.cookies:
             session = request.cookies.get('session')
+        if r:
+            r.set(f"{session}/{jobid}/progress", json.dumps({"complete": False}))
+        else:
+            job = BackgroundJob(uuid=jobid, session=session, progress=json.dumps({"complete": False}))
+            db.session.add(job)
+            db.session.commit()
         result = pool.apply_async(yo_dawg, (request_context,), callback=lambda x: store_result(x, session))
         result.wait(timeout=config.circuitbreaker_timeout)
         if result.ready():
             return result.get()
-        else:
-            if r:
-                r.set(f"{session}/{jobid}/progress", json.dumps({"complete": False}))
-            else:
-                print("Checking for initial job")
-                job = db.session.query(BackgroundJob).filter(BackgroundJob.uuid == jobid).one_or_none()
-                if not job:
-                    print("Creating initial job")
-                    job = BackgroundJob(uuid=jobid, session=session, progress=json.dumps({"complete": False}))
-                    db.session.add(job)
-                    db.session.commit()
-                    print("Initial job created")
-            return jsonify(job=jobid), 202
+        return jsonify(job=jobid), 202
     return wrapped
 
 if config.enable_circuitbreaker:
