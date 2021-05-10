@@ -44,9 +44,11 @@ def test_all_requests(client):
         "departments": 10,
         "staffers": 100,
     })
-    while rv.status_code == 202:
-        rv = client.get(f"/api/jobs/{rv.json['job']}")
-        time.sleep(0.2)
+    if rv.status_code == 202:
+        jobid = rv.json['job']
+        while rv.status_code == 202:
+            rv = client.get(f"/api/jobs/{jobid}")
+            time.sleep(0.2)
     assert rv.status_code == 200
     rv = client.get("/api/hotels/all_requests", query_string={"event": 1})
     assert rv.json
@@ -79,9 +81,11 @@ def test_requests(client):
         "departments": 10,
         "staffers": 100,
     })
-    while rv.status_code == 202:
-        rv = client.get(f"/api/jobs/{rv.json['job']}")
-        time.sleep(0.2)
+    if rv.status_code == 202:
+        jobid = rv.json['job']
+        while rv.status_code == 202:
+            rv = client.get(f"/api/jobs/{jobid}")
+            time.sleep(0.2)
     assert rv.status_code == 200
     rv = client.get("/api/hotels/requests", query_string={"event": 1})
     assert rv.json
