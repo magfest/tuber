@@ -1,5 +1,6 @@
 from unittest.mock import patch
 import json
+import time
 
 @patch('tuber.api.users.requests.post')
 def test_staffer_auth(mock_post, client):
@@ -44,8 +45,8 @@ def test_all_requests(client):
         "staffers": 100,
     })
     while rv.status_code == 202:
-        assert "job" in rv.json
         rv = client.get(f"/api/jobs/{rv.json['job']}")
+        time.sleep(0.2)
     assert rv.status_code == 200
     rv = client.get("/api/hotels/all_requests", query_string={"event": 1})
     assert rv.json
@@ -79,8 +80,8 @@ def test_requests(client):
         "staffers": 100,
     })
     while rv.status_code == 202:
-        assert "job" in rv.json
         rv = client.get(f"/api/jobs/{rv.json['job']}")
+        time.sleep(0.2)
     assert rv.status_code == 200
     rv = client.get("/api/hotels/requests", query_string={"event": 1})
     assert rv.json
