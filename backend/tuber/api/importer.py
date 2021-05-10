@@ -304,7 +304,26 @@ def import_mock():
             staffers.append(badge)
         print("Flushing database...")
         db.session.flush()
+
+        print("Adding hotel information...")
+        room_block = HotelRoomBlock(event=event.id, name="The staff block", description="")
+        db.session.add(room_block)
+        hotel_location = HotelLocation(name="The Really Big Hotel", address="123 Waterfront", event=event.id)
+        db.session.add(hotel_location)
+        room_nights = []
+        for i in ["Wednesday", "Thursday"]:
+            room_night = HotelRoomNight(name=i, event=event.id, restricted=True, restriction_type="Setup", hidden=False)
+            db.session.add(room_night)
+            room_nights.append(room_night)
+        for i in ["Friday", "Saturday", "Sunday"]:
+            room_night = HotelRoomNight(name=i, event=event.id, restricted=False, restriction_type="Setup", hidden=False)
+            db.session.add(room_night)
+            room_nights.append(room_night)
+        print("Flushing database...")
+        db.session.flush()
+
         print("Adding staffers to departments...")
+        requested_room = []
         for staffer in staffers:
             staffer_depts = list(departments)
             hotel_requested = False
@@ -322,6 +341,8 @@ def import_mock():
                 hotel_requested = True
                 if random.random() > 0.1:
                     declined = True
+                else:
+                    requested_room.append(staffer)
                 hotel_request = HotelRoomRequest(
                     badge=staffer.id,
                     declined=declined,
@@ -335,6 +356,41 @@ def import_mock():
                     sleep_time=random.choice(['2am-4am', '4am-6am', '6am-8am', '8am-10am']),
                 )
                 db.session.add(hotel_request)
+
+        print("Requesting Roommates...")
+        requested_roommates = []
+        for staffer in requested_room:
+            for i in room_nights:
+                if random.random() > 0.2:
+                    req = RoomNightRequest(badge=staffer.id, requested=True, room_night=i.id)
+                    db.session.add(req)
+            for i in range(random.randrange(0, 3)):
+                other = random.choice(requested_room)
+                if other == staffer:
+                    continue
+                if random.random() > 0.2:
+                    if not (staffer.id, other.id) in requested_roommates:
+                        req = HotelRoommateRequest(requester=staffer.id, requested=other.id)
+                        requested_roommates.append((staffer.id, other.id))
+                        db.session.add(req)
+                    if random.random() > 0.6:
+                        if not (other.id, staffer.id) in requested_roommates:
+                            req = HotelRoommateRequest(requester=other.id, requested=staffer.id)
+                            requested_roommates.append((other.id, staffer.id))
+                            db.session.add(req)
+                else:
+                    if not (staffer.id, other.id) in requested_roommates:
+                        req = HotelAntiRoommateRequest(requester=staffer.id, requested=other.id)
+                        requested_roommates.append((staffer.id, other.id))
+                        db.session.add(req)
+                if random.random() > 0.9:
+                    if not (other.id, staffer.id) in requested_roommates:
+                        req = HotelAntiRoommateRequest(requester=other.id, requested=staffer.id)
+                        requested_roommates.append((other.id, staffer.id))
+                        db.session.add(req)
+        print("Flushing session...")
+        db.session.flush()
+
     print("Committing...")
     db.session.commit()
     print("Done!")

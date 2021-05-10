@@ -12,13 +12,15 @@ def csrf(client):
             return cookie.value
     return ""
 
-@pytest.fixture(params=[True, False])
+#@pytest.fixture(params=[True, False])
+@pytest.fixture
 def tuber(redis=False):
     os.environ['FORCE_HTTPS'] = "false"
     os.environ['FLASK_ENV'] = "development"
     os.environ['REDIS_URL'] = ""
     os.environ['DATABASE_URL'] = "sqlite:///:memory:"
     os.environ['CIRCUITBREAKER_TIMEOUT'] = "5"
+    os.environ['ENABLE_CIRCUITBREAKER'] = "true"
     mod = importlib.import_module('tuber')
     settings_override = {
         'TESTING': True,

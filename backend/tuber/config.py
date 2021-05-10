@@ -13,7 +13,7 @@ conf = {
     "csp_directives": "",
     "force_https": False,
     "server_name": "localhost:8080",
-    "enable_circuitbreaker": True,
+    "enable_circuitbreaker": False,
     "circuitbreaker_timeout": 1,
     "circuitbreaker_threads": 10,
     "redis_url": "",

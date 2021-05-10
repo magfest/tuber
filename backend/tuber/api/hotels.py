@@ -27,7 +27,7 @@ class HotelRoomRequestSchema(ModelSchema):
             'room_night_justification',
         ]
 
-register_crud("hotel_room_requests", HotelRoomRequestSchema())
+register_crud("hotel_room_requests", HotelRoomRequestSchema(), url_scheme="global")
 
 class HotelRoomBlockSchema(ModelSchema):
     class Meta:
