@@ -1,7 +1,7 @@
 from flask import request, jsonify, g, _request_ctx_stack, Response
 from tuber.models import *
 from tuber.permissions import *
-from tuber import app, db, config, r
+from tuber import app, db, config
 import json
 import time
 import uuid
@@ -31,22 +31,22 @@ def get_jobs():
     if not 'session' in request.cookies:
         return "Permission Denied", 403
     g.session = request.cookies.get('session')
-    if r:
+    if db.r:
         if 'job' in request.args:
-            progress = json.loads(r.get(f"{g.session}/{request.args['job']}/progress"))
+            progress = json.loads(db.r.get(f"{g.session}/{request.args['job']}/progress"))
             if not progress:
                 return "", 404
             result = None
             if 'complete' in progress:
                 if progress['complete']:
-                    result = json.loads(r.get(f"{g.session}/{request.args['job']}/result"))
+                    result = json.loads(db.r.get(f"{g.session}/{request.args['job']}/result"))
             return jsonify(result=result, progress=progress)
         else:
             jobs = {}
-            for key in r.scan_iter(match=f"{g.session}/*/progress", count=5):
+            for key in db.r.scan_iter(match=f"{g.session}/*/progress", count=5):
                 session, job, _ = key.decode('UTF-8').split("/")
-                progress = json.loads(r.get(key) or "null")
-                result = json.loads(r.get(f"{session}/{job}/result") or "null")
+                progress = json.loads(db.r.get(key) or "null")
+                result = json.loads(db.r.get(f"{session}/{job}/result") or "null")
                 jobs[key.decode('UTF-8').split("/")[1]] = {
                     "progress": progress,
                     "result": result
@@ -72,11 +72,11 @@ def get_job(jobid):
     if not 'session' in request.cookies:
         return "Permission Denied", 403
     g.session = request.cookies.get('session')
-    if r:
-        if not r.exists(f"{g.session}/{jobid}/progress"):
+    if db.r:
+        if not db.r.exists(f"{g.session}/{jobid}/progress"):
             print("Couldn't find result in redis")
             return "", 404
-        result = r.get(f"{g.session}/{jobid}/result")
+        result = db.r.get(f"{g.session}/{jobid}/result")
         if not result:
             print("Found pending result in redis.")
             return "", 202
@@ -127,8 +127,8 @@ def job_wrapper(func, before_request_funcs):
                         "log": g.log,
                         "complete": False
                     }
-                    if r:
-                        r.set(f"{g.session}/{jobid}/progress", json.dumps(status))
+                    if db.r:
+                        db.r.set(f"{g.session}/{jobid}/progress", json.dumps(status))
                     else:
                         job = db.session.query(BackgroundJob).filter(BackgroundJob.uuid == jobid).one_or_none()
                         if job:
@@ -169,16 +169,16 @@ def job_wrapper(func, before_request_funcs):
                 data['status_code'] = resp.status_code
                 data['path'] = path
                 stored = json.dumps(data)
-                if r:
+                if db.r:
                     print("Storing in redis")
-                    r.set(f"{session}/{jobid}/result", stored)
-                    progress = r.get(f"{session}/{jobid}/progress")
+                    db.r.set(f"{session}/{jobid}/result", stored)
+                    progress = db.r.get(f"{session}/{jobid}/progress")
                     if progress:
                         progress = json.loads(progress)
                     else:
                         progress = {}
                     progress['complete'] = True
-                    r.set(f"{session}/{jobid}/progress", json.dumps(progress))
+                    db.r.set(f"{session}/{jobid}/progress", json.dumps(progress))
                 else:
                     print("Storing in db")
                     job = db.session.query(BackgroundJob).filter(BackgroundJob.uuid == jobid).one_or_none()
@@ -197,8 +197,8 @@ def job_wrapper(func, before_request_funcs):
         session = ""
         if 'session' in request.cookies:
             session = request.cookies.get('session')
-        if r:
-            r.set(f"{session}/{jobid}/progress", json.dumps({"complete": False}))
+        if db.r:
+            db.r.set(f"{session}/{jobid}/progress", json.dumps({"complete": False}))
         else:
             job = BackgroundJob(uuid=jobid, session=session, progress=json.dumps({"complete": False}))
             db.session.add(job)

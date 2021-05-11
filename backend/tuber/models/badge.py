@@ -28,9 +28,6 @@ class Badge(db.Model):
     room_night_approvals = db.relationship("RoomNightApproval")
     hotel_room_request = db.relationship("HotelRoomRequest")
 
-    def __repr__(self):
-        return '<Badge %r %r>' % (self.first_name, self.last_name)
-
 class Department(db.Model):
     __tablename__ = "department"
     id = db.Column(db.Integer, primary_key=True)
@@ -46,17 +43,11 @@ class BadgeType(db.Model):
     name = db.Column(db.String(128), unique=True, nullable=False)
     description = db.Column(db.String(256), nullable=False)
 
-    def __repr__(self):
-        return '<BadgeType %r>' % self.name
-
 class RibbonType(db.Model):
     __tablename__ = "ribbon_type"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), unique=True, nullable=False)
     description = db.Column(db.String(256), nullable=False)
-
-    def __repr__(self):
-        return '<RibbonType %r>' % self.name
 
 class RibbonToBadge(db.Model):
     __tablename__ = "ribbon_to_badge"

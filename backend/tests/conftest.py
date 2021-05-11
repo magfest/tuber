@@ -30,7 +30,7 @@ def tuber(redis=False):
     mod.app.config.update(settings_override)
     if redis:
         redis = fakeredis.FakeStrictRedis()
-        mod.r = redis
+        mod.db.r = redis
     yield mod
     for key in list(sys.modules.keys()):
         if key.startswith("tuber"):

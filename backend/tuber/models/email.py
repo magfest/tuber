@@ -14,9 +14,6 @@ class Email(db.Model):
     source = db.Column(db.Integer, db.ForeignKey('email_source.id'), nullable=True)
     receipts = db.relationship("EmailReceipt")
 
-    def __repr__(self):
-        return '<Email %r>' % self.name
-
 class EmailTrigger(db.Model):
     __tablename__ = "email_trigger"
     id = db.Column(db.Integer, primary_key=True)
@@ -38,9 +35,6 @@ class EmailSource(db.Model):
     emails = db.relationship("Email")
     receipts = db.relationship("EmailReceipt")
 
-    def __repr__(self):
-        return '<EmailSource %r>' % self.name
-
 class EmailReceipt(db.Model):
     __tablename__ = "email_receipt"
     id = db.Column(db.Integer, primary_key=True)
@@ -53,6 +47,3 @@ class EmailReceipt(db.Model):
     subject = db.Column(db.String(4096), nullable=False)
     body = db.Column(db.String(4096), nullable=False)
     timestamp = db.Column(db.DateTime(), nullable=False)
-
-    def __repr__(self):
-        return '<EmailReceipt %r>' % self.id
