@@ -55,6 +55,7 @@ class Model_Base(object):
     def get_perms(cls, g, instances):
         name = cls.__tablename__
         actions = set()
+        action_ids = {}
         for perm in g.perms:
             table, id, action = perm.split(".")
             if table != name:
@@ -62,11 +63,29 @@ class Model_Base(object):
             if id == "*":
                 actions.add(action)
                 continue
+            else:
+                if not action in action_ids:
+                    action_ids[action] = set()
+                action_ids[action].add(id)
             if type(instances) is cls:
                 if id == str(instances.id):
                     actions.add(action)
+        
         if type(instances) is cls:
             actions.update(instances.__perms__(g))
+            return actions
+
+        for instance in instances:
+            instance_actions = instance.__perms__(g)
+            for action in instance_actions:
+                if not action in action_ids:
+                    action_ids = set()
+                action_ids[action].add(id)
+        if action_ids:
+            instance_ids = {str(x.id) for x in instances}
+            for action, ids in action_ids.items():
+                if instance_ids.issubset(ids):
+                    actions.add(action)
         return actions
 
     @classmethod
