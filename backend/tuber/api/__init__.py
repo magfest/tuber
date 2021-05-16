@@ -16,7 +16,9 @@ def crud_group(model, event=None, department=None):
         offset = request.args.get("offset", 0, type=int)
         page = request.args.get("page", 0, type=int)
         if page:
-            offset = page*limit
+            offset = page*10
+            if limit:
+                offset = page*limit
         filters = []
         perms = model_permissions(model)
         if not READ_PERMS.intersection(perms['*']):
@@ -31,14 +33,23 @@ def crud_group(model, event=None, department=None):
         for key, val in request.args.items():
             if hasattr(model, key):
                 filters.append(getattr(model, key) == val)
-        rows = db.query(model).filter(filters)
+        rows = db.query(model).filter(*filters)
         if limit:
             rows = rows.offset(offset).limit(limit)
-        return jsonify(model.serialize(rows.all()))
+        elif offset:
+            rows = rows.offset(offset).limit(10)
+        rows = rows.all()
+        data = model.serialize(rows)
+        return jsonify(data)
     elif request.method == "POST":
-        instance = model.deserialize(request.json)
+        if event:
+            g.data['event'] = event
+        if department:
+            g.data['department'] = department
+        instance = model.deserialize(g.data)
         db.add(instance)
         db.commit()
+        return jsonify(model.serialize(instance))
     raise MethodNotAllowed()
 
 def crud_single(model, event=None, department=None, id=None):
@@ -46,14 +57,14 @@ def crud_single(model, event=None, department=None, id=None):
     if request.method == "GET":
         if READ_PERMS.intersection(perms['*']) or (id in perms and READ_PERMS.intersection(perms[id])):
             instance = db.query(model).filter(model.id == id).one_or_none()
-            return json.dumps(model.serialize(instance))
+            return jsonify(model.serialize(instance))
         raise PermissionDenied()
     elif request.method == "PATCH":
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):
-            instance = model.deserialize(request.json)
+            instance = model.deserialize(g.data)
             db.add(instance)
             db.commit()
-            return ""
+            return jsonify(model.serialize(instance))
         raise PermissionDenied()
     elif request.method == "DELETE":
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):

@@ -24,7 +24,6 @@ def change_password():
 
 @app.route("/api/check_initial_setup")
 def check_initial_setup():
-    print(User)
     if not User.query.first():
         # No users have been created yet, so permissions are disabled for now
         return jsonify(True)
@@ -32,7 +31,6 @@ def check_initial_setup():
 
 @app.route("/api/initial_setup", methods=["POST"])
 def initial_setup():
-    print(User)
     if User.query.first():
         return "Initial setup has already completed.", 403
     if request.json['username'] and request.json['email'] and request.json['password']:
@@ -41,7 +39,7 @@ def initial_setup():
         db.add(user)
         db.add(role)
         db.flush()
-        perm = Permission(operation="*.*", role=role.id)
+        perm = Permission(operation="*.*.*", role=role.id)
         grant = Grant(user=user.id, role=role.id)
         db.add(perm)
         db.add(grant)
@@ -60,8 +58,15 @@ def login():
                 db.add(session)
                 db.commit()
                 response = jsonify(session.secret)
-                response.set_cookie('db', db.secret)
+                response.set_cookie('session', session.secret)
                 return response
+    return "", 406
+
+@app.route("/api/check_login")
+def check_login():
+    if g.user:
+        user = db.query(User).filter(User.id == g.user.id).one()
+        return jsonify(user={"email": user.email, "username": user.username, "id": user.id}, session=g.session.secret)
     return "", 406
 
 @app.route("/api/logout", methods=["POST"])
@@ -72,7 +77,7 @@ def logout():
     return "", 200
 
 @app.route("/api/user/permissions")
-def get_permissions():
+def get_user_permissions():
     if 'user' in request.args:
         if check_permission("user.read"):
             perms = []
@@ -112,8 +117,8 @@ def staffer_auth():
         return "", 403
     user = db.query(User).filter(User.password == id).one_or_none()
     if user:
-        db = db(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()))
-        db.add(db)
+        session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()))
+        db.add(session)
     else:
         return "", 403
     db.commit()

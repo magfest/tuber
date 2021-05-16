@@ -1,6 +1,7 @@
-from tuber import app, db
+from tuber import app
 from flask import request, Response, stream_with_context, escape
 from tuber.models import *
+from tuber.database import db
 from tuber.permissions import *
 from botocore.exceptions import ClientError
 import datetime

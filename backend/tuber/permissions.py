@@ -1,8 +1,9 @@
 from tuber import app, config
 from flask import g, request
-from tuber.models import *
+from tuber.models import Permission, Grant, Role, DepartmentPermission, DepartmentGrant, DepartmentRole, Session, User, Badge
 from tuber.database import db
 import datetime
+import json
 
 @app.url_value_preprocessor
 def load_session(endpoint, values):
@@ -11,8 +12,10 @@ def load_session(endpoint, values):
     g.session = None
     g.event = None
     g.department = None
-    g.perms = set()
-    g.department_perms = set()
+    g.perms = {}
+    g.department_perms = {}
+    if not values:
+        values = {}
     if 'event' in values:
         g.event = values['event']
     if 'department' in values:
@@ -22,16 +25,17 @@ def load_session(endpoint, values):
         if res:
             session, user = res
             if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config.session_duration):
-                g.session.last_active = datetime.datetime.now()
+                session.last_active = datetime.datetime.now()
                 g.session = session
                 g.user = user
                 if "event" in values:
-                    g.badge = session.query(Badge).filter(Badge.user == g.user.id, Badge.event == values['event']).one_or_none()
+                    g.badge = db.query(Badge).filter(Badge.user == g.user.id, Badge.event == values['event']).one_or_none()
                 permissions = json.loads(session.permissions)
                 g.perms = {k: set(v) for k,v in permissions['event'].items()}
                 if not '*' in g.perms:
                     g.perms['*'] = set()
-                g.department_perms = {k: set(v) for k,v in permissions['department'].items()}
+                if g.badge:
+                    g.department_perms = {k: set(v) for k,v in permissions['department'][g.badge.event].items()}
                 if not '*' in g.department_perms:
                     g.department_perms['*'] = set()
                 db.add(session)
@@ -50,30 +54,39 @@ def flush_session_perms(user_id=None):
         db.add(session)
     db.commit()
 
-def get_permissions(user_id=None):
-    if not user_id and g.user:
-        user_id = g.user.id
+def get_permissions(user=None):
+    if not user and g.user:
+        user = g.user.id
     perm_cache = {
         "event": {},
         "department": {}
     }
-    if not user_id:
+    if not user:
         return perm_cache
 
-    perms = db.query(Permission, Grant, Role).filter(Grant.user == user_id, Grant.role == Role.id, Permission.role == Role.id).all()
+    perms = db.query(Permission, Grant, Role).filter(Grant.user == user, Grant.role == Role.id, Permission.role == Role.id).all()
     for permission, grant, role in perms:
-        if not grant.event in perm_cache['event']:
-            perm_cache['event'][grant.event] = []
-        perm_cache['event'][grant.event].append(permission.operation)
+        event = grant.event
+        if event == None:
+            event = "*"
+        if not event in perm_cache['event']:
+            perm_cache['event'][event] = []
+        perm_cache['event'][event].append(permission.operation)
 
-    dep_perms = db.query(DepartmentPermission, DepartmentGrant, DepartmentRole).filter(DepartmentGrant.user == user_id, DepartmentGrant.role == DepartmentRole.id, DepartmentPermission.role == DepartmentRole.id).all()
-    for permission, grant, role in dep_perms:
-        if not grant.department in perm_cache['department']:
-            perm_cache['department'][grant.department] = []
-        perm_cache['department'][grant.department].append(permission.operation)
+    user_obj = db.query(User).filter(User.id == user).one()
+    for badge in user_obj.badges:
+        perm_cache['department'][badge.event] = {}
+        dep_perms = db.query(DepartmentPermission, DepartmentGrant, DepartmentRole).filter(DepartmentGrant.badge == badge, DepartmentGrant.role == DepartmentRole.id, DepartmentPermission.role == DepartmentRole.id).all()
+        for permission, grant, role in dep_perms:
+            department = grant.department
+            if department == None:
+                department = "*"
+            if not department in perm_cache['department'][badge.event]:
+                perm_cache['department'][badge.event][department] = []
+            perm_cache['department'][badge.event][department].append(permission.operation)
     return perm_cache
 
-def check_permission(permission=None, event=0, department=0):
+def check_permission(permission=None, event=None, department=None):
     return True
     if isinstance(permission, list):
         if len(permission) > 1:
@@ -94,23 +107,3 @@ def check_permission(permission=None, event=0, department=0):
             continue
         return True
     return False
-        
-def model_permissions(model):
-    """
-    Retrieves the permissions of the current user on the given model class.
-    Returns permissions as a dictionary of sets, with instance IDs as keys
-    and sets of permitted actions as values.
-    """
-    permissions = g.perms['*'] + g.department_perms['*']
-    if g.event in g.perms:
-        permissions += g.perms[g.event]
-    if g.department in g.department_perms:
-        permissions += g.department_perms
-    model_perms = {}
-    for perm in permissions:
-        table, instance, action = perm.split(".")
-        if table == model.__tablename__:
-            if not instance in model_perms:
-                model_perms[instance] = set()
-            model_perms[instance].add(action)
-    return model_perms

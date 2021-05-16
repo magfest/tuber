@@ -1,7 +1,9 @@
-from tuber import app, db
+from tuber import app
 from flask import request, Response, escape
 from tuber.models import *
+from tuber.database import db
 from tuber.permissions import *
+from tuber import names
 import sqlalchemy
 import requests
 import random
@@ -15,7 +17,7 @@ def csv_import():
             return "Permission Denied", 403
         export_type = request.args['csv_type']
         model = globals()[export_type]
-        data = session.query(model).all()
+        data = db.query(model).all()
         cols = model.__table__.columns.keys()
         def generate():
             yield ','.join(cols)+"\n"
@@ -34,7 +36,7 @@ def csv_import():
         file = request.files['files']
         data = file.read().decode('UTF-8').replace("\r\n", "\n")
         if full_import:
-            session.query(model).delete()
+            db.query(model).delete()
         rows = data.split("\n")
         cols = rows[0].split(",")
         rows = rows[1:]
@@ -60,56 +62,56 @@ def csv_import():
                 continue
             row = row.split(",")
             new = model(**{key: convert(key, val) for key,val in zip(cols, row)})
-            session.add(new)
+            db.add(new)
             count += 1
-        session.commit()
+        db.commit()
         return str(count), 200
 
 def get_uber_csv(session, model, url):
-    data = session.post(url+"/devtools/export_model", data={"selected_model": model}).text
+    data = db.post(url+"/devtools/export_model", data={"selected_model": model}).text
     stream = io.StringIO(data)
     reader = csv.DictReader(stream)
     return list(reader)
 
 def run_staff_import(email, password, url, event):
     session = requests.Session()
-    session.post(url+"/accounts/login", data={"email": email, "password": password, "original_location": "homepage"})
+    db.post(url+"/accounts/login", data={"email": email, "password": password, "original_location": "homepage"})
     attendees = get_uber_csv(session, "Attendee", url)
     num_staff = 0
     print("Retrieved export")
 
-    role = session.query(Role).filter(Role.name == "Default Staff").one_or_none()
+    role = db.query(Role).filter(Role.name == "Default Staff").one_or_none()
     if not role:
         role = Role(name="Default Staff", description="Automatically assigned to staff.", event=event)
-        session.add(role)
-        session.flush()
+        db.add(role)
+        db.flush()
         for perm in ['staff.search_names', 'hotel_request.create', 'event.read']:
             permission = Permission(operation=perm, role=role.id)
-            session.add(permission)
+            db.add(permission)
 
-    dh_role = session.query(Role).filter(Role.name == "Department Head").one_or_none()
+    dh_role = db.query(Role).filter(Role.name == "Department Head").one_or_none()
     if not dh_role:
         dh_role = Role(name="Department Head", description="Automatically assigned to department heads.", event=event)
-        session.add(dh_role)
-        session.flush()
+        db.add(dh_role)
+        db.flush()
         for perm in ['department.write', 'hotel_request.approve']:
             permission = Permission(operation=perm, role=dh_role.id)
-            session.add(permission)
+            db.add(permission)
 
     print("Adding attendees...")
     for attendee in attendees:
         if attendee['hotel_eligible'].lower() == "true":
             num_staff += 1
-            user = session.query(User).filter(User.password == attendee['id']).one_or_none()
+            user = db.query(User).filter(User.password == attendee['id']).one_or_none()
             if not user:
                 user = User(username=attendee['id'], email=attendee['id'], password=attendee['id'], active=False)
-                session.add(user)
-                session.flush()
-            grant = session.query(Grant).filter(Grant.user == user.id, Grant.role == role.id).one_or_none()
+                db.add(user)
+                db.flush()
+            grant = db.query(Grant).filter(Grant.user == user.id, Grant.role == role.id).one_or_none()
             if not grant:
                 grant = Grant(user=user.id, role=role.id)
-                session.add(grant)
-            badge = session.query(Badge).filter(Badge.event == event, Badge.uber_id == attendee['id']).one_or_none()
+                db.add(grant)
+            badge = db.query(Badge).filter(Badge.event == event, Badge.uber_id == attendee['id']).one_or_none()
             if badge:
                 badge.printed_number = attendee['badge_num']
                 badge.printed_name = attendee['badge_printed_name']
@@ -120,7 +122,7 @@ def run_staff_import(email, password, url, event):
                 badge.legal_name_matches = bool(attendee['legal_name'])
                 badge.email = attendee['email']
                 badge.phone = attendee['cellphone']
-                session.add(badge)
+                db.add(badge)
             if not badge:
                 badge = Badge(
                     uber_id = attendee['id'],
@@ -136,12 +138,12 @@ def run_staff_import(email, password, url, event):
                     phone = attendee['cellphone'],
                     user_id = user.id
                 )
-                session.add(badge)
+                db.add(badge)
 
     print("Adding departments...")
     departments = get_uber_csv(session, "Department", url)
     for department in departments:
-        current = session.query(Department).filter(Department.event == event, Department.uber_id == department['id']).one_or_none()
+        current = db.query(Department).filter(Department.event == event, Department.uber_id == department['id']).one_or_none()
         if not current:
             dept = Department(
                 uber_id = department['id'],
@@ -149,41 +151,41 @@ def run_staff_import(email, password, url, event):
                 description = department['description'],
                 event = event
             )
-            session.add(dept)
+            db.add(dept)
             
     print("Adding staffers to departments...")
     deptmembers = get_uber_csv(session, "DeptMembership", url)
     for dm in deptmembers:
-        badge = session.query(Badge).filter(Badge.event == event, Badge.uber_id == dm['attendee_id']).one_or_none()
+        badge = db.query(Badge).filter(Badge.event == event, Badge.uber_id == dm['attendee_id']).one_or_none()
         if not badge:
             print("Could not find badge {} to place in department {}.".format(dm['attendee_id'], dm['department_id']))
             continue
-        department = session.query(Department).filter(Department.event == event, Department.uber_id == dm['department_id']).one_or_none()
+        department = db.query(Department).filter(Department.event == event, Department.uber_id == dm['department_id']).one_or_none()
         if not department:
             print("Could not find department {} for attendee {}.".format(dm['department_id'], dm['attendee_id']))
             continue
-        existing = session.query(BadgeToDepartment).filter(BadgeToDepartment.badge == badge.id, BadgeToDepartment.department == department.id).one_or_none()
+        existing = db.query(BadgeToDepartment).filter(BadgeToDepartment.badge == badge.id, BadgeToDepartment.department == department.id).one_or_none()
         if not existing:
             department_member = BadgeToDepartment(
                 badge = badge.id,
                 department = department.id
             )
-            session.add(department_member)
-        grant = session.query(Grant).filter(Grant.user == badge.user_id, Grant.role == dh_role.id, Grant.department==department.id).one_or_none()
+            db.add(department_member)
+        grant = db.query(Grant).filter(Grant.user == badge.user_id, Grant.role == dh_role.id, Grant.department==department.id).one_or_none()
         if (dm['is_dept_head'].lower() == "true") or (dm['is_checklist_admin'].lower() == "true"):
             if not grant:
                 grant = Grant(user=badge.user_id, role=dh_role.id, department=department.id)
-                session.add(grant)
+                db.add(grant)
         elif grant:
-            session.delete(grant)
+            db.delete(grant)
     print("Committing changes...")
-    session.commit()
+    db.commit()
     print("Done.")
 
 @app.route("/api/importer/uber_staff", methods=["POST"])
 def import_uber_staff():
     print("Importing staff...")
-    event = session.query(Event).filter(Event.id == request.json['event']).one_or_none()
+    event = db.query(Event).filter(Event.id == request.json['event']).one_or_none()
     if not event:
         return "", 412
     if not check_permission("import.staff", event=request.json['event']):
@@ -200,21 +202,21 @@ def import_uber_staff():
 def import_mock():
     if not 'event' in request.json:
         return "Event is a required parament.", 406
-    event = session.query(Event).filter(Event.id == request.json['event']).one_or_none()
+    event = db.query(Event).filter(Event.id == request.json['event']).one_or_none()
     if not event:
         return "Could not locate event {}".format(escape(request.json['event'])), 404
-    badges = session.query(Badge).filter(Badge.event == event.id).all()
+    badges = db.query(Badge).filter(Badge.event == event.id).all()
     if badges:
         return "You cannot generate mock data if there are already badges. Please delete the badges first if you really want junk data.", 412
-    staff_badge_type = session.query(BadgeType).filter(BadgeType.name == "Staff").one_or_none()
+    staff_badge_type = db.query(BadgeType).filter(BadgeType.name == "Staff").one_or_none()
     if not staff_badge_type:
         staff_badge_type = BadgeType(name="Staff", description="Helps run the show")
-        session.add(staff_badge_type)
-    attendee_badge_type = session.query(BadgeType).filter(BadgeType.name == "Attendee").one_or_none()
+        db.add(staff_badge_type)
+    attendee_badge_type = db.query(BadgeType).filter(BadgeType.name == "Attendee").one_or_none()
     if not attendee_badge_type:
         attendee_badge_type = BadgeType(name="Attendee", description="Come to see the show")
-        session.add(attendee_badge_type)
-    session.flush()
+        db.add(attendee_badge_type)
+    db.flush()
     if 'attendees' in request.json:
         print("Generating {} attendees".format(request.json['attendees']))
         for i in range(request.json['attendees']):
@@ -246,7 +248,7 @@ def import_mock():
                 legal_name_matches=legal_name_matches,
                 email=email
             )
-            session.add(badge)
+            db.add(badge)
 
     departments = []
     if 'departments' in request.json:
@@ -260,7 +262,7 @@ def import_mock():
         for name in dept_names.keys():
             description = "The {} department.".format(name)
             department = Department(name=name, description=description, event=event.id)
-            session.add(department)
+            db.add(department)
             departments.append(department)
     
     staffers = []
@@ -295,27 +297,27 @@ def import_mock():
                 legal_name_matches=legal_name_matches,
                 email=email
             )
-            session.add(badge)
+            db.add(badge)
             staffers.append(badge)
         print("Flushing database...")
-        session.flush()
+        db.flush()
 
         print("Adding hotel information...")
         room_block = HotelRoomBlock(event=event.id, name="The staff block", description="")
-        session.add(room_block)
+        db.add(room_block)
         hotel_location = HotelLocation(name="The Really Big Hotel", address="123 Waterfront", event=event.id)
-        session.add(hotel_location)
+        db.add(hotel_location)
         room_nights = []
         for i in ["Wednesday", "Thursday"]:
             room_night = HotelRoomNight(name=i, event=event.id, restricted=True, restriction_type="Setup", hidden=False)
-            session.add(room_night)
+            db.add(room_night)
             room_nights.append(room_night)
         for i in ["Friday", "Saturday", "Sunday"]:
             room_night = HotelRoomNight(name=i, event=event.id, restricted=False, restriction_type="Setup", hidden=False)
-            session.add(room_night)
+            db.add(room_night)
             room_nights.append(room_night)
         print("Flushing database...")
-        session.flush()
+        db.flush()
 
         print("Adding staffers to departments...")
         requested_room = []
@@ -329,7 +331,7 @@ def import_mock():
                 staffer_dept = random.choice(staffer_depts)
                 staffer_depts.remove(staffer_dept)
                 assignment = BadgeToDepartment(badge=staffer.id, department=staffer_dept.id)
-                session.add(assignment)
+                db.add(assignment)
                 preferred_department = staffer_dept.id
         
             if random.random() > 0.3:
@@ -350,7 +352,7 @@ def import_mock():
                     smoke_sensitive=random.choice([True, False]),
                     sleep_time=random.choice(['2am-4am', '4am-6am', '6am-8am', '8am-10am']),
                 )
-                session.add(hotel_request)
+                db.add(hotel_request)
 
         print("Requesting Roommates...")
         requested_roommates = []
@@ -358,7 +360,7 @@ def import_mock():
             for i in room_nights:
                 if random.random() > 0.2:
                     req = RoomNightRequest(badge=staffer.id, requested=True, room_night=i.id)
-                    session.add(req)
+                    db.add(req)
             for i in range(random.randrange(0, 3)):
                 other = random.choice(requested_room)
                 if other == staffer:
@@ -367,26 +369,26 @@ def import_mock():
                     if not (staffer.id, other.id) in requested_roommates:
                         req = HotelRoommateRequest(requester=staffer.id, requested=other.id)
                         requested_roommates.append((staffer.id, other.id))
-                        session.add(req)
+                        db.add(req)
                     if random.random() > 0.6:
                         if not (other.id, staffer.id) in requested_roommates:
                             req = HotelRoommateRequest(requester=other.id, requested=staffer.id)
                             requested_roommates.append((other.id, staffer.id))
-                            session.add(req)
+                            db.add(req)
                 else:
                     if not (staffer.id, other.id) in requested_roommates:
                         req = HotelAntiRoommateRequest(requester=staffer.id, requested=other.id)
                         requested_roommates.append((staffer.id, other.id))
-                        session.add(req)
+                        db.add(req)
                 if random.random() > 0.9:
                     if not (other.id, staffer.id) in requested_roommates:
                         req = HotelAntiRoommateRequest(requester=other.id, requested=staffer.id)
                         requested_roommates.append((other.id, staffer.id))
-                        session.add(req)
-        print("Flushing session...")
-        session.flush()
+                        db.add(req)
+        print("Flushing db...")
+        db.flush()
 
     print("Committing...")
-    session.commit()
+    db.commit()
     print("Done!")
     return "null", 200

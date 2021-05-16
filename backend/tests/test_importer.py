@@ -1,10 +1,8 @@
-import datetime
-import json
 import io
 
 def test_csv_export(client):
     """Try exporting a table and make sure it matches the expected contents."""
-    badge = client.post("/api/events/1/badges", json={
+    badge = client.post("/api/event/1/badge", json={
         "legal_name": "Test User",
         "departments": []
     }).json
@@ -25,7 +23,7 @@ def test_csv_import(client):
         "full_import": False,
         "files": (io.BytesIO(b"legal_name,event\nTest User 1,1"), 'badge.csv')
     })
-    badges = client.get("/api/events/1/badges").json
+    badges = client.get("/api/event/1/badge").json
     assert(len(badges) == 1)
 
     client.post("/api/importer/csv", content_type="multipart/form-data", data={
@@ -34,7 +32,7 @@ def test_csv_import(client):
         "full_import": False,
         "files": (io.BytesIO(b"legal_name,event\nTest User 2,1"), 'badge.csv')
     })
-    badges = client.get("/api/events/1/badges").json
+    badges = client.get("/api/event/1/badge").json
     assert(len(badges) == 2)
 
     client.post("/api/importer/csv", content_type="multipart/form-data", data={
@@ -43,6 +41,6 @@ def test_csv_import(client):
         "full_import": True,
         "files": (io.BytesIO(b"legal_name,event\nTest User 3,1"), 'badge.csv')
     })
-    badges = client.get("/api/events/1/badges", query_string={"full": True}).json
+    badges = client.get("/api/event/1/badge", query_string={"full": True}).json
     assert(len(badges) == 1)
     assert(badges[0]['legal_name'] == "Test User 3")

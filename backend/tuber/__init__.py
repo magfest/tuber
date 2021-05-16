@@ -31,7 +31,6 @@ if config.flask_env == "production":
     if config.force_https:
         talisman = Talisman(app, content_security_policy=csp)
 
-from tuber.database import db, migrate, create_tables, drop_tables
 import tuber.csrf
 import tuber.models
 import tuber.api

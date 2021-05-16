@@ -4,9 +4,29 @@ import sqlalchemy.inspection
 from sqlalchemy.types import JSON
 from tuber.errors import *
 from tuber.database import db
-from tuber.permissions import model_permissions
 from flask import g
+import datetime
 import json
+
+def model_permissions(name):
+    """
+    Retrieves the permissions of the current user on the given model class.
+    Returns permissions as a dictionary of sets, with instance IDs as keys
+    and sets of permitted actions as values.
+    """
+    permissions = g.perms['*'].union(g.department_perms['*'])
+    if g.event in g.perms:
+        permissions = permissions.union(g.perms[g.event])
+    if g.department in g.department_perms:
+        permissions = permissions.union(g.department_perms)
+    model_perms = {"*": set()}
+    for perm in permissions:
+        table, instance, action = perm.split(".")
+        if table == name or table == "*":
+            if not instance in model_perms:
+                model_perms[instance] = set()
+            model_perms[instance].add(action)
+    return model_perms
 
 class Model_Base(object):
     modelclasses = {}
@@ -33,7 +53,7 @@ class Model_Base(object):
         """
         transform = lambda inst, column: getattr(inst, column.name)
         if type(column.type) is JSON:
-            transform = lambda inst, column: json.loads(getattr(inst, column.name))
+            transform = lambda inst, column: json.loads(getattr(inst, column.name) or "{}")
         for i in range(len(instances)):
             data[i][column.name] = transform(instances[i], column)
 
@@ -47,7 +67,7 @@ class Model_Base(object):
             single_item = False
         instance_ids = [instance.id for instance in instances]
         model_perms = model_permissions(cls.__tablename__)
-        perms = set.union(set.intersection([model_perms[x] for x in instance_ids if x in model_perms]), model_perms['*'])
+        perms = set.union(set.intersection({model_perms[x] for x in instance_ids if x in model_perms}), model_perms['*'])
         if not parents:
             parents = []
         # If we are recursing then just truncate to the ID
@@ -104,13 +124,28 @@ class Model_Base(object):
             if not hasattr(cls, key):
                 raise MalformedRequest(f"Table {name} has no field {key}")
             field = getattr(cls, key)
-            if field.hidden:
+            if hasattr(field, "hidden") and field.hidden:
                 raise PermissionDenied(f"User is not permitted to write {name}.{key}")
             if hasattr(field, "allow_rw"):
-                if not instance_perms.intersection(field.allow_rw):
+                if not instance_perms.intersection(field.allow_rw.union({"write", "*"})):
                     if existing and getattr(existing, key) == instance[key]:
                         continue
                     raise PermissionDenied(f"User is not permitted to write {name}.{key}")
+        columns, relations = cls.get_fields()
+        for column in columns:
+            if column.name in instance:
+                key = column.name
+                val = instance[key]
+                if type(column.type) is DateTime:
+                    instance[key] = datetime.datetime.strptime(val, '%Y-%m-%dT%H:%M:%S.%f')
+                elif type(column.type) is JSON:
+                    instance[key] = json.dumps(val)
+        for relation in relations:
+            new = []
+            if relation.key in instance:
+                for model in instance[relation.key]:
+                    new.append(cls.modelclasses[relation.target.name].deserialize(model))
+                instance[relation.key] = new
         return instance
 
     @classmethod
@@ -125,10 +160,12 @@ class Model_Base(object):
         models = []
         perms = model_permissions(name)
         for instance in data:
-            if "id" in instance:
+            if type(instance) is int:
+                to_fetch[instance] = {}
+            elif "id" in instance:
                 to_fetch[instance['id']] = instance
             else:
-                if not "create" in perms['*']:
+                if not {"create", "*"}.intersection(perms['*']):
                     raise PermissionDenied(f"User is not permitted to create {name}")
                 models.append(cls(**cls.filter_columns(instance, perms)))
         existing = db.query(cls).filter(cls.id.in_(to_fetch.keys())).all()

@@ -9,7 +9,7 @@ def test_staffer_auth(mock_post, client):
     rv = client.post('/api/uber_login', json={"token": "123"})
     assert(rv.status_code != 200)
 
-    user = client.post("/api/users", json={
+    user = client.post("/api/user", json={
         "email": "test@magfest.com",
         "password": "123",
         "username": "testuser"
@@ -23,20 +23,20 @@ def test_staffer_auth(mock_post, client):
     assert(rv.status_code != 200)
 
 def test_statistics(client):
-    rv = client.get("/api/hotels/statistics", query_string={"event": 1})
+    rv = client.get("/api/event/1/hotel/statistics", query_string={"event": 1})
     assert rv.json['num_badges'] == 0
     assert rv.json['num_requests'] == 0
     for i in range(100):
-        badge = client.post("/api/events/1/badges", json={
+        badge = client.post("/api/event/1/badge", json={
             "legal_name": "Test User {}".format(i)
         }).json
         assert(badge['legal_name'] == "Test User {}".format(i))
-    rv = client.get("/api/hotels/statistics", query_string={"event": 1})
+    rv = client.get("/api/event/1/hotel/statistics", query_string={"event": 1})
     assert rv.json['num_badges'] == 100
     assert rv.json['num_requests'] == 0
 
 def test_all_requests(client):
-    rv = client.get("/api/hotels/all_requests", query_string={"event": 1})
+    rv = client.get("/api/event/1/hotel/all_requests", query_string={"event": 1})
     assert not rv.json
     rv = client.post("/api/importer/mock", json={
         "event": 1,
@@ -47,10 +47,10 @@ def test_all_requests(client):
     if rv.status_code == 202:
         jobid = rv.json['job']
         while rv.status_code == 202:
-            rv = client.get(f"/api/jobs/{jobid}")
+            rv = client.get(f"/api/job/{jobid}")
             time.sleep(0.2)
     assert rv.status_code == 200
-    rv = client.get("/api/hotels/all_requests", query_string={"event": 1})
+    rv = client.get("/api/event/1/hotel/all_requests", query_string={"event": 1})
     assert rv.status_code == 200
     assert rv.json
     for id, badge in rv.json.items():
@@ -74,7 +74,7 @@ def test_all_requests(client):
         assert 'smoke_sensitive' in badge
 
 def test_requests(client):
-    rv = client.get("/api/hotels/requests", query_string={"event": 1})
+    rv = client.get("/api/event/1/hotel/request", query_string={"event": 1})
     assert not rv.json
     rv = client.post("/api/importer/mock", json={
         "event": 1,
@@ -85,10 +85,10 @@ def test_requests(client):
     if rv.status_code == 202:
         jobid = rv.json['job']
         while rv.status_code == 202:
-            rv = client.get(f"/api/jobs/{jobid}")
+            rv = client.get(f"/api/job/{jobid}")
             time.sleep(0.2)
     assert rv.status_code == 200
-    rv = client.get("/api/hotels/requests", query_string={"event": 1})
+    rv = client.get("/api/event/1/hotel/request", query_string={"event": 1})
     assert rv.status_code == 200
     assert rv.json
     for dept in rv.json:
@@ -117,12 +117,12 @@ def test_requests(client):
 #    pass
 
 def test_hotel_badges(client):
-    rv = client.get("/api/hotels/badges", query_string={"event": 1})
+    rv = client.get("/api/event/1/hotel/badge_names", query_string={"event": 1})
     assert rv.json == []
     for i in range(100):
-        badge = client.post("/api/events/1/badges", json={
+        badge = client.post("/api/event/1/badge", json={
             "legal_name": "Test User {}".format(i)
         }).json
         assert(badge['legal_name'] == "Test User {}".format(i))
-    rv = client.get("/api/hotels/badges", query_string={"event": 1})
+    rv = client.get("/api/event/1/hotel/badge_names", query_string={"event": 1})
     assert len(rv.json) == 100

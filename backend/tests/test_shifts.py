@@ -3,14 +3,14 @@ import json
 
 def test_schedule_change(client):
     """Make sure that creating an scheduleevent on a schedule creates a shift on the associated job"""
-    schedule = client.post("/api/events/1/schedules", json={
+    schedule = client.post("/api/event/1/schedule", json={
         "name": "Shift Schedule",
         "description": "A schedule for shifts!"
     }).json
     assert(schedule['name'] == "Shift Schedule")
 
     eventstart = datetime.datetime.utcnow()
-    scheduleevent = client.post("/api/scheduleevents", json={
+    scheduleevent = client.post("/api/event/1/schedule_event", json={
         "name": "The big panel",
         "description": "You know the one",
         "starttime": eventstart.isoformat(),
@@ -19,7 +19,7 @@ def test_schedule_change(client):
     }).json
     assert(scheduleevent['name'] == "The big panel")
 
-    job = client.post("/api/events/1/jobs", json={
+    job = client.post("/api/event/1/job", json={
         "name": "Do a thing",
         "description": "Help make the thing happen, at the place",
         "documentation": "Here's how to do the thing",
@@ -33,13 +33,14 @@ def test_schedule_change(client):
     }).json
     assert(job['name'] == "Do a thing")
 
-    shifts = client.get("/api/shifts", query_string={"full": True}).json
+    shifts = client.get("/api/event/1/shift", query_string={"full": True}).json
+    print(shifts)
     assert(len(shifts) == 1)
     assert(shifts[0]['starttime'] == scheduleevent['starttime'])
     assert(shifts[0]['duration'] == scheduleevent['duration'])
     assert(shifts[0]['slots'] == 4)
 
-    newevent = client.post("/api/scheduleevents", json={
+    newevent = client.post("/api/event/1/schedule_event", json={
         "name": "Another cool panel",
         "description": "You probably don't know about this one yet",
         "starttime": (eventstart + datetime.timedelta(seconds=3600)).isoformat(),
@@ -48,27 +49,27 @@ def test_schedule_change(client):
     }).json
     assert(newevent['name'] == "Another cool panel")
 
-    shifts = client.get("/api/shifts", query_string={"full": True}).json
+    shifts = client.get("/api/event/1/shift", query_string={"full": True}).json
     assert(len(shifts) == 2)
 
-    client.delete("/api/scheduleevents/"+str(scheduleevent['id']))
+    client.delete("/api/event/1/schedule_event/"+str(scheduleevent['id']))
 
-    events = client.get("/api/scheduleevents", query_string={"full": True}).json
+    events = client.get("/api/event/1/schedule_event", query_string={"full": True}).json
     assert(len(events) == 1)
 
-    shifts = client.get("/api/shifts", query_string={"full": True}).json
+    shifts = client.get("/api/event/1/shift", query_string={"full": True}).json
     assert(len(shifts) == 1)
 
 def test_signup_persistence(client):
     """Make sure that a signup survives a shift being deleted and coming back"""
-    schedule = client.post("/api/events/1/schedules", json={
+    schedule = client.post("/api/event/1/schedule", json={
         "name": "Shift Schedule",
         "description": "A schedule for shifts!"
     }).json
     assert(schedule['name'] == "Shift Schedule")
 
     eventstart = datetime.datetime.utcnow()
-    scheduleevent = client.post("/api/scheduleevents", json={
+    scheduleevent = client.post("/api/event/1/schedule_event", json={
         "name": "The big panel",
         "description": "You know the one",
         "starttime": eventstart.isoformat(),
@@ -77,33 +78,33 @@ def test_signup_persistence(client):
     }).json
     assert(scheduleevent['name'] == "The big panel")
 
-    department = client.post("/api/events/1/departments", json={
+    department = client.post("/api/event/1/department", json={
         "name": "Product Testing"
     }).json
     assert(department['name'] == "Product Testing")
 
-    role = client.post("/api/roles", json={
+    role = client.post("/api/role", json={
         "name": "Manager",
-        "description": "Allowed to sign up for manager shifts",
-        "event": 1
+        "description": "Allowed to sign up for manager shifts"
     }).json
     assert(role['name'] == "Manager")
 
-    user = client.post("/api/users", json={
+    user = client.post("/api/user", json={
         "username": "testing",
         "email": "test@test.com",
         "active": True
     }).json
     assert(user['username'] == "testing")
 
-    grant = client.post("/api/grants", json={
+    grant = client.post("/api/grant", json={
         "user": user['id'],
         "role": role['id'],
         "department": department['id']
     }).json
+    print(grant)
     assert(grant['user'] == user['id'])
 
-    job = client.post("/api/events/1/jobs", json={
+    job = client.post("/api/event/1/job", json={
         "name": "Do a thing",
         "description": "Help make the thing happen, at the place",
         "documentation": "Here's how to do the thing",
@@ -122,7 +123,7 @@ def test_signup_persistence(client):
     assert(job['name'] == "Do a thing")
     assert(job['department'] == department['id'])
 
-    badge = client.post("/api/events/1/badges", json={
+    badge = client.post("/api/event/1/badge", json={
         "legal_name": "Test User",
         "user": user['id'],
         "departments": [
@@ -131,24 +132,24 @@ def test_signup_persistence(client):
     }).json
     assert(badge['legal_name'] == "Test User")
 
-    jobs = client.get("/api/events/1/jobs/available", query_string={"badge": badge['id']}).json
+    jobs = client.get("/api/event/1/job/available", query_string={"badge": badge['id']}).json
     assert(len(jobs) == 1)
     assert(len(jobs[0]['shifts']) == 1)
 
-    signup = client.post("/api/events/1/shifts/"+str(jobs[0]['shifts'][0]['id'])+"/signup", json={
+    signup = client.post("/api/event/1/shift/"+str(jobs[0]['shifts'][0]['id'])+"/signup", json={
         "badge": badge['id']
     }).json
     assert(signup['shift'])
 
-    assignedshifts = client.get("/api/shiftassignments", query_string={"badge": badge['id']}).json
+    assignedshifts = client.get("/api/event/1/shift_assignment", query_string={"badge": badge['id']}).json
     assert(len(assignedshifts) == 1)
 
-    client.delete("/api/scheduleevents/"+str(scheduleevent['id']))
+    client.delete("/api/event/1/schedule_event/"+str(scheduleevent['id']))
 
-    assignedshifts = client.get("/api/shiftassignments", query_string={"badge": badge['id']}).json
+    assignedshifts = client.get("/api/event/1/shift_assignment", query_string={"badge": badge['id']}).json
     assert(len(assignedshifts) == 0)
 
-    replacement_scheduleevent = client.post("/api/scheduleevents", json={
+    replacement_scheduleevent = client.post("/api/event/1/schedule_event", json={
         "name": "A similar large panel",
         "description": "It starts the same time as the old one, and is just as long!",
         "starttime": eventstart.isoformat(),
@@ -157,5 +158,5 @@ def test_signup_persistence(client):
     }).json
     assert(replacement_scheduleevent['name'] == "A similar large panel")
 
-    assignedshifts = client.get("/api/shiftassignments", query_string={"badge": badge['id']}).json
+    assignedshifts = client.get("/api/event/1/shift_assignment", query_string={"badge": badge['id']}).json
     assert(len(assignedshifts) == 1)

@@ -58,7 +58,7 @@ class Job(Base):
     create Shifts. All Shifts are linked to a Job.
     """
     __tablename__ = "job"
-    __url__ = "/api/<int:event>/job"
+    __url__ = "/api/event/<int:event>/job"
     id = Column(Integer, primary_key=True)
     name = Column(String)
     description = Column(String)

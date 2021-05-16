@@ -40,10 +40,10 @@ def tuber(redis=False):
 def client_fresh(tuber):
     """Creates a client with a fresh database and no active sessions. Initial setup will not yet be completed.
     """
-    tuber.create_tables()
+    tuber.database.create_tables()
     with tuber.app.test_client() as client:
         yield client
-    tuber.drop_tables()
+    tuber.database.drop_tables()
     del sys.modules['tuber']
 
 @pytest.fixture
@@ -51,11 +51,11 @@ def client(tuber):
     """Creates a test client with initial setup complete and the admin user logged in already.
     Also patches the get/post/patch/delete functions to handle CSRF tokens for you.
     """
-    tuber.create_tables()
+    tuber.database.create_tables()
     with tuber.app.test_client() as client:
         client.post('/api/initial_setup', json={"username": "admin", "email": "admin@magfest.org", "password": "admin"})
         client.post("/api/login", json={"csrf_token": csrf(client), "username": "admin", "password": "admin"})
-        client.post("/api/events", json={"csrf_token": csrf(client), "name": "Tuber Event", "description": "It's a potato"})
+        client.post("/api/event", json={"csrf_token": csrf(client), "name": "Tuber Event", "description": "It's a potato"})
         _get = client.get
         def get(*args, **kwargs):
             if not 'query_string' in kwargs:
@@ -98,7 +98,7 @@ def client(tuber):
         client.patch = patch
         client.delete = delete
         yield client
-    tuber.drop_tables()
+    tuber.database.drop_tables()
 
 @pytest.fixture
 def prod_client():
@@ -108,10 +108,10 @@ def prod_client():
     os.environ['FORCE_HTTPS'] = "true"
     os.environ['FLASK_ENV'] = "production"
     tuber = importlib.import_module('tuber')
-    tuber.create_tables()
+    tuber.database.create_tables()
     with tuber.app.test_client() as client:
         yield client
-    tuber.drop_tables()
+    tuber.database.drop_tables()
     for key in list(sys.modules.keys()):
         if key.startswith("tuber"):
             del sys.modules[key]

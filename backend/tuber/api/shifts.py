@@ -1,5 +1,6 @@
 from tuber.api import *
 from tuber.models import *
+from tuber.database import db
 from flask import g, request, jsonify
 from sqlalchemy import or_
 import datetime
