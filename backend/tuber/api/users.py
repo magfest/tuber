@@ -104,24 +104,25 @@ def staffer_auth():
         }
         resp = requests.post(config.uber_api_url, headers=headers, json=req)
         if len(resp.json()['result']) == 0:
-            return "", 403
+            return "no result", 403
     except:
-        return "", 403
+        return "exception", 403
     result = resp.json()['result'][0]
     if not 'id' in result:
-        return "", 403
+        return "no id", 403
     id = result['id']
     if id != request.json['token']:
-        return "", 403
+        return "wrong token", 403
     if not result['staffing']:
-        return "", 403
+        return "not staff", 403
     user = db.query(User).filter(User.password == id).one_or_none()
     if user:
-        session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()))
+        perm_cache = get_permissions(user=user.id)
+        session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()), permissions=json.dumps(perm_cache))
         db.add(session)
     else:
-        return "", 403
+        return "unknown account", 403
     db.commit()
-    response = jsonify(db.secret)
-    response.set_cookie('db', db.secret)
+    response = jsonify(session.secret)
+    response.set_cookie('session', session.secret)
     return response

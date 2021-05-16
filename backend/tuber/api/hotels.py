@@ -121,12 +121,12 @@ def hotel_all_requests(event):
 
 @app.route("/api/event/<int:event>/hotel/requests", methods=["GET"])
 def hotel_requests(event):
-    if check_permission("hotel_request.approve", event=request.args['event']):
+    if check_permission("hotel_request.approve", event=event):
         requests = db.query(Department, Badge, HotelRoomRequest).join(BadgeToDepartment, BadgeToDepartment.department == Department.id).join(HotelRoomRequest, HotelRoomRequest.badge == BadgeToDepartment.badge).join(Badge, Badge.id == BadgeToDepartment.badge).all()
         departments = {}
         for req in requests:
             dept, badge, roomrequest = req
-            if not check_permission("hotel_request.approve", event=request.args['event'], department=dept.id):
+            if not check_permission("hotel_request.approve", event=event, department=dept.id):
                 continue
             if not dept.id in departments:
                 departments[dept.id] = {

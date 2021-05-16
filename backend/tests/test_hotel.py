@@ -9,14 +9,14 @@ def test_staffer_auth(mock_post, client):
     rv = client.post('/api/uber_login', json={"token": "123"})
     assert(rv.status_code != 200)
 
-    user = client.post("/api/user", json={
-        "email": "test@magfest.com",
-        "password": "123",
-        "username": "testuser"
-    }).json
-    assert(user)
+    from tuber.database import db
+    from tuber.models import User
+    user = User(email="test@magfest.com", password="123", username="testuser")
+    db.add(user)
+    db.commit()
 
     rv = client.post('/api/uber_login', json={"token": "123"})
+    print(rv.data)
     assert(rv.status_code == 200)
 
     rv = client.post('/api/uber_login', json={"token": "abc"})
@@ -74,7 +74,7 @@ def test_all_requests(client):
         assert 'smoke_sensitive' in badge
 
 def test_requests(client):
-    rv = client.get("/api/event/1/hotel/request", query_string={"event": 1})
+    rv = client.get("/api/event/1/hotel/requests", query_string={"event": 1})
     assert not rv.json
     rv = client.post("/api/importer/mock", json={
         "event": 1,
@@ -88,7 +88,7 @@ def test_requests(client):
             rv = client.get(f"/api/job/{jobid}")
             time.sleep(0.2)
     assert rv.status_code == 200
-    rv = client.get("/api/event/1/hotel/request", query_string={"event": 1})
+    rv = client.get("/api/event/1/hotel/requests", query_string={"event": 1})
     assert rv.status_code == 200
     assert rv.json
     for dept in rv.json:
