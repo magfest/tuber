@@ -1,8 +1,5 @@
 #!/bin/env python
 from setuptools import setup
-import subprocess
-import os
-import sys
 
 setup(
     name='tuber',
@@ -28,20 +25,14 @@ setup(
         'requests',
         'alembic',
         'passlib',
-        'flask',
+        'flask>=1.0',
         'gunicorn',
         'flask-talisman',
         'redis',
-        'rq',
         'lupa',
         'boto3',
         'jinja2',
-        'marshmallow-sqlalchemy',
-        'names',
         'psycopg2'
-    ],
-    setup_requires=[
-        'py2app'
     ],
     app=[
         "tuber/wsgi.py"

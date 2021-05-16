@@ -1,8 +1,11 @@
+from werkzeug.serving import run_simple
 import tuber
 import sys
+from .backgroundjobs import AsyncMiddleware
 
 def main():
     tuber.migrate()
     if "migrate" in sys.argv:
         sys.exit(0)
-    tuber.app.run(host='0.0.0.0', port=8080)
+    app = AsyncMiddleware(tuber.app)
+    run_simple('0.0.0.0', 8080, app, use_reloader=True, use_debugger=True, use_evalex=True, threaded=True)

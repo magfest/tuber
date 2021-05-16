@@ -1,96 +1,105 @@
-from tuber import db
+from tuber.models import Base
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Date
+from sqlalchemy.orm import relationship
 
-class HotelRoomRequest(db.Model):
-    """The requested preferences for a staff hotel room.
-
-    :param badge: The id of the badge that created this request
-    :type badge: int.
-    :param declined: True if the user has declined a hotel room
-    :type declined: bool.
-    """
+class HotelRoomRequest(Base):
     __tablename__ = "hotel_room_request"
-    id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
-    declined = db.Column(db.Boolean, nullable=True)
-    prefer_department = db.Column(db.Boolean, nullable=True)
-    preferred_department = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)
-    notes = db.Column(db.String(512), nullable=True)
-    prefer_single_gender = db.Column(db.Boolean, nullable=True)
-    preferred_gender = db.Column(db.String(64), nullable=True)
-    noise_level = db.Column(db.String(64), nullable=True)
-    smoke_sensitive = db.Column(db.Boolean, nullable=True)
-    sleep_time = db.Column(db.String(64), nullable=True)
-    room_night_justification = db.Column(db.String(512), nullable=True)
+    __url__ = "/api/event/<int:event>/hotel_room_request"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    badge = Column(Integer, ForeignKey('badge.id'))
+    declined = Column(Boolean, nullable=True)
+    prefer_department = Column(Boolean, nullable=True)
+    preferred_department = Column(Integer, ForeignKey('department.id'), nullable=True)
+    notes = Column(String(512), nullable=True)
+    prefer_single_gender = Column(Boolean, nullable=True)
+    preferred_gender = Column(String(64), nullable=True)
+    noise_level = Column(String(64), nullable=True)
+    smoke_sensitive = Column(Boolean, nullable=True)
+    sleep_time = Column(String(64), nullable=True)
+    room_night_justification = Column(String(512), nullable=True)
 
-class HotelRoomBlock(db.Model):
+class HotelRoomBlock(Base):
     __tablename__ = "hotel_room_block"
-    id = db.Column(db.Integer, primary_key=True)
-    event = db.Column(db.Integer, db.ForeignKey('event.id'))
-    name = db.Column(db.String(128), nullable=True)
-    description = db.Column(db.String(256), nullable=True)
-    rooms = db.relationship("HotelRoom")
+    __url__ = "/api/event/<int:event>/hotel_room_block"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    name = Column(String(128), nullable=True)
+    description = Column(String(256), nullable=True)
+    rooms = relationship("HotelRoom")
 
-class HotelRoom(db.Model):
+class HotelRoom(Base):
     __tablename__ = "hotel_room"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), nullable=True)
-    notes = db.Column(db.String(512), nullable=True)
-    messages = db.Column(db.String(512), nullable=True)
-    hotel_block = db.Column(db.Integer, db.ForeignKey('hotel_room_block.id'), nullable=False)
-    hotel_location = db.Column(db.Integer, db.ForeignKey('hotel_location.id'), nullable=False)
-    completed = db.Column(db.Boolean)
-    room_night_assignments = db.relationship('RoomNightAssignment')
+    __url__ = "/api/event/<int:event>/hotel_room"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    name = Column(String(128), nullable=True)
+    notes = Column(String(512), nullable=True)
+    messages = Column(String(512), nullable=True)
+    hotel_block = Column(Integer, ForeignKey('hotel_room_block.id'))
+    hotel_location = Column(Integer, ForeignKey('hotel_location.id'))
+    completed = Column(Boolean)
+    room_night_assignments = relationship('RoomNightAssignment')
 
-class HotelRoommateRequest(db.Model):
+class HotelRoommateRequest(Base):
     __tablename__ = "hotel_roommate_request"
-    id = db.Column(db.Integer, primary_key=True)
-    requester = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
-    requested = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
+    id = Column(Integer, primary_key=True)
+    requester = Column(Integer, ForeignKey('badge.id'))
+    requested = Column(Integer, ForeignKey('badge.id'))
 
-class HotelAntiRoommateRequest(db.Model):
+class HotelAntiRoommateRequest(Base):
     __tablename__ = "hotel_anti_roommate_request"
-    id = db.Column(db.Integer, primary_key=True)
-    requester = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
-    requested = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
+    id = Column(Integer, primary_key=True)
+    requester = Column(Integer, ForeignKey('badge.id'))
+    requested = Column(Integer, ForeignKey('badge.id'))
 
-class HotelLocation(db.Model):
+class HotelLocation(Base):
     __tablename__ = "hotel_location"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(32), nullable=False)
-    address = db.Column(db.String(128), nullable=False)
-    event = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    rooms = db.relationship("HotelRoom")
+    __url__ = "/api/event/<int:event>/hotel_location"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(32))
+    address = Column(String(128))
+    event = Column(Integer, ForeignKey('event.id'))
+    rooms = relationship("HotelRoom")
 
-class HotelRoomNight(db.Model):
+class HotelRoomNight(Base):
     __tablename__ = "hotel_room_night"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(16), nullable=False)
-    event = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    restricted = db.Column(db.Boolean, nullable=False, default=False)
-    restriction_type = db.Column(db.String(64), nullable=True)
-    hidden = db.Column(db.Boolean, nullable=False, default=False)
-    requests = db.relationship("RoomNightRequest")
-    assignments = db.relationship("RoomNightAssignment")
-    approvals = db.relationship("RoomNightApproval")
+    __url__ = "/api/event/<int:event>/hotel_room_night"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    date = Column(Date)
+    name = Column(String(16))
+    restricted = Column(Boolean, default=False)
+    restriction_type = Column(String(64), nullable=True)
+    hidden = Column(Boolean, default=False)
+    requests = relationship("RoomNightRequest")
+    assignments = relationship("RoomNightAssignment")
+    approvals = relationship("RoomNightApproval")
 
-class RoomNightRequest(db.Model):
+class RoomNightRequest(Base):
     __tablename__ = "room_night_request"
-    id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
-    requested = db.Column(db.Boolean)
-    room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
+    __url__ = "/api/event/<int:event>/room_night_request"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    badge = Column(Integer, ForeignKey('badge.id'))
+    requested = Column(Boolean)
+    room_night = Column(Integer, ForeignKey('hotel_room_night.id'))
 
-class RoomNightAssignment(db.Model):
+class RoomNightAssignment(Base):
     __tablename__ = "room_night_assignment"
-    id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
-    room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
-    hotel_room = db.Column(db.Integer, db.ForeignKey('hotel_room.id'))
+    __url__ = "/api/event/<int:event>/room_night_assignment"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    badge = Column(Integer, ForeignKey('badge.id'))
+    room_night = Column(Integer, ForeignKey('hotel_room_night.id'))
+    hotel_room = Column(Integer, ForeignKey('hotel_room.id'))
 
-class RoomNightApproval(db.Model):
+class RoomNightApproval(Base):
     __tablename__ = "room_night_approval"
-    id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
-    room_night = db.Column(db.Integer, db.ForeignKey('hotel_room_night.id'), nullable=False)
-    department = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
-    approved = db.Column(db.Boolean, nullable=False)
+    __url__ = "/api/event/<int:event>/department/<int:department>/room_night_approval"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    badge = Column(Integer, ForeignKey('badge.id'))
+    room_night = Column(Integer, ForeignKey('hotel_room_night.id'))
+    department = Column(Integer, ForeignKey('department.id'))
+    approved = Column(Boolean)

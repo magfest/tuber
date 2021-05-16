@@ -1,9 +1,12 @@
-from tuber import db
+from tuber.models import Base
+from sqlalchemy import Column, Integer, ForeignKey, String, JSON, LargeBinary
 
-class BackgroundJob(db.Model):
+class BackgroundJob(Base):
     __tablename__ = "background_job"
-    id = db.Column(db.Integer, primary_key=True)
-    session = db.Column(db.Integer, db.ForeignKey('session.id'), nullable=True)
-    uuid = db.Column(db.String, nullable=False)
-    progress = db.Column(db.JSON)
-    result = db.Column(db.JSON)
+    __url__ = "/api/job"
+    id = Column(Integer, primary_key=True)
+    session = Column(Integer, ForeignKey('session.id'), nullable=True)
+    uuid = Column(String)
+    progress = Column(JSON)
+    result = Column(LargeBinary)
+    context = Column(JSON)

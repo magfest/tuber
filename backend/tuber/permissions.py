@@ -1,60 +1,77 @@
-from tuber import app, db, config
-from flask import jsonify, g, request, url_for, redirect
+from tuber import app, config
+from flask import g, request
 from tuber.models import *
+from tuber.database import db
 import datetime
 
-class PermissionDenied(Exception):
-    status_code = 403
-
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['message'] = self.message
-        return rv
-
-@app.errorhandler(PermissionDenied)
-def handle_permission_denied(error):
-    response = jsonify(error.to_dict())
-    response.status_code = error.status_code
-    return response
-
-@app.before_request
-def get_user():
+@app.url_value_preprocessor
+def load_session(endpoint, values):
     g.user = None
-    g.perms = []
+    g.badge = None
+    g.session = None
+    g.event = None
+    g.department = None
+    g.perms = set()
+    g.department_perms = set()
+    if 'event' in values:
+        g.event = values['event']
+    if 'department' in values:
+        g.department = values['department']
     if 'session' in request.cookies:
-        res = db.session.query(Session, User).join(User, Session.user == User.id).filter(Session.secret == request.cookies.get('session')).one_or_none()
+        res = db.query(Session, User).join(User, Session.user == User.id).filter(Session.secret == request.cookies.get('session')).one_or_none()
         if res:
-            session, g.user = res
+            session, user = res
             if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config.session_duration):
-                session.last_active = datetime.datetime.now()
-                g.session = session.secret
-                permissions = db.session.query(Grant.department, Role.event, Permission.operation).filter(Grant.user == g.user.id).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
-                for permission in permissions:
-                    g.perms.append({"department": permission.department, "event": permission.event, "operation": permission.operation})
-                db.session.add(session)
-                event = None
-                if request.method == "GET":
-                    if "event" in request.args:
-                        event = request.args['event']
-                if request.method == "POST":
-                    if request.json:
-                        data = request.json
-                    else:
-                        data = request.form
-                    if "event" in data:
-                        event = int(data['event'])
-                g.event = event
-                g.badge = db.session.query(Badge).filter(Badge.user == g.user.id, Badge.event == event).one_or_none()
+                g.session.last_active = datetime.datetime.now()
+                g.session = session
+                g.user = user
+                if "event" in values:
+                    g.badge = session.query(Badge).filter(Badge.user == g.user.id, Badge.event == values['event']).one_or_none()
+                permissions = json.loads(session.permissions)
+                g.perms = {k: set(v) for k,v in permissions['event'].items()}
+                if not '*' in g.perms:
+                    g.perms['*'] = set()
+                g.department_perms = {k: set(v) for k,v in permissions['department'].items()}
+                if not '*' in g.department_perms:
+                    g.department_perms['*'] = set()
+                db.add(session)
             else:
-                db.session.delete(session)
-            db.session.commit()
+                db.delete(session)
+            db.commit()
+
+def flush_session_perms(user_id=None):
+    if user_id:
+        sessions = db.query(Session).filter(Session.user == user_id).all()
+    else:
+        sessions = db.query(Session).all()
+    for session in sessions:
+        perms = get_permissions(user_id=session.user)
+        session.permissions=json.dumps(perms)
+        db.add(session)
+    db.commit()
+
+def get_permissions(user_id=None):
+    if not user_id and g.user:
+        user_id = g.user.id
+    perm_cache = {
+        "event": {},
+        "department": {}
+    }
+    if not user_id:
+        return perm_cache
+
+    perms = db.query(Permission, Grant, Role).filter(Grant.user == user_id, Grant.role == Role.id, Permission.role == Role.id).all()
+    for permission, grant, role in perms:
+        if not grant.event in perm_cache['event']:
+            perm_cache['event'][grant.event] = []
+        perm_cache['event'][grant.event].append(permission.operation)
+
+    dep_perms = db.query(DepartmentPermission, DepartmentGrant, DepartmentRole).filter(DepartmentGrant.user == user_id, DepartmentGrant.role == DepartmentRole.id, DepartmentPermission.role == DepartmentRole.id).all()
+    for permission, grant, role in dep_perms:
+        if not grant.department in perm_cache['department']:
+            perm_cache['department'][grant.department] = []
+        perm_cache['department'][grant.department].append(permission.operation)
+    return perm_cache
 
 def check_permission(permission=None, event=0, department=0):
     return True
@@ -78,3 +95,22 @@ def check_permission(permission=None, event=0, department=0):
         return True
     return False
         
+def model_permissions(model):
+    """
+    Retrieves the permissions of the current user on the given model class.
+    Returns permissions as a dictionary of sets, with instance IDs as keys
+    and sets of permitted actions as values.
+    """
+    permissions = g.perms['*'] + g.department_perms['*']
+    if g.event in g.perms:
+        permissions += g.perms[g.event]
+    if g.department in g.department_perms:
+        permissions += g.department_perms
+    model_perms = {}
+    for perm in permissions:
+        table, instance, action = perm.split(".")
+        if table == model.__tablename__:
+            if not instance in model_perms:
+                model_perms[instance] = set()
+            model_perms[instance].add(action)
+    return model_perms
