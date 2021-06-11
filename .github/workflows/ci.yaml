@@ -46,3 +46,47 @@ jobs:
         reporter: github-pr-review
         filter_mode: diff_context
         fail_on_error: true
+
+  build:
+    name: Build
+    runs-on: ubuntu-20.04
+    needs:
+    - hadolint
+    - changes
+    strategy:
+      matrix: ${{ fromJson(needs.changes.outputs.matrix) }}
+      fail-fast: false
+    if: "!contains(github.event.head_commit.message, '[ci-skip]')"
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+
+    # Define if tests and push should be run against which versions/platforms
+    - name: Prepare
+      id: prep
+      run: |
+        if test -f "./apps/${{ matrix.container }}/Dockerfile"; then
+          CATEGORY="frontend"
+        else
+          CATEGORY="backend"
+        fi
+        echo ::set-output name=category::${CATEGORY}
+        VERSION=$(cat ./${CATEGORY}/${{ matrix.container }}/VERSION)
+        echo ::set-output name=version::${VERSION}
+        PLATFORM=$(cat ./${CATEGORY}/${{ matrix.container }}/PLATFORM)
+        echo ::set-output name=platform::${PLATFORM}
+        if test -f "./${CATEGORY}/${{ matrix.container }}/goss.yaml"; then
+          echo ::set-output name=goss::true
+        else
+          echo ::set-output name=goss::false
+        fi
+        if [ "${{github.event_name}}" == "pull_request" ]; then
+          echo ::set-output name=push::false
+          echo ::set-output name=cache_from::"type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:buildcache" || echo ::set-output name=cache_from::""
+          echo ::set-output name=cache_to::""
+        else
+          echo ::set-output name=push::true
+          echo ::set-output name=cache_from::"type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:buildcache"
+          echo ::set-output name=cache_to::"type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:buildcache,mode=max"
+        fi
