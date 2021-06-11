@@ -66,7 +66,7 @@ jobs:
     - name: Prepare
       id: prep
       run: |
-        if test -f "./apps/${{ matrix.container }}/Dockerfile"; then
+        if test -f "./frontend/${{ matrix.container }}/Dockerfile"; then
           CATEGORY="frontend"
         else
           CATEGORY="backend"
