@@ -9,7 +9,6 @@ RUN apk update && \
 
 COPY . .
 
-ARG ENVIRONMENT=production
 ENV DATABASE_URL=sqlite:///database.db
 ENV FLASK_ENV=production
 ENV REDIS_URL=
@@ -18,6 +17,6 @@ ENV CIRCUITBREAKER_THREADS=2
 ENV CIRCUITBREAKER_TIMEOUT=5
 ENV ENABLE_CIRCUITBREAKER=true
 
-RUN python setup.py $ENVIRONMENT
+RUN python setup.py production
 
 CMD /bin/sh entrypoint.sh
