@@ -17,6 +17,6 @@ ENV CIRCUITBREAKER_THREADS=2
 ENV CIRCUITBREAKER_TIMEOUT=5
 ENV ENABLE_CIRCUITBREAKER=true
 
-RUN python setup.py production
+RUN python setup.py install
 
 CMD /bin/sh entrypoint.sh
