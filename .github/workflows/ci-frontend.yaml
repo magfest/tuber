@@ -1,5 +1,5 @@
 ---
-name: Build Container - Backend
+name: Build Container - Frontend
 
 on:
   workflow_dispatch:
@@ -7,8 +7,8 @@ on:
     branches:
     - main
     paths:
-    - 'backend/**'
-    - '.github/**'
+    - 'frontend/**'
+    - '.github/ci-frontend.yaml'
 
 jobs:
   build-backend:
@@ -39,12 +39,7 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v2
         with:
-          context: "./backend"
-          # push: true # Will only build if this is not here
+          context: "./frontend"
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/${{ github.repository }}:latest
-          # tags: ${{ steps.meta.outputs.tags }}
+          tags: ghcr.io/${{ github.repository }}-frontend:latest
           labels: ${{ steps.meta.outputs.labels }}
-          # tags: |
-          #   ghcr.io/${{ github.repository }}:${{ github.ref }}
-          #   ghcr.io/${{ github.repository }}:latest
