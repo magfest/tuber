@@ -1,18 +1,34 @@
-name: Build Image using Dockerfile
-on: [push]
+name: Release
 
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    paths:
+    - 'frontend/**'
+    - 'backend/**'
+
+# Detect which folders in project-root (which contain the containers) contain changes
 jobs:
-  build:
-    name: Build image
-    runs-on: ubuntu-latest
-
+  changes:
+    name: Get changes
+    runs-on: ubuntu-20.04
+    outputs:
+      matrix: "{\"container\": ${{ steps.reduce.outputs.containers }} }"
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Buildah Action
-      uses: redhat-actions/buildah-build@v2
+    - name: Checkout
+      uses: actions/checkout@v2
+    - uses: dorny/paths-filter@v2
+      id: filter
       with:
-        image: my-new-image
-        tags: ${{ github.sha }}
-        dockerfiles: |
-          ./frontend/Dockerfile
+        list-files: json
+        filters: |
+          changed:
+          - 'frontend/**'
+          - 'backend/**'
+    - run: echo '${{ toJson(steps.filter.outputs) }}' > changes.json
+    - id: reduce
+      run: |
+        CONTAINERS=$(jq --raw-output '.changed_files | fromjson | .[] |= sub("(?<filepath>(?<first_directory>(?<root1>[/]?)[^/]+/)(?<second_directory>(?<root2>[/]?)[^/]+)(?<extra_paths>.+))"; "\(.second_directory)") | unique' changes.json)
+        echo ::set-output name=containers::${CONTAINERS}
