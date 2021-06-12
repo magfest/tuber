@@ -8,7 +8,7 @@ on:
     - main
     paths:
     - 'backend/**'
-    - '.github/ci-backend.yaml'
+    - '.github/workflows/ci-backend.yaml'
 
 jobs:
   build-backend:
