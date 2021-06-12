@@ -1,5 +1,5 @@
 ---
-name: Build Container - Frontend
+name: Frontend - Build Image
 
 on:
   workflow_dispatch:
