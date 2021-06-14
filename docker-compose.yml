@@ -1,12 +1,11 @@
-# 
-
+---
 version: "3.7"
 
 services:
   nginx:
     image: nginx:stable-alpine
     ports:
-      - "80:80"
+      - "8081:80"
     volumes:
       - ./contrib/nginx.conf:/etc/nginx/nginx.conf
     networks:
@@ -14,15 +13,13 @@ services:
 
   frontend:
     build: ./frontend
-    image: magfest/tuber:latest-frontend
-    ports:
-      - "8000:8000"
+    image: ghcr.io/claughinghouse/tuber-frontend:latest
     networks:
       - tuber
 
   backend:
     build: ./backend
-    image: magfest/tuber:latest-backend
+    image: ghcr.io/claughinghouse/tuber-backend:latest
     depends_on:
       - postgres
       - redis
@@ -33,16 +30,16 @@ services:
       FLASK_ENV: production
       WORKERS: 4
       CIRCUITBREAKER_THREADS: 4
-    scale: 1
+    # scale: 1
     networks:
       - tuber
 
   postgres:
-    image: postgres:10.4
+    image: postgres:alpine
     environment:
-      POSTGRES_PASSWORD: tuber
-      POSTGRES_USER: tuber
-      POSTGRES_DB: tuber
+      - POSTGRES_PASSWORD=tuber
+      - POSTGRES_USER=tuber
+      - POSTGRES_DB=tuber
     ports:
       - "5432"
     volumes:
