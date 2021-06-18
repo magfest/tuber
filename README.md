@@ -1,10 +1,17 @@
-# Tuber
+
+<div align="center">
+
+# Tuber 🥔
 
 [![Copr build status](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/)
 [![Heroku CI Status](https://tuber-ci-badge.herokuapp.com/last.svg)](https://dashboard.heroku.com/pipelines/6ebd065d-db02-419d-80bd-6406f271d992/tests)
 [![codecov](https://codecov.io/gh/magfest/tuber/branch/master/graph/badge.svg)](https://codecov.io/gh/magfest/tuber)
-[![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/magfest/tuber)](https://hub.docker.com/repository/docker/magfest/tuber)
 [![Read the Docs](https://img.shields.io/readthedocs/magfest-tuber)](https://magfest-tuber.readthedocs.io/en/latest/)
+
+[![ci-backend](https://github.com/magfest/tuber/actions/workflows/ci-backend.yaml/badge.svg)](https://github.com/magfest/tuber/tree/main/.github/workflows/ci-backend.yaml)
+[![ci-frontend](https://github.com/magfest/tuber/actions/workflows/ci-frontend.yaml/badge.svg)](https://github.com/magfest/tuber/tree/main/.github/workflows/i-frontend.yaml)
+
+</div>
 
 Table of Contents
 =================
@@ -14,7 +21,7 @@ Table of Contents
   * [Using Heroku](#using-heroku)
   * [Using Docker](#using-docker)
 
-* [Developing](#developing)
+* [Development](#development)
   * [Backend](#backend)
   * [Frontend](#frontend)
   * [Database Migrations](#database-migrations)
@@ -31,7 +38,7 @@ There are numerous ways to configure things, but we try to make the most common 
 
 ### Using Docker
 
-The latest version of Tuber is published to Docker Hub as `magfest/tuber:latest-frontend` and `magfest/tuber:latest-backend`. [You can view them here.](https://hub.docker.com/r/magfest/tuber)
+The latest version of Tuber is published to GitHub Packages as `ghcr.io/magfest/tuber-frontend:latest` and `ghcr.io/magfest/tuber-backend:latest`. [You can view them here.](https://github.com/orgs/magfest/packages?repo_name=tuber)
 
 To deploy using docker first install docker on your platform, as described [here](https://docs.docker.com/get-docker/).
 
@@ -41,7 +48,7 @@ With the docker daemon running, you can now pull and run tuber:
 docker-compose up
 ```
 
-This will set up a small production-style stack of containers, using postgres for the database, nginx as a reverse proxy, and redis as the session and job store. Once it finishes starting you should be able to access your instance at [http://localhost:80](http://localhost:80)
+This will set up a small production-style stack of containers, using postgres for the database, nginx as a reverse proxy, and redis as the session and job store. Once it finishes starting you should be able to access your instance at [http://localhost:8081](http://localhost:8081)
 
 Note: The sample docker-compose file does not currently configure SSL. You should either set up a reverse proxy to handle SSL, or edit `contrib/nginx.conf` to use your certificates and edit `docker-compose.yml` to allow access to port 443.
 
@@ -69,7 +76,7 @@ dnf install copr
 tuber
 ```
 
-Configuration is in `/etc/tuber/tuber.json`. The main configuration required is for a database. The default database is sqlite, so for production deploys you should probably set up mariadb/mysql/postgres or any other database supported by SQLAlchemy.
+Configuration is in environment variables with some defaults preset. The main configuration required is for a database. The default database is sqlite, so for production deploys you should probably set up mariadb/mysql/postgres or any other database supported by SQLAlchemy.
 
 To set up the database, you will have to create a database and a user with all privileges on that database. Tuber will automatically create all necessary tables and handle future migrations at server startup. The database type, username, password, hostname, and database name all get combined as a database URI [as documented by SQLAlchemy](https://docs.sqlalchemy.org/en/13/core/engines.html). 
 
@@ -83,7 +90,7 @@ If you would like to deploy your own instance:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
-## Developing
+## Development
 
 After cloning this repository you will need the following dependencies:
 
@@ -99,12 +106,17 @@ Make sure to add both npm and python to your PATH during installation.
 Once the dependencies are installed you can start up the backend and frontend development servers:
 
 ### Backend
-Copy contrib/tuber.json.devel to tuber.json:
+
+Tuber uses environment variables to configure some basic settings.
+
 ```bash
-# Linux/MacOS
-cp contrib/tuber.json.devel tuber.json
-#Windows
-copy contrib\tuber.json.devel tuber.json
+DATABASE_URL=sqlite:///database.db
+FLASK_ENV=production
+REDIS_URL=
+WORKERS=2
+CIRCUITBREAKER_THREADS=2
+CIRCUITBREAKER_TIMEOUT=5
+ENABLE_CIRCUITBREAKER=true
 ```
 
 ```bash
@@ -126,7 +138,7 @@ python setup.py develop
  ..\venv\Scripts\tuber.exe
 ```
 
-The server should now start up and begin listening on port 8081.
+The server should now start up and begin listening on port 8080.
 
 ### Frontend
 
