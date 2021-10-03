@@ -3,11 +3,15 @@
     <div class="app-container">
       <img alt="Vue logo" src="./assets/logo.png">
       <HelloWorld msg="Welcome to Your PrimeVue App"/>
-      <form @submit.prevent="greet">
-        <InputText name="nameinput" type="text" v-model="text"/>
+      <form @submit.prevent="slow">
+        <InputText name="nameinput" type="text"/>
         <Button type="submit" label="Submit"/>
-        <h3>{{message}}</h3>
       </form>
+      <form @submit.prevent="fast">
+        <InputText name="nameinput" type="text"/>
+        <Button type="submit" label="Submit"/>
+      </form>
+      <LoadingBar ref="loadingbar"></LoadingBar>
     </div>
 
     <Toast/>
@@ -16,23 +20,34 @@
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component'
-import HelloWorld from './components/HelloWorld.vue'
+import LoadingBar from './components/LoadingBar.vue'
+import { get } from './lib/rest'
 
 @Options({
   data () {
     return {
-      message: null,
-      text: null
     }
   },
   methods: {
-    greet () {
-      this.$toast.add({ severity: 'info', summary: 'Hello ' + this.text })
-      this.message = 'Hello ' + this.text
+    slow () {
+      get('/api/slow', {}, this.$refs.loadingbar.update).then((response) => {
+        this.$toast.add({
+          severity: 'info',
+          summary: 'All done!'
+        })
+      })
+    },
+    fast () {
+      get('/api/fast', {}, this.$refs.loadingbar.update).then((response) => {
+        this.$toast.add({
+          severity: 'info',
+          summary: 'All done!'
+        })
+      })
     }
   },
   components: {
-    HelloWorld
+    LoadingBar
   }
 })
 export default class App extends Vue {}
