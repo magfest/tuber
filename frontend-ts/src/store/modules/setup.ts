@@ -1,3 +1,7 @@
+interface Setup {
+  initialSetup: boolean
+}
+
 const state = () => ({
   initialSetup: true
 })
