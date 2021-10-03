@@ -14,7 +14,7 @@ def model_permissions(name):
     Returns permissions as a dictionary of sets, with instance IDs as keys
     and sets of permitted actions as values.
     """
-    permissions = g.perms['*'].union(g.department_perms['*'])
+    permissions = g.perms.get('*', set()).union(g.department_perms.get('*', set()))
     if g.event in g.perms:
         permissions = permissions.union(g.perms[g.event])
     if g.department in g.department_perms:

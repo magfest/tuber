@@ -32,8 +32,16 @@ setup(
         'lupa',
         'boto3',
         'jinja2',
-        'psycopg2'
+        'psycopg2-binary'
     ],
+    include_package_data=True,
+    package_data={
+        "tuber": [
+            "alembic.ini",
+            "migrations/*",
+            "migrations/**/*"
+        ]
+    },
     app=[
         "tuber/wsgi.py"
     ],

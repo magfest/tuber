@@ -3,6 +3,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 import alembic
 from alembic.config import Config as AlembicConfig
 import redis
+import tuber
 from tuber import config, app
 from tuber.errors import *
 from flask import _app_ctx_stack
@@ -35,7 +36,7 @@ def drop_tables():
     Base.metadata.drop_all(bind=engine)
 
 def migrate():
-    alembic_config = AlembicConfig(config.alembic_ini)
+    alembic_config = AlembicConfig(os.path.join(tuber.__path__[0], "alembic.ini"))
     if oneshot_db_create:
         # To avoid running migrations on sqlite dev databases just create the current
         # tables and stamp them as being up to date so that migrations won't run.

@@ -4,8 +4,6 @@ import os
 conf = {
     "verbose": False,
     "flask_env": "development",
-    "migrations_path": "migrations",
-    "alembic_ini": "alembic.ini",
     "database_url": "sqlite:///database.db",
     "session_duration": 7200,
     "uber_api_token": "",

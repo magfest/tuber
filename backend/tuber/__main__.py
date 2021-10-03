@@ -4,7 +4,7 @@ import sys
 from .backgroundjobs import AsyncMiddleware
 
 def main():
-    tuber.migrate()
+    tuber.database.migrate()
     if "migrate" in sys.argv:
         sys.exit(0)
     app = AsyncMiddleware(tuber.app)
