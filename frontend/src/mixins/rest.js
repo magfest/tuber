@@ -4,7 +4,7 @@ function restFetch(method, url, data) {
   if (data === undefined) {
     data = {};
   }
-  data.csrf_token = window.$cookies.get('csrf_token');
+  const csrfToken = window.$cookies.get('csrf_token');
   if (method === 'GET') {
     const queryString = `?${Object.keys(data).map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`).join('&')}`;
     url += queryString;
@@ -13,6 +13,7 @@ function restFetch(method, url, data) {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
+        'CSRF-Token': csrfToken,
       },
       credentials: 'include',
     }).then((response) => {
@@ -27,6 +28,7 @@ function restFetch(method, url, data) {
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
+      'CSRF-Token': csrfToken,
     },
     body: JSON.stringify(data),
     credentials: 'include',
@@ -40,22 +42,22 @@ function restFetch(method, url, data) {
 
 const schema = {
   events: {
-    url: '/api/events',
+    url: '/api/event',
   },
   users: {
     url: '/api/users',
   },
   badges: {
-    url: '/api/events/<event>/badges',
+    url: '/api/event/<event>/badges',
   },
   departments: {
-    url: '/api/events/<event>/departments',
+    url: '/api/event/<event>/departments',
   },
   emails: {
-    url: '/api/events/<event>/emails',
+    url: '/api/event/<event>/emails',
   },
   email_sources: {
-    url: '/api/events/<event>/email_sources',
+    url: '/api/event/<event>/email_sources',
   },
   grants: {
     url: '/api/grants',
@@ -67,13 +69,13 @@ const schema = {
     url: '/api/permissions',
   },
   room_nights: {
-    url: '/api/events/<event>/hotel_room_nights',
+    url: '/api/event/<event>/hotel_room_nights',
   },
   room_locations: {
-    url: '/api/events/<event>/hotel_locations',
+    url: '/api/event/<event>/hotel_locations',
   },
   room_blocks: {
-    url: '/api/events/<event>/hotel_room_blocks',
+    url: '/api/event/<event>/hotel_room_blocks',
   },
 };
 

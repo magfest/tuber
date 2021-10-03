@@ -4,6 +4,9 @@ function checkPermission(operation, event, department) {
   const { perms } = this.$store.state.user;
   for (let i = 0; i < perms.length; i += 1) {
     const perm = perms[i];
+    if (perm === '*') {
+      return true;
+    }
     if (event && (perm.event !== null) && (event !== perm.event)) {
       continue;
     }

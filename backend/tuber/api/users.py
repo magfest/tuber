@@ -86,7 +86,7 @@ def get_user_permissions():
                 perms.append({"department": permission.department, "event": permission.event, "operation": permission.operation})
             return jsonify(perms)
         return "", 403
-    return jsonify(g.perms)
+    return jsonify(list(g.perms))
 
 headers = {
     'X-Auth-Token': config.uber_api_token

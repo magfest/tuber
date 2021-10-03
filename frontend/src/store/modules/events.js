@@ -16,7 +16,7 @@ const getters = {
 const actions = {
   get_events({ commit }) {
     return new Promise((resolve) => {
-      get('/api/events', { full: true }).then((events) => {
+      get('/api/event', { full: true }).then((events) => {
         commit('set_events', events);
         resolve();
       }).catch(() => {

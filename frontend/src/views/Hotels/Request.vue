@@ -181,13 +181,13 @@ export default {
       const self = this;
       return new Promise((resolve) => {
         if (self.$route.params.badge) {
-          self.get(`/api/events/${self.$store.state.events.event.id}/badges`, { id: self.$route.params.badge, full: true }).then((res) => {
+          self.get(`/api/event/${self.$store.state.events.event.id}/badges`, { id: self.$route.params.badge, full: true }).then((res) => {
             resolve(res[0]);
           }).catch(() => {
             self.notify('Failed to retrieve badge.');
           });
         } else if (self.event.id && self.user.id) {
-          self.get(`/api/events/${self.$store.state.events.event.id}/badges`, { event: self.event.id, user: self.user.id, full: true }).then((res) => {
+          self.get(`/api/event/${self.$store.state.events.event.id}/badges`, { event: self.event.id, user: self.user.id, full: true }).then((res) => {
             resolve(res[0]);
           }).catch(() => {
             self.notify('Failed to retrieve badge.');

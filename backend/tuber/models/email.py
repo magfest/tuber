@@ -22,7 +22,7 @@ class EmailTrigger(Base):
     __url__ = "/api/event/<int:event>/email_trigger"
     id = Column(Integer, primary_key=True)
     trigger = Column(String(128))
-    badge = Column(Integer, ForeignKey('badge.id'), nullable=True)
+    timestamp = Column(DateTime())
     context = Column(JSON())
 
 class EmailSource(Base):

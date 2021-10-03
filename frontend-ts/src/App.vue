@@ -12,20 +12,23 @@
             <AppFooter />
         </div>
 
-        <AppConfig :layoutMode="layoutMode" :layoutColorMode="layoutColorMode" @layout-change="onLayoutChange" @layout-color-change="onLayoutColorChange" />
         <transition name="layout-mask">
             <div class="layout-mask p-component-overlay" v-if="mobileMenuActive"></div>
         </transition>
     </div>
 </template>
 
-<script>
+<script lang="ts">
+import { Options, Vue } from 'vue-class-component'
+
 import AppTopBar from './AppTopbar.vue'
 import AppMenu from './AppMenu.vue'
-import AppConfig from './AppConfig.vue'
 import AppFooter from './AppFooter.vue'
 
-export default {
+type ColorMode = 'dark' | 'light'
+type LayoutMode = 'static' | 'overlay'
+
+@Options({
   data () {
     return {
       layoutMode: 'static',
@@ -35,99 +38,91 @@ export default {
       mobileMenuActive: false,
       menu: [
         {
-          label: 'Home',
+          label: 'My Home',
           items: [{
             label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
+          },
+          {
+            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/shifts'
+          },
+          {
+            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/checklist'
           }]
         },
         {
-          label: 'UI Kit',
-          icon: 'pi pi-fw pi-sitemap',
-          items: [
-            { label: 'Form Layout', icon: 'pi pi-fw pi-id-card', to: '/formlayout' },
-            { label: 'Input', icon: 'pi pi-fw pi-check-square', to: '/input' },
-            { label: 'Float Label', icon: 'pi pi-fw pi-bookmark', to: '/floatlabel' },
-            { label: 'Invalid State', icon: 'pi pi-fw pi-exclamation-circle', to: 'invalidstate' },
-            { label: 'Button', icon: 'pi pi-fw pi-mobile', to: '/button' },
-            { label: 'Table', icon: 'pi pi-fw pi-table', to: '/table' },
-            { label: 'List', icon: 'pi pi-fw pi-list', to: '/list' },
-            { label: 'Tree', icon: 'pi pi-fw pi-share-alt', to: '/tree' },
-            { label: 'Panel', icon: 'pi pi-fw pi-tablet', to: '/panel' },
-            { label: 'Overlay', icon: 'pi pi-fw pi-clone', to: '/overlay' },
-            { label: 'Menu', icon: 'pi pi-fw pi-bars', to: '/menu' },
-            { label: 'Message', icon: 'pi pi-fw pi-comment', to: '/messages' },
-            { label: 'File', icon: 'pi pi-fw pi-file', to: '/file' },
-            { label: 'Chart', icon: 'pi pi-fw pi-chart-bar', to: '/chart' },
-            { label: 'Misc', icon: 'pi pi-fw pi-circle-off', to: '/misc' }
-          ]
+          label: 'Department Home',
+          items: [{
+            label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/department'
+          },
+          {
+            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/department/shifts'
+          },
+          {
+            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/department/checklist'
+          },
+          {
+            label: 'Members', icon: 'pi pi-fw pi-home', to: '/department/members'
+          }]
         },
         {
-          label: 'Pages',
-          icon: 'pi pi-fw pi-clone',
-          items: [
-            { label: 'Crud', icon: 'pi pi-fw pi-user-edit', to: '/crud' },
-            { label: 'Timeline', icon: 'pi pi-fw pi-calendar', to: '/timeline' },
-            { label: 'Empty', icon: 'pi pi-fw pi-circle-off', to: '/empty' }
-          ]
-        },
-        {
-          label: 'Menu Hierarchy',
-          icon: 'pi pi-fw pi-search',
-          items: [
-            {
-              label: 'Submenu 1',
-              icon: 'pi pi-fw pi-bookmark',
-              items: [
-                {
-                  label: 'Submenu 1.1',
-                  icon: 'pi pi-fw pi-bookmark',
-                  items: [
-                    { label: 'Submenu 1.1.1', icon: 'pi pi-fw pi-bookmark' },
-                    { label: 'Submenu 1.1.2', icon: 'pi pi-fw pi-bookmark' },
-                    { label: 'Submenu 1.1.3', icon: 'pi pi-fw pi-bookmark' }
-                  ]
-                },
-                {
-                  label: 'Submenu 1.2',
-                  icon: 'pi pi-fw pi-bookmark',
-                  items: [
-                    { label: 'Submenu 1.2.1', icon: 'pi pi-fw pi-bookmark' },
-                    { label: 'Submenu 1.2.2', icon: 'pi pi-fw pi-bookmark' }
-                  ]
-                }
-              ]
+          label: 'Personnel',
+          items: [{
+            label: 'Rooming',
+            items: [{
+              label: 'Eligibility', icon: 'pi pi-fw pi-home', to: '/rooming/eligibility'
             },
             {
-              label: 'Submenu 2',
-              icon: 'pi pi-fw pi-bookmark',
-              items: [
-                {
-                  label: 'Submenu 2.1',
-                  icon: 'pi pi-fw pi-bookmark',
-                  items: [
-                    { label: 'Submenu 2.1.1', icon: 'pi pi-fw pi-bookmark' },
-                    { label: 'Submenu 2.1.2', icon: 'pi pi-fw pi-bookmark' },
-                    { label: 'Submenu 2.1.3', icon: 'pi pi-fw pi-bookmark' }
-                  ]
-                },
-                {
-                  label: 'Submenu 2.2',
-                  icon: 'pi pi-fw pi-bookmark',
-                  items: [
-                    { label: 'Submenu 2.2.1', icon: 'pi pi-fw pi-bookmark' },
-                    { label: 'Submenu 2.2.2', icon: 'pi pi-fw pi-bookmark' }
-                  ]
-                }
-              ]
-            }
-          ]
+              label: 'Requests', icon: 'pi pi-fw pi-home', to: '/rooming/requests'
+            },
+            {
+              label: 'Approvals', icon: 'pi pi-fw pi-home', to: '/rooming/approvals'
+            },
+            {
+              label: 'Assignments', icon: 'pi pi-fw pi-home', to: '/rooming/assignments'
+            },
+            {
+              label: 'Settings', icon: 'pi pi-fw pi-home', to: '/rooming/settings'
+            }]
+          },
+          {
+            label: 'Perks',
+            items: [{
+              label: 'Merch', icon: 'pi pi-fw pi-home', to: '/personnel/perks/merch'
+            },
+            {
+              label: 'Food', icon: 'pi pi-fw pi-home', to: '/personnel/perks/food'
+            }]
+          },
+          {
+            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/personnel/shifts'
+          }]
         },
         {
-          label: 'Get Started',
-          items: [
-            { label: 'Documentation', icon: 'pi pi-fw pi-question', command: () => { window.location = '#/documentation' } },
-            { label: 'View Source', icon: 'pi pi-fw pi-search', command: () => { window.location = 'https://github.com/primefaces/sakai-vue' } }
-          ]
+          label: 'Event',
+          items: [{
+            label: 'Badges', icon: 'pi pi-fw pi-home', to: '/event/badges'
+          },
+          {
+            label: 'Schedule', icon: 'pi pi-fw pi-home', to: '/event/schedule'
+          },
+          {
+            label: 'Emails', icon: 'pi pi-fw pi-home', to: '/event/emails'
+          },
+          {
+            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/event/settings'
+          }]
+        },
+        {
+          label: 'Server',
+          items: [{
+            label: 'Import/Export', icon: 'pi pi-fw pi-home', to: '/server/import-export'
+          },
+          {
+            label: 'Users', icon: 'pi pi-fw pi-home', to: '/server/users'
+          },
+          {
+            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/server/settings'
+          }]
         }
       ]
     }
@@ -165,27 +160,29 @@ export default {
         this.mobileMenuActive = !this.mobileMenuActive
       }
 
-      event.preventDefault()
+      if (event) {
+        event.preventDefault()
+      }
     },
     onSidebarClick () {
       this.menuClick = true
     },
-    onMenuItemClick (event) {
+    onMenuItemClick (event: any) {
       if (event.item && !event.item.items) {
         this.overlayMenuActive = false
         this.mobileMenuActive = false
       }
     },
-    onLayoutChange (layoutMode) {
+    onLayoutChange (layoutMode: LayoutMode) {
       this.layoutMode = layoutMode
     },
-    onLayoutColorChange (layoutColorMode) {
+    onLayoutColorChange (layoutColorMode: ColorMode) {
       this.layoutColorMode = layoutColorMode
     },
-    addClass (element, className) {
+    addClass (element: HTMLElement, className: string) {
       if (element.classList) { element.classList.add(className) } else { element.className += ' ' + className }
     },
-    removeClass (element, className) {
+    removeClass (element: HTMLElement, className: string) {
       if (element.classList) { element.classList.remove(className) } else { element.className = element.className.replace(new RegExp('(^|\\b)' + className.split(' ').join('|') + '(\\b|$)', 'gi'), ' ') }
     },
     isDesktop () {
@@ -222,10 +219,10 @@ export default {
   components: {
     AppTopBar: AppTopBar,
     AppMenu: AppMenu,
-    AppConfig: AppConfig,
     AppFooter: AppFooter
   }
-}
+})
+export default class App extends Vue {}
 </script>
 
 <style lang="scss">
