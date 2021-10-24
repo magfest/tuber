@@ -1,11 +1,13 @@
+import { Store } from '../store'
+
 declare module '@vue/runtime-core' {
   // declare your own store states
   interface State {
-    setup: Setup
+    app: App
   }
 
   // provide typings for `this.$store`
   interface ComponentCustomProperties {
-    $store: Store<State>
+    $store: Store
   }
 }

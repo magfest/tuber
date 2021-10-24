@@ -77,8 +77,9 @@ async function restFetch (method: string, url:string, data?: any, progressCB?: (
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      "CSRF-Token": VueCookieNext.getCookie('csrf_token')
+      'CSRF-Token': VueCookieNext.getCookie('csrf_token')
     },
+    body: method === 'GET' ? null : JSON.stringify(data),
     credentials: 'include'
   })
 
@@ -89,7 +90,7 @@ async function restFetch (method: string, url:string, data?: any, progressCB?: (
     const job = await pollJob(response, progressCB)
     return await job.json()
   } else {
-    throw new Error('GET: ' + url + ' ' + response.status)
+    throw new Error(method + ': ' + url + ' ' + response.status)
   }
 }
 

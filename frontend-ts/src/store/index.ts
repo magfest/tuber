@@ -1,12 +1,22 @@
 import { createStore } from 'vuex'
 
-// import setup from './modules/setup'
+import { store as app, AppStore, State as AppState } from './modules/app'
 
 const debug = process.env.NODE_ENV !== 'production'
 
-export default createStore({
+export type RootState = {
+  app: AppState;
+};
+
+export const store = createStore({
   modules: {
-    //    setup
+    app
   },
   strict: debug
 })
+
+export type Store = AppStore<Pick<RootState, 'app'>>;
+
+export function useStore (): Store {
+  return store as Store
+}

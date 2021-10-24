@@ -7,7 +7,8 @@
 
         <div class="layout-main-container">
             <div class="layout-main">
-                <router-view />
+              <login v-if="!loggedIn & !initialSetup" />
+              <router-view v-else />
             </div>
             <AppFooter />
         </div>
@@ -19,11 +20,15 @@
 </template>
 
 <script lang="ts">
+import { mapGetters } from 'vuex'
 import { Options, Vue } from 'vue-class-component'
 
 import AppTopBar from './AppTopbar.vue'
 import AppMenu from './AppMenu.vue'
 import AppFooter from './AppFooter.vue'
+import InitialSetup from './views/setup/InitialSetup.vue'
+import Login from './views/Login.vue'
+import { AppActionTypes } from './store/modules/app/actions'
 
 type ColorMode = 'dark' | 'light'
 type LayoutMode = 'static' | 'overlay'
@@ -43,25 +48,25 @@ type LayoutMode = 'static' | 'overlay'
             label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/shifts'
+            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/checklist'
+            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/'
           }]
         },
         {
           label: 'Department Home',
           items: [{
-            label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/department'
+            label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/department/shifts'
+            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/department/checklist'
+            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Members', icon: 'pi pi-fw pi-home', to: '/department/members'
+            label: 'Members', icon: 'pi pi-fw pi-home', to: '/'
           }]
         },
         {
@@ -69,59 +74,59 @@ type LayoutMode = 'static' | 'overlay'
           items: [{
             label: 'Rooming',
             items: [{
-              label: 'Eligibility', icon: 'pi pi-fw pi-home', to: '/rooming/eligibility'
+              label: 'Eligibility', icon: 'pi pi-fw pi-home', to: '/'
             },
             {
               label: 'Requests', icon: 'pi pi-fw pi-home', to: '/rooming/requests'
             },
             {
-              label: 'Approvals', icon: 'pi pi-fw pi-home', to: '/rooming/approvals'
+              label: 'Approvals', icon: 'pi pi-fw pi-home', to: '/'
             },
             {
-              label: 'Assignments', icon: 'pi pi-fw pi-home', to: '/rooming/assignments'
+              label: 'Assignments', icon: 'pi pi-fw pi-home', to: '/'
             },
             {
-              label: 'Settings', icon: 'pi pi-fw pi-home', to: '/rooming/settings'
+              label: 'Settings', icon: 'pi pi-fw pi-home', to: '/'
             }]
           },
           {
             label: 'Perks',
             items: [{
-              label: 'Merch', icon: 'pi pi-fw pi-home', to: '/personnel/perks/merch'
+              label: 'Merch', icon: 'pi pi-fw pi-home', to: '/'
             },
             {
-              label: 'Food', icon: 'pi pi-fw pi-home', to: '/personnel/perks/food'
+              label: 'Food', icon: 'pi pi-fw pi-home', to: '/'
             }]
           },
           {
-            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/personnel/shifts'
+            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/'
           }]
         },
         {
           label: 'Event',
           items: [{
-            label: 'Badges', icon: 'pi pi-fw pi-home', to: '/event/badges'
+            label: 'Badges', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Schedule', icon: 'pi pi-fw pi-home', to: '/event/schedule'
+            label: 'Schedule', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Emails', icon: 'pi pi-fw pi-home', to: '/event/emails'
+            label: 'Emails', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/event/settings'
+            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/'
           }]
         },
         {
           label: 'Server',
           items: [{
-            label: 'Import/Export', icon: 'pi pi-fw pi-home', to: '/server/import-export'
+            label: 'Import/Export', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Users', icon: 'pi pi-fw pi-home', to: '/server/users'
+            label: 'Users', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/server/settings'
+            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/'
           }]
         }
       ]
@@ -197,6 +202,11 @@ type LayoutMode = 'static' | 'overlay'
     }
   },
   computed: {
+    ...mapGetters([
+      'user',
+      'loggedIn',
+      'initialSetup'
+    ]),
     containerClass () {
       return ['layout-wrapper', {
         'layout-overlay': this.layoutMode === 'overlay',
@@ -216,10 +226,16 @@ type LayoutMode = 'static' | 'overlay'
   beforeUpdate () {
     if (this.mobileMenuActive) { this.addClass(document.body, 'body-overflow-hidden') } else { this.removeClass(document.body, 'body-overflow-hidden') }
   },
+  mounted () {
+    this.$store.dispatch(AppActionTypes.GET_INITIAL_SETUP)
+    this.$store.dispatch(AppActionTypes.GET_LOGGED_IN)
+  },
   components: {
     AppTopBar: AppTopBar,
     AppMenu: AppMenu,
-    AppFooter: AppFooter
+    AppFooter: AppFooter,
+    InitialSetup: InitialSetup,
+    Login: Login
   }
 })
 export default class App extends Vue {}

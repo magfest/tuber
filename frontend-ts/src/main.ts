@@ -3,7 +3,7 @@ import App from './App.vue'
 import router from './router'
 import { VueCookieNext } from 'vue-cookie-next'
 
-import store from './store'
+import { store } from './store'
 
 import 'primevue/resources/primevue.min.css'
 import 'primeflex/primeflex.css'
@@ -100,7 +100,7 @@ app.use(VueCookieNext)
 app.use(store)
 app.use(router)
 
-app.config.globalProperties.$appState = reactive({ theme: 'saga-blue' })
+app.config.globalProperties.$appState = reactive({ theme: 'arya-blue' })
 
 app.use(PrimeVue, { ripple: true, inputStyle: 'outlined' })
 app.use(ConfirmationService)

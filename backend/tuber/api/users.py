@@ -44,11 +44,12 @@ def initial_setup():
         db.add(perm)
         db.add(grant)
         db.commit()
-        return "", 200
+        return "null", 200
     return "", 406
 
 @app.route("/api/login", methods=["POST"])
 def login():
+    print("log in")
     if request.json['username'] and request.json['password']:
         user = db.query(User).filter(User.username == request.json['username']).one_or_none()
         if user:
@@ -74,7 +75,7 @@ def logout():
     if g.user:
         db.query(Session).filter(Session.user == g.user.id).delete()
         db.commit()
-    return "", 200
+    return "null", 200
 
 @app.route("/api/user/permissions")
 def get_user_permissions():
