@@ -430,7 +430,7 @@
             "version": "==1.4.26"
         },
         "tuber": {
-            "file": "file:///home/mmurnane/git/tuber/backend",
+            "file": ".",
             "version": "==0.0.1"
         },
         "urllib3": {
