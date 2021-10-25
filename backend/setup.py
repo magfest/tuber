@@ -29,6 +29,7 @@ setup(
         'gunicorn',
         'flask-talisman',
         'redis',
+        'packaging',
         'lupa',
         'boto3',
         'jinja2',
