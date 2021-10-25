@@ -50,7 +50,7 @@ class JobRoleAssociation(Base):
     id = Column(Integer, primary_key=True)
     event = Column(Integer, ForeignKey('event.id'))
     job = Column(Integer, ForeignKey('job.id'))
-    role = Column(Integer, ForeignKey('role.id'))
+    role = Column(Integer, ForeignKey('department_role.id'))
 
 class Job(Base):
     """A Job describes something we might ask a volunteer to do. It holds the actual
@@ -70,7 +70,7 @@ class Job(Base):
     sticky = Column(Boolean)
     schedules = relationship("Schedule", secondary="job_schedule_association")
     schedule_events = relationship("ScheduleEvent", secondary="job_schedule_event_association")
-    roles = relationship("Role", secondary="job_role_association")
+    roles = relationship("DepartmentRole", secondary="job_role_association")
     shifts = relationship("Shift")
 
 class Shift(Base):

@@ -32,6 +32,12 @@ class Model_Base(object):
     modelclasses = {}
 
     @classmethod
+    def onchange(cls, callback):
+        if not hasattr(cls, 'onchange_cb'):
+            setattr(cls, 'onchange_cb', [])
+        cls.onchange_cb.append(callback)
+
+    @classmethod
     def get_modelclasses(cls):
         if cls.modelclasses:
             return

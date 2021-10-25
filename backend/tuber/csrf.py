@@ -7,9 +7,9 @@ def validate_csrf():
     if 'csrf_token' in request.cookies:
         if request.path.startswith("/api"):
             if not 'CSRF-Token' in request.headers:
-                return "You must pass a csrf token when making an API request with a session cookie."
+                return "You must pass a csrf token when making an API request with a session cookie.", 403
             if request.cookies['csrf_token'] != request.headers['CSRF-Token']:
-                return "Invalid csrf token."
+                return "Invalid csrf token.", 403
         if request.method == "GET":
             g.data = dict(request.args)
             return

@@ -54,43 +54,34 @@ def client(tuber):
     #with tuber.app.test_client() as client:
     client = Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
     client.post('/api/initial_setup', json={"username": "admin", "email": "admin@magfest.org", "password": "admin"})
-    client.post("/api/login", json={"csrf_token": csrf(client), "username": "admin", "password": "admin"})
-    client.post("/api/event", json={"csrf_token": csrf(client), "name": "Tuber Event", "description": "It's a potato"})
+    client.post("/api/login", json={"username": "admin", "password": "admin"}, headers={"CSRF-Token": csrf(client)})
+    client.post("/api/event", json={"name": "Tuber Event", "description": "It's a potato"}, headers={"CSRF-Token": csrf(client)})
     _get = client.get
     def get(*args, **kwargs):
-        if not 'query_string' in kwargs:
-            kwargs['query_string'] = {}
-        kwargs['query_string']['csrf_token'] = csrf(client)
+        if not 'headers' in kwargs:
+            kwargs['headers'] = {}
+        kwargs['headers']['CSRF-Token'] = csrf(client)
         rv = _get(*args, **kwargs)
         return rv
     _post = client.post
     def post(*args, **kwargs):
-        if 'data' in kwargs:
-            kwargs['data']['csrf_token'] = csrf(client)
-        else:
-            if not 'json' in kwargs:
-                kwargs['json'] = {}
-            kwargs['json']['csrf_token'] = csrf(client)
+        if not 'headers' in kwargs:
+            kwargs['headers'] = {}
+        kwargs['headers']['CSRF-Token'] = csrf(client)
         rv = _post(*args, **kwargs)
         return rv
     _patch = client.patch
     def patch(*args, **kwargs):
-        if 'data' in kwargs:
-            kwargs['data']['csrf_token'] = csrf(client)
-        else:
-            if not 'json' in kwargs:
-                kwargs['json'] = {}
-            kwargs['json']['csrf_token'] = csrf(client)
+        if not 'headers' in kwargs:
+            kwargs['headers'] = {}
+        kwargs['headers']['CSRF-Token'] = csrf(client)
         rv = _patch(*args, **kwargs)
         return rv
     _delete = client.delete
     def delete(*args, **kwargs):
-        if 'data' in kwargs:
-            kwargs['data']['csrf_token'] = csrf(client)
-        else:
-            if not 'json' in kwargs:
-                kwargs['json'] = {}
-            kwargs['json']['csrf_token'] = csrf(client)
+        if not 'headers' in kwargs:
+            kwargs['headers'] = {}
+        kwargs['headers']['CSRF-Token'] = csrf(client)
         rv = _delete(*args, **kwargs)
         return rv
     client.get = get

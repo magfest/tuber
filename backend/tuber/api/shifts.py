@@ -4,12 +4,14 @@ from tuber.database import db
 from flask import g, request, jsonify
 from sqlalchemy import or_
 import datetime
+import json
 
 def create_shift_schedule(job, schedule_events=[]):
     res = []
-    if job.method['name'] == "copy":
+    method = json.loads(job.method)
+    if method['name'] == "copy":
         for event in schedule_events:
-            res.append(Shift(job=job.id, schedule=event.schedule, schedule_event=event.id, starttime=event.starttime, duration=event.duration, slots=job.method['slots'], filledslots=0))
+            res.append(Shift(job=job.id, event=job.event, schedule=event.schedule, schedule_event=event.id, starttime=event.starttime, duration=event.duration, slots=method['slots'], filledslots=0))
     return res
 
 def reschedule_job(job, schedule_event=None):
@@ -74,10 +76,19 @@ def schedulechange(db, schedule):
             signup.schedule = None
             db.add(signup)
 
+Schedule.onchange(schedulechange)
+
 def scheduleeventchange(db, schedule_event):
     jobs = db.query(Job).filter(Job.schedules.any(Schedule.id == schedule_event.schedule)).all()
     for job in jobs:
         reschedule_job(job, schedule_event=schedule_event)
+
+ScheduleEvent.onchange(scheduleeventchange)
+
+def jobchange(db, job):
+    reschedule_job(job)
+
+Job.onchange(jobchange)
 
 def remove_shift(db, shift):
     signups = db.query(ShiftSignup).filter(ShiftSignup.shift == shift.id).order_by(ShiftSignup.signuptime.desc()).all()
@@ -105,7 +116,7 @@ def add_shift(db, shift):
             db.flush()
             signup.shift = shift.id
             db.add(signup)
-            assignment = ShiftAssignment(badge=signup.badge, shift=shift.id)
+            assignment = ShiftAssignment(badge=signup.badge, shift=shift.id, event=shift.event)
             db.add(assignment)
             shift.filledslots += 1
     db.add(shift)
@@ -119,6 +130,8 @@ def shiftchange(db, shift):
     elif request.method == "DELETE":
         clear_broken_signups(db, shift)
 
+Shift.onchange(shiftchange)
+
 def shiftassignmentchange(db, shiftassignment):
     if request.method == "POST":
         shift = db.query(Shift).filter(Shift.id == shiftassignment.shift).one()
@@ -131,7 +144,9 @@ def shiftassignmentchange(db, shiftassignment):
         shift.filledslots = max(0, shift.filledslots - 1)
         db.add(shift)
 
-@app.route("/api/events/<int:event>/jobs/available", methods=["GET"])
+ShiftAssignment.onchange(shiftassignmentchange)
+
+@app.route("/api/event/<int:event>/job/available", methods=["GET"])
 def available_jobs(event):
     if "badge" in request.args:
         badge = db.query(Badge).filter(Badge.id == request.args['badge']).one_or_none()
@@ -139,7 +154,7 @@ def available_jobs(event):
         badge = g.badge
     if not badge:
         return "Your current user does not have a badge and no badge was passed as a parameter.", 412
-    all_roles = db.query(Role, Grant).join(Grant, Grant.role == Role.id).filter(Grant.user == badge.user).all()
+    all_roles = db.query(DepartmentRole, DepartmentGrant).join(DepartmentGrant, DepartmentGrant.role == DepartmentRole.id).filter(DepartmentGrant.user == badge.user).all()
 
     roles = {}
     for dept in badge.departments:
@@ -179,7 +194,7 @@ def available_jobs(event):
             jobs.append(jobject)
     return jsonify(jobs)
 
-@app.route("/api/events/<int:event>/shifts/<int:shift>/signup", methods=["POST"])
+@app.route("/api/event/<int:event>/shift/<int:shift>/signup", methods=["POST"])
 def shift_signup(event, shift):
     if 'badge' in request.json:
         badge = db.query(Badge).filter(Badge.id == request.json['badge']).one()
@@ -191,7 +206,7 @@ def shift_signup(event, shift):
     if shift.filledslots >= shift.slots:
         return "The shift is full.", 412
     shift.filledslots += 1
-    assignment = ShiftAssignment(shift=shift.id, badge=badge.id)
+    assignment = ShiftAssignment(shift=shift.id, badge=badge.id, event=event)
     signup = ShiftSignup(badge=badge.id, shift=shift.id, job=shift.job, schedule=shift.schedule, schedule_event=shift.schedule_event, starttime=shift.starttime, duration=shift.duration)
     db.add(shift)
     db.add(assignment)
@@ -199,7 +214,7 @@ def shift_signup(event, shift):
     db.commit()
     return jsonify(shift=Shift.serialize(shift), shift_assignment=ShiftAssignment.serialize(assignment), shift_signup=ShiftSignup.serialize(signup))
 
-@app.route("/api/events/<int:event>/jobs/<int:job>/dryrun", methods=["POST"])
+@app.route("/api/event/<int:event>/job/<int:job>/dryrun", methods=["POST"])
 def job_dryrun(event, job):
     jobobj = db.query(Job).filter(Job.id == job).one()
     for i in request.json:

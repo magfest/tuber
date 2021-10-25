@@ -26,6 +26,7 @@ def test_job_retrieval(client):
         if result.status_code == 200:
             break
     assert result.json
-    assert len(result.json) == 1
-    assert "id" in result.json[0]
-    assert "name" in result.json[0]
+    assert "amount" in result.json
+    assert "complete" in result.json
+    assert "messages" in result.json
+    assert "status" in result.json

@@ -48,6 +48,10 @@ def crud_group(model, event=None, department=None):
             g.data['department'] = department
         instance = model.deserialize(g.data)
         db.add(instance)
+        if hasattr(instance, 'onchange_cb'):
+            db.flush()
+            for cb in instance.onchange_cb:
+                cb(db, instance)
         db.commit()
         return jsonify(model.serialize(instance))
     raise MethodNotAllowed()
@@ -63,12 +67,23 @@ def crud_single(model, event=None, department=None, id=None):
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):
             instance = model.deserialize(g.data)
             db.add(instance)
+            if hasattr(instance, 'onchange_cb'):
+                db.flush()
+                for cb in instance.onchange_cb:
+                    cb(db, instance)
             db.commit()
             return jsonify(model.serialize(instance))
         raise PermissionDenied()
     elif request.method == "DELETE":
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):
-            db.query(model).filter(model.id == id).delete()
+            instance = db.query(model).filter(model.id == id).one_or_none()
+            db.delete(instance)
+            print("Precheck")
+            if hasattr(instance, 'onchange_cb'):
+                print("Precallback")
+                db.flush()
+                for cb in instance.onchange_cb:
+                    cb(db, instance)
             db.commit()
             return ""
         raise PermissionDenied()

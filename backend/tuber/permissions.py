@@ -16,6 +16,14 @@ def load_session(endpoint, values):
         "event": {},
         "department": {}
     }
+
+    if not request.json is None:
+        g.data = dict(request.json)
+    elif not request.form is None:
+        g.data = dict(request.form)
+    elif not request.args is None:
+        g.data = dict(request.args)
+
     if not values:
         values = {}
     if 'event' in values:

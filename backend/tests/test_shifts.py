@@ -19,22 +19,27 @@ def test_schedule_change(client):
     }).json
     assert(scheduleevent['name'] == "The big panel")
 
+    department = client.post("/api/event/1/department", json={
+        "name": "Product Testing"
+    }).json
+    assert(department['name'] == "Product Testing")
+
     job = client.post("/api/event/1/job", json={
         "name": "Do a thing",
         "description": "Help make the thing happen, at the place",
         "documentation": "Here's how to do the thing",
+        "department": department['id'],
         "method": {
             "name": "copy",
             "slots": 4
         },
         "schedules": [
-            schedule['id']
+            schedule
         ]
     }).json
     assert(job['name'] == "Do a thing")
 
-    shifts = client.get("/api/event/1/shift", query_string={"full": True}).json
-    print(shifts)
+    shifts = client.get("/api/event/1/shift").json
     assert(len(shifts) == 1)
     assert(shifts[0]['starttime'] == scheduleevent['starttime'])
     assert(shifts[0]['duration'] == scheduleevent['duration'])
@@ -49,15 +54,15 @@ def test_schedule_change(client):
     }).json
     assert(newevent['name'] == "Another cool panel")
 
-    shifts = client.get("/api/event/1/shift", query_string={"full": True}).json
+    shifts = client.get("/api/event/1/shift").json
     assert(len(shifts) == 2)
 
     client.delete("/api/event/1/schedule_event/"+str(scheduleevent['id']))
 
-    events = client.get("/api/event/1/schedule_event", query_string={"full": True}).json
+    events = client.get("/api/event/1/schedule_event").json
     assert(len(events) == 1)
 
-    shifts = client.get("/api/event/1/shift", query_string={"full": True}).json
+    shifts = client.get("/api/event/1/shift").json
     assert(len(shifts) == 1)
 
 def test_signup_persistence(client):
@@ -83,7 +88,7 @@ def test_signup_persistence(client):
     }).json
     assert(department['name'] == "Product Testing")
 
-    role = client.post("/api/role", json={
+    role = client.post("/api/event/1/department_role", json={
         "name": "Manager",
         "description": "Allowed to sign up for manager shifts"
     }).json
@@ -96,30 +101,29 @@ def test_signup_persistence(client):
     }).json
     assert(user['username'] == "testing")
 
-    grant = client.post("/api/grant", json={
+    grant = client.post("/api/event/1/department_grant", json={
         "user": user['id'],
         "role": role['id'],
         "department": department['id']
     }).json
-    print(grant)
     assert(grant['user'] == user['id'])
 
     job = client.post("/api/event/1/job", json={
         "name": "Do a thing",
         "description": "Help make the thing happen, at the place",
         "documentation": "Here's how to do the thing",
+        "department": department['id'],
+        "sticky": False,
         "method": {
             "name": "copy",
             "slots": 4
         },
         "schedules": [
-            schedule['id']
-        ],
-        "roles": [
-            role['id']
-        ],
-        "department": department['id']
-    }).json
+            schedule
+        ]
+    })
+    assert job.status_code == 200
+    job = job.json
     assert(job['name'] == "Do a thing")
     assert(job['department'] == department['id'])
 
