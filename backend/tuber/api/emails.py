@@ -112,7 +112,7 @@ def generate_emails(email):
 
 @app.route('/api/emails/csv')
 def email_csv():
-    if not check_permission('email.read', event=request.args['event']):
+    if not check_permission('email.*.read', event=request.args['event']):
         return "Permission Denied", 403
     event = db.query(Event).filter(Event.id == request.args['event']).one()
     if not 'email' in request.args:
@@ -134,7 +134,7 @@ def email_csv():
 
 @app.route('/api/emails/trigger', methods=['POST'])
 def api_email_trigger():
-    if not check_permission('email.send', event=request.json['event']):
+    if not check_permission('email.*.send', event=request.json['event']):
         return "Permission Denied", 403
     event = db.query(Event).filter(Event.id == request.json['event']).one()
     if not 'email' in request.json:

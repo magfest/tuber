@@ -15,7 +15,7 @@
         </button>
         <ul class="layout-topbar-menu hidden lg:flex origin-top">
             <li>
-              <Dropdown :modelValue="event" dataKey="id" :options="events" optionLabel="name" @input="updateEvent" placeHolder="Select an Event" />
+              <Dropdown v-if="loggedIn & events.length > 0" :modelValue="event" dataKey="id" :options="events" optionLabel="name" @input="updateEvent" placeHolder="Select an Event" />
             </li>
             <li>
                 <button class="p-link layout-topbar-button" @click="toggleUserMenu">
@@ -58,6 +58,9 @@ import { AppMutationTypes } from './store/modules/app/mutations'
     },
     toggleUserMenu (e: Event) {
       this.$refs.userMenu.toggle(e)
+    },
+    menuVisible () {
+
     }
   },
   computed: {
@@ -69,15 +72,13 @@ import { AppMutationTypes } from './store/modules/app/mutations'
   },
   watch: {
     loggedIn (newLoggedIn, oldLoggedIn) {
+      this.$store.dispatch(AppActionTypes.GET_EVENTS)
       if (newLoggedIn) {
-        this.$store.dispatch(AppActionTypes.GET_EVENTS)
-        if (newLoggedIn) {
-          this.userMenuItems[0].items[0].visible = true
-          this.userMenuItems[0].items[1].visible = false
-        } else {
-          this.userMenuItems[0].items[0].visible = false
-          this.userMenuItems[0].items[1].visible = true
-        }
+        this.userMenuItems[0].items[0].visible = true
+        this.userMenuItems[0].items[1].visible = false
+      } else {
+        this.userMenuItems[0].items[0].visible = false
+        this.userMenuItems[0].items[1].visible = true
       }
     }
   },

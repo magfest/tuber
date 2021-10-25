@@ -1,6 +1,6 @@
 from tuber import app, config
 from flask import g, request
-from tuber.models import Permission, Grant, Role, DepartmentPermission, DepartmentGrant, DepartmentRole, Session, User, Badge
+from tuber.models import Permission, Grant, Role, Department, DepartmentPermission, DepartmentGrant, DepartmentRole, Session, User, Badge
 from tuber.database import db
 import datetime
 import json
@@ -12,8 +12,10 @@ def load_session(endpoint, values):
     g.session = None
     g.event = None
     g.department = None
-    g.perms = {}
-    g.department_perms = {}
+    g.perms = {
+        "event": {},
+        "department": {}
+    }
     if not values:
         values = {}
     if 'event' in values:
@@ -30,14 +32,7 @@ def load_session(endpoint, values):
                 g.user = user
                 if "event" in values:
                     g.badge = db.query(Badge).filter(Badge.user == g.user.id, Badge.event == values['event']).one_or_none()
-                permissions = json.loads(session.permissions)
-                g.perms = {k: set(v) for k,v in permissions['event'].items()}
-                if not '*' in g.perms:
-                    g.perms['*'] = set()
-                if g.badge:
-                    g.department_perms = {k: set(v) for k,v in permissions['department'][g.badge.event].items()}
-                if not '*' in g.department_perms:
-                    g.department_perms['*'] = set()
+                g.perms = json.loads(session.permissions)
                 db.add(session)
             else:
                 db.delete(session)
@@ -73,37 +68,48 @@ def get_permissions(user=None):
             perm_cache['event'][event] = []
         perm_cache['event'][event].append(permission.operation)
 
-    user_obj = db.query(User).filter(User.id == user).one()
-    for badge in user_obj.badges:
-        perm_cache['department'][badge.event] = {}
-        dep_perms = db.query(DepartmentPermission, DepartmentGrant, DepartmentRole).filter(DepartmentGrant.badge == badge, DepartmentGrant.role == DepartmentRole.id, DepartmentPermission.role == DepartmentRole.id).all()
-        for permission, grant, role in dep_perms:
-            department = grant.department
-            if department == None:
-                department = "*"
-            if not department in perm_cache['department'][badge.event]:
-                perm_cache['department'][badge.event][department] = []
-            perm_cache['department'][badge.event][department].append(permission.operation)
+    perm_cache['department'] = {}
+    dep_perms = db.query(Department, DepartmentPermission, DepartmentGrant, DepartmentRole).filter(DepartmentGrant.department == Department.id, DepartmentGrant.user == user, DepartmentGrant.role == DepartmentRole.id, DepartmentPermission.role == DepartmentRole.id).all()
+    for department, permission, grant, role in dep_perms:
+        department = grant.department
+        if not department.event in perm_cache['department']:
+            perm_cache['department'][department.event] = {}
+        if not department in perm_cache['department'][department.event]:
+            perm_cache['department'][department.event][department.id] = []
+        perm_cache['department'][department.event][department.id].append(permission.operation)
     return perm_cache
 
-def check_permission(permission=None, event=None, department=None):
-    return True
+def check_permission(permission=None, event="*", department="*"):
     if isinstance(permission, list):
         if len(permission) > 1:
             return check_permission(permission[0], event, department) or check_permission(permission[1:], event, department)
         permission = permission[0]
-    if callable(permission):
-        return permission(event, department)
-    for i in g.perms:
-        if int(event) and (not (i['event'] is None)) and (i['event'] != int(event)):
-            continue
-        if int(department) and (not i['department'] is None) and (i['department'] != int(department)):
-            continue
-        perm_entity, perm_op = i['operation'].split(".")
-        req_entity, req_op = permission.split(".")
-        if perm_entity != "*" and req_entity != perm_entity:
-            continue
-        if perm_op != "*" and req_op != perm_op:
-            continue
-        return True
+    req_table, req_instance, req_action = permission.split(".")
+    for perm_event in g.perms['event']:
+        for perm in g.perms['event'][perm_event]:
+            table, instance, action = perm.split(".")
+            if perm_event != "*" and perm_event != event:
+                continue
+            if table != "*" and table != req_table:
+                continue
+            if instance != "*" and instance != req_instance:
+                continue
+            if action != "*" and action != req_action:
+                continue
+            return True
+    for perm_event in g.department_perms:
+        for perm_dept in g.department_perms[perm_event]:
+            for perm in g.department_perms[perm_event][perm_dept]:
+                table, instance, action = perm.split(".")
+                if perm_event != "*" and perm_event != event:
+                    continue
+                if perm_dept != department:
+                    continue
+                if table != "*" and table != req_table:
+                    continue
+                if instance != "*" and instance != req_instance:
+                    continue
+                if action != "*" and action != req_action:
+                    continue
+                return True
     return False

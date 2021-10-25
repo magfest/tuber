@@ -1,6 +1,8 @@
 <template>
   <div class="card">
-    <roommate-field></roommate-field>
+    <roommate-field v-model="roommates"></roommate-field>
+    {{ roommates }}
+    <Button @click="addBadges">Add Badges</Button>
   </div>
   <!--
   <div>
@@ -92,6 +94,7 @@
 </style>
 
 <script>
+import { post } from '@/lib/rest'
 import { mapGetters } from 'vuex'
 import RoommateField from './RoommateField.vue'
 
@@ -102,6 +105,7 @@ export default {
   },
   data: () => ({
     loading: false,
+    roommates: [1, 2],
     confirmation: false,
     noise_levels: [
       'Quiet - I am quiet, and prefer quiet.',
@@ -126,7 +130,7 @@ export default {
   }),
   computed: {
     ...mapGetters([
-      'logged_in',
+      'loggedIn',
       'event',
       'user'
     ]),
@@ -204,6 +208,41 @@ export default {
   mounted () {
   },
   methods: {
+    addBadges () {
+      post('/api/event/1/badge', {
+        badge_type: 1,
+        printed_name: 'Greg Murnane',
+        search_name: 'greg murnane',
+        first_name: 'Greg',
+        last_name: 'Murnane',
+        legal_name: 'Greg Murnane',
+        legal_name_matches: true,
+        phone: '2405479517',
+        email: 'greg@magfest.org'
+      })
+      post('/api/event/1/badge', {
+        badge_type: 1,
+        printed_name: 'Josiah Tillett',
+        search_name: 'josiah tillett',
+        first_name: 'Josiah',
+        last_name: 'Tillett',
+        legal_name: 'Josiah Tillett',
+        legal_name_matches: true,
+        phone: '2405479517',
+        email: 'josiah@magfest.org'
+      })
+      post('/api/event/1/badge', {
+        badge_type: 1,
+        printed_name: 'Josh Boy',
+        search_name: 'josh boy',
+        first_name: 'Josh',
+        last_name: 'Boy',
+        legal_name: 'Josh Boy',
+        legal_name_matches: true,
+        phone: '2405479517',
+        email: 'josh@magfest.org'
+      })
+    },
     blah () {
       const len = this.request.justification.length
       const max = 200

@@ -19,7 +19,6 @@ class DepartmentRole(Base):
     __tablename__ = "department_role"
     __url__ = "/api/event/<int:event>/department_role"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
     name = Column(String)
     permissions = relationship(DepartmentPermission)
 
@@ -27,8 +26,7 @@ class DepartmentGrant(Base):
     __tablename__ = "department_grant"
     __url__ = "/api/event/<int:event>/department_grant"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    badge = Column(Integer, ForeignKey('badge.id'))
+    user = Column(Integer, ForeignKey('user.id'))
     role = Column(Integer, ForeignKey('department_role.id'))
     department = Column(Integer, ForeignKey('department.id'), nullable=True)
 

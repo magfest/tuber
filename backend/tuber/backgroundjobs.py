@@ -23,7 +23,7 @@ class AsyncMiddleware(object):
 
         @application.route("/api/slow", methods=["GET"])
         def slow_call():
-            if check_permission("circuitbreaker.test"):
+            if check_permission("circuitbreaker.*.test"):
                 for i in range(10):
                     time.sleep(1)
                     g.progress(i*0.1, f"Doing a thing (part {i} / 10)")
@@ -33,7 +33,7 @@ class AsyncMiddleware(object):
 
         @application.route("/api/fast", methods=["GET"])
         def fast_call():
-            if check_permission("circuitbreaker.test"):
+            if check_permission("circuitbreaker.*.test"):
                 time.sleep(0.1)
                 events = db.query(Event).all()
                 return jsonify(Event.serialize(events, g)), 200

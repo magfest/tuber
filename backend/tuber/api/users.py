@@ -80,14 +80,10 @@ def logout():
 @app.route("/api/user/permissions")
 def get_user_permissions():
     if 'user' in request.args:
-        if check_permission("user.read"):
-            perms = []
-            permissions = db.query(Grant.department, Role.event, Permission.operation).filter(Grant.user == request.args['user']).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
-            for permission in permissions:
-                perms.append({"department": permission.department, "event": permission.event, "operation": permission.operation})
-            return jsonify(perms)
+        if check_permission("user." + request.args['user'] + ".read"):
+            return jsonify(get_permissions(user=request.args['user']))
         return "", 403
-    return jsonify(list(g.perms))
+    return jsonify({"event": g.perms, "department": g.department_perms})
 
 headers = {
     'X-Auth-Token': config.uber_api_token

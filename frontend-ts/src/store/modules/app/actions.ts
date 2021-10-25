@@ -13,7 +13,8 @@ export enum AppActionTypes {
     GET_LOGGED_IN = 'GET_LOGGED_IN',
     GET_EVENTS = 'GET_EVENTS',
     LOGOUT = 'LOGOUT',
-    LOGIN = 'LOGIN'
+    LOGIN = 'LOGIN',
+    GET_PERMISSIONS = 'GET_PERMISSIONS'
 }
 
 type AugmentedActionContext = {
@@ -29,6 +30,7 @@ export interface Actions {
     [AppActionTypes.GET_EVENTS]({ commit }: AugmentedActionContext): Promise<void>;
     [AppActionTypes.LOGOUT]({ dispatch }: AugmentedActionContext): Promise<void>;
     [AppActionTypes.LOGIN]({ dispatch }: AugmentedActionContext, user: {username: string, password: string}): Promise<void>;
+    [AppActionTypes.GET_PERMISSIONS]({ dispatch }: AugmentedActionContext): Promise<void>;
 }
 
 export const actions: ActionTree<State, RootState> & Actions = {
@@ -39,13 +41,16 @@ export const actions: ActionTree<State, RootState> & Actions = {
       commit(AppMutationTypes.SET_INITIAL_SETUP, false)
     })
   },
-  async [AppActionTypes.GET_LOGGED_IN] ({ commit }) {
+  async [AppActionTypes.GET_LOGGED_IN] ({ commit, dispatch }) {
     return get('/api/check_login').then((userSession: UserSession) => {
       commit(AppMutationTypes.SET_USER, userSession.user)
-      commit(AppMutationTypes.SET_LOGIN, true)
+      dispatch(AppActionTypes.GET_PERMISSIONS).then(() => {
+        commit(AppMutationTypes.SET_LOGIN, true)
+      })
     }).catch(() => {
       commit(AppMutationTypes.SET_LOGIN, false)
       commit(AppMutationTypes.SET_USER, null)
+      dispatch(AppActionTypes.GET_PERMISSIONS)
     })
   },
   async [AppActionTypes.GET_EVENTS] ({ commit }) {
@@ -69,5 +74,14 @@ export const actions: ActionTree<State, RootState> & Actions = {
     return post('/api/login', user).then(() => {
       dispatch(AppActionTypes.GET_LOGGED_IN)
     })
+  },
+  async [AppActionTypes.GET_PERMISSIONS] ({ state, commit }) {
+    if (state.user) {
+      return get('/api/user/permissions', { user: state.user.id }).then((permissions) => {
+        commit(AppMutationTypes.SET_PERMISSIONS, permissions)
+      })
+    } else {
+      commit(AppMutationTypes.SET_PERMISSIONS, { event: {}, department: {} })
+    }
   }
 }

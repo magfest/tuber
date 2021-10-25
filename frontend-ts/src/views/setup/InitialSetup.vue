@@ -39,7 +39,6 @@ import { Options, Vue } from 'vue-class-component'
   }),
   methods: {
     nextPage () {
-      console.log(this.index)
       if (this.index + 1 === this.items.length) {
         this.$router.push('/')
       } else {

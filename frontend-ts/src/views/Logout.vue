@@ -1,5 +1,6 @@
 <template>
     <div class="card">
+        <Toast />
         <h3>Logging out...</h3>
     </div>
 </template>
@@ -18,7 +19,9 @@ import { AppActionTypes } from '../store/modules/app/actions'
   data: () => ({
   }),
   mounted () {
-    this.$store.dispatch(AppActionTypes.LOGOUT)
+    this.$store.dispatch(AppActionTypes.LOGOUT).catch(() => {
+      this.$toast.add({ severity: 'error', summary: 'Failed to Log Out', detail: 'Could not terminate user session. Are you online?' })
+    })
   }
 })
 export default class Login extends Vue {}

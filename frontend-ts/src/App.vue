@@ -22,6 +22,7 @@
 <script lang="ts">
 import { mapGetters } from 'vuex'
 import { Options, Vue } from 'vue-class-component'
+import { checkPermission } from './lib/permissions'
 
 import AppTopBar from './AppTopbar.vue'
 import AppMenu from './AppMenu.vue'
@@ -48,14 +49,15 @@ type LayoutMode = 'static' | 'overlay'
             label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/', permission: 'staffer.*.read'
           },
           {
-            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/', permission: 'staffer.*.checklist'
           }]
         },
         {
           label: 'Department Home',
+          permission: 'department.*.read',
           items: [{
             label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
           },
@@ -71,8 +73,10 @@ type LayoutMode = 'static' | 'overlay'
         },
         {
           label: 'Personnel',
+          permission: 'personnel.*.read',
           items: [{
             label: 'Rooming',
+            permission: 'rooming.*.write',
             items: [{
               label: 'Eligibility', icon: 'pi pi-fw pi-home', to: '/'
             },
@@ -91,6 +95,7 @@ type LayoutMode = 'static' | 'overlay'
           },
           {
             label: 'Perks',
+            permission: 'perks.*.write',
             items: [{
               label: 'Merch', icon: 'pi pi-fw pi-home', to: '/'
             },
@@ -99,11 +104,12 @@ type LayoutMode = 'static' | 'overlay'
             }]
           },
           {
-            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/', permission: 'shifts.*.write'
           }]
         },
         {
           label: 'Event',
+          permission: 'event.*.write',
           items: [{
             label: 'Badges', icon: 'pi pi-fw pi-home', to: '/'
           },
@@ -119,6 +125,7 @@ type LayoutMode = 'static' | 'overlay'
         },
         {
           label: 'Server',
+          permission: 'server.*.write',
           items: [{
             label: 'Import/Export', icon: 'pi pi-fw pi-home', to: '/'
           },
@@ -136,9 +143,25 @@ type LayoutMode = 'static' | 'overlay'
     $route () {
       this.menuActive = false
       this.$toast.removeAllGroups()
+    },
+    permissions () {
+      this.refreshMenu(this.menu)
+    },
+    departmentPermissions () {
+      this.refreshMenu(this.menu)
     }
   },
   methods: {
+    refreshMenu (menu: [{visible: boolean, permission?: string, items?: []}]) {
+      menu.forEach((menuitem) => {
+        if (Object.prototype.hasOwnProperty.call(menuitem, 'permission') && menuitem.permission) {
+          menuitem.visible = checkPermission(menuitem.permission)
+        }
+        if (Object.prototype.hasOwnProperty.call(menuitem, 'items')) {
+          this.refreshMenu(menuitem.items)
+        }
+      })
+    },
     onWrapperClick () {
       if (!this.menuClick) {
         this.overlayMenuActive = false
@@ -205,7 +228,9 @@ type LayoutMode = 'static' | 'overlay'
     ...mapGetters([
       'user',
       'loggedIn',
-      'initialSetup'
+      'initialSetup',
+      'permissions',
+      'departmentPermissions'
     ]),
     containerClass () {
       return ['layout-wrapper', {
@@ -227,7 +252,11 @@ type LayoutMode = 'static' | 'overlay'
     if (this.mobileMenuActive) { this.addClass(document.body, 'body-overflow-hidden') } else { this.removeClass(document.body, 'body-overflow-hidden') }
   },
   mounted () {
-    this.$store.dispatch(AppActionTypes.GET_INITIAL_SETUP)
+    this.$store.dispatch(AppActionTypes.GET_INITIAL_SETUP).then(() => {
+      if (this.initialSetup) {
+        this.$router.push('/initialsetup/welcome')
+      }
+    })
     this.$store.dispatch(AppActionTypes.GET_LOGGED_IN)
   },
   components: {

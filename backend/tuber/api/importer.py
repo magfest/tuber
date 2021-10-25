@@ -13,7 +13,7 @@ import io
 @app.route("/api/importer/csv", methods=["GET", "POST"])
 def csv_import():
     if request.method == "GET":
-        if not check_permission("export.csv"):
+        if not check_permission("export.*.csv"):
             return "Permission Denied", 403
         export_type = request.args['csv_type']
         model = globals()[export_type]
@@ -27,7 +27,7 @@ def csv_import():
         response.headers.set('Content-Disposition', 'attachment; filename={}.csv'.format(export_type))
         return response
     elif request.method == "POST":
-        if not check_permission("import.csv"):
+        if not check_permission("import.*.csv"):
             return "Permission Denied", 403
         import_type = request.form['csv_type']
         model = globals()[import_type]
@@ -188,7 +188,7 @@ def import_uber_staff():
     event = db.query(Event).filter(Event.id == request.json['event']).one_or_none()
     if not event:
         return "", 412
-    if not check_permission("import.staff", event=request.json['event']):
+    if not check_permission("import.*.staff", event=request.json['event']):
         return "", 403
 
     email = request.json['email']

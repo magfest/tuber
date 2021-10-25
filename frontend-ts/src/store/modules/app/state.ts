@@ -6,6 +6,8 @@ export type State = {
   user: User | null,
   event: Event | null,
   events: Event[],
+  permissions: {[key:string]: string[]},
+  departmentPermissions: {[key:string]: {[key:string]: string[]}}
 }
 
 export const state: State = {
@@ -13,5 +15,7 @@ export const state: State = {
   loggedIn: false,
   user: null,
   event: null,
-  events: []
+  events: [],
+  permissions: {},
+  departmentPermissions: {}
 }
