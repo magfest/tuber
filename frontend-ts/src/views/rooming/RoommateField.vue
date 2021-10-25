@@ -9,9 +9,9 @@
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component'
+import { mapGetters } from 'vuex'
 
 import AutoComplete from 'primevue/autocomplete'
-import { get } from '../../lib/rest'
 import { Badge } from '../../lib/interfaces'
 
 @Options({
@@ -23,21 +23,23 @@ import { Badge } from '../../lib/interfaces'
   data () {
     return {
       suggestedNames: [],
-      badges: [],
-      badgeLookup: {},
       roommates: []
     }
   },
-  mounted () {
-    get('/api/event/1/badge').then((res: Badge[]) => {
-      this.badges = res
-      this.badges.forEach((badge: Badge) => {
-        this.badgeLookup[badge.id] = badge
-      })
-      this.modelValue.forEach((val: number) => [
+  computed: {
+    ...mapGetters([
+      'badges',
+      'badgeLookup'
+    ])
+  },
+  watch: {
+    badgeLookup () {
+      this.modelValue.forEach((val: number) => {
         this.roommates.push(this.badgeLookup[val])
-      ])
-    })
+      })
+    }
+  },
+  mounted () {
   },
   methods: {
     updated () {
