@@ -23,7 +23,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = config.database_url
 print("Connecting to database {}".format(config.database_url))
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-engine = sqlalchemy.create_engine(config.database_url, connect_args={"check_same_thread": False})
+engine = sqlalchemy.create_engine(config.database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 db = scoped_session(SessionLocal, scopefunc=_app_ctx_stack.__ident_func__)
             
