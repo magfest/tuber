@@ -1,3 +1,4 @@
+import pathlib
 import json
 import os
 
@@ -23,6 +24,7 @@ for i in conf.keys():
 
 conf.update(environment)
 print("Updating database url")
+pathlib.Path("/tmp/app-initialized").touch()
 conf['database_url'] = conf['database_url'].replace("postgres:", "postgresql:")
 
 for i in ["verbose", "force_https", "enable_circuitbreaker"]:
@@ -40,4 +42,3 @@ for i in ["circuitbreaker_timeout"]:
 for i in conf:
     vars()[i] = conf[i]
     print("{}: {}".format(i, conf[i]))
-    
