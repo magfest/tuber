@@ -68,17 +68,21 @@ async function restFetch (method: string, url:string, data?: any, progressCB?: (
   }
   setProgress(progressCB, { active: true })
 
+  let headers = {
+    Accept: 'application/json',
+    'CSRF-Token': VueCookieNext.getCookie('csrf_token')
+  }
+
   if (method === 'GET') {
     const queryString = `?${Object.keys(data).map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`).join('&')}`
     url += queryString
+  } else {
+    headers['Content-Type'] = 'application/json'
   }
+  
   const response = await fetch(url, {
     method,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'CSRF-Token': VueCookieNext.getCookie('csrf_token')
-    },
+    headers,
     body: method === 'GET' ? null : JSON.stringify(data),
     credentials: 'include'
   })

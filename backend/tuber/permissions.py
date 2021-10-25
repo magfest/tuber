@@ -17,10 +17,11 @@ def load_session(endpoint, values):
         "department": {}
     }
 
-    if not request.json is None:
-        g.data = dict(request.json)
-    elif not request.form is None:
-        g.data = dict(request.form)
+    if request.method != "GET":
+        if not request.json is None:
+            g.data = dict(request.json)
+        elif not request.form is None:
+            g.data = dict(request.form)
     elif not request.args is None:
         g.data = dict(request.args)
 
