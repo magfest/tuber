@@ -2,7 +2,7 @@
     <div class="card">
         <Toast />
         <h3>Please Log In</h3>
-        <form @action.prevent>
+        <form @submit.prevent>
           <div class="field grid">
               <label for="username" class="col-fixed" style="width:100px">Username</label>
               <div class="col">

@@ -79,5 +79,5 @@
   "description": "Open source event management software, based on Flask and Vue.js.",
   "repository": "https://github.com/magfest/tuber",
   "keywords": ["vue", "flask", "python", "event management"],
-  "stack": "heroku-18"
+  "stack": "heroku-20"
 }

@@ -1,3 +1,4 @@
+import pathlib
 import json
 import os
 
@@ -22,6 +23,9 @@ for i in conf.keys():
         environment[i] = os.environ[i.upper()]
 
 conf.update(environment)
+print("Updating database url")
+pathlib.Path("/tmp/app-initialized").touch()
+conf['database_url'] = conf['database_url'].replace("postgres:", "postgresql:")
 
 for i in ["verbose", "force_https", "enable_circuitbreaker"]:
     if isinstance(conf[i], str):

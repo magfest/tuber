@@ -4,4 +4,4 @@ import sys
 from .backgroundjobs import AsyncMiddleware
 
 tuber.database.migrate()
-app = AsyncMiddleware(tuber.app)
+async_app = AsyncMiddleware(tuber.app)
