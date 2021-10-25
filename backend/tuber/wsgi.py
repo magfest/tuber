@@ -1,3 +1,7 @@
+from werkzeug.serving import run_simple
 import tuber
-tuber.migrate()
-app = tuber.app
+import sys
+from .backgroundjobs import AsyncMiddleware
+
+tuber.database.migrate()
+app = AsyncMiddleware(tuber.app)
