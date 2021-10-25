@@ -22,6 +22,7 @@ for i in conf.keys():
         environment[i] = os.environ[i.upper()]
 
 conf.update(environment)
+conf['DATABASE_URL'] = conf['DATABASE_URL'].replace("postgres:", "postgresql:")
 
 for i in ["verbose", "force_https", "enable_circuitbreaker"]:
     if isinstance(conf[i], str):
