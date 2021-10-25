@@ -47,12 +47,4 @@ def migrate():
 
 r = None
 if config.redis_url:
-    m = re.search("redis://([a-z0-9\.]+)(:(\d+))?(/(\d+))?", config.redis_url)
-    redis_host = m.group(1)
-    redis_port = 6379
-    if m.group(3):
-        redis_port = int(m.group(3))
-    redis_db = 0
-    if m.group(5):
-        redis_db = int(m.group(5))
-    r = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
+    r = redis.Redis.from_url(config.redis_url)
