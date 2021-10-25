@@ -27,10 +27,46 @@
       "description": "Flask mode.",
       "value": "production"
     },
+    "VERBOSE": {
+      "required": false,
+      "description": "Produce more logging output",
+      "value": "false"
+    },
+    "DATABASE_URL": {
+      "required": false,
+      "description": "A sqlalchemy compatible database connection url"
+    },
+    "SESSION_DURATION": {
+      "required": false,
+      "description": "The time in seconds for sessions to last without interaction",
+      "value": "7200"
+    },
+    "CSP_DIRECTIVES": {
+      "required": false,
+      "description": "Configures the Talisman content security policy"
+    },
     "FORCE_HTTPS": {
       "required": false,
-      "description": "Redirect HTTP connections to HTTPS",
-      "value": "False"
+      "description": "If true the application will attempt to force connections to use https"
+    },
+    "ENABLE_CIRCUITBREAKER": {
+      "required": false,
+      "description": "If true, some REST requests may return early 206 responses while processing continues asynchronously",
+      "value": "true"
+    },
+    "CIRCUITBREAKER_TIMEOUT": {
+      "required": false,
+      "description": "Sets the max time a request may take before getting put into the asynchronous job queue",
+      "value": "1"
+    },
+    "CIRCUITBREAKER_THREADS": {
+      "required": false,
+      "description": "Sets the number of circuitbreaker worker threads per web worker",
+      "value": "10"
+    },
+    "REDIS_URL": {
+      "required": false,
+      "description": "Sets the path to the session and job tracking redis instance"
     }
   },
   "formation": {

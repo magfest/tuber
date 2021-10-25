@@ -1,79 +1,123 @@
-from tuber import app, db, config
-from flask import jsonify, g, request, url_for, redirect
-from tuber.models import *
+from tuber import app, config
+from flask import g, request
+from tuber.models import Permission, Grant, Role, Department, DepartmentPermission, DepartmentGrant, DepartmentRole, Session, User, Badge
+from tuber.database import db
 import datetime
+import json
 
-class PermissionDenied(Exception):
-    status_code = 403
-
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['message'] = self.message
-        return rv
-
-@app.errorhandler(PermissionDenied)
-def handle_permission_denied(error):
-    response = jsonify(error.to_dict())
-    response.status_code = error.status_code
-    return response
-
-@app.before_request
-def get_user():
+@app.url_value_preprocessor
+def load_session(endpoint, values):
     g.user = None
-    g.perms = []
+    g.badge = None
+    g.session = None
+    g.event = None
+    g.department = None
+    g.perms = {
+        "event": {},
+        "department": {}
+    }
+
+    if not request.json is None:
+        g.data = dict(request.json)
+    elif not request.form is None:
+        g.data = dict(request.form)
+    elif not request.args is None:
+        g.data = dict(request.args)
+
+    if not values:
+        values = {}
+    if 'event' in values:
+        g.event = values['event']
+    if 'department' in values:
+        g.department = values['department']
     if 'session' in request.cookies:
-        res = db.session.query(Session, User).join(User, Session.user == User.id).filter(Session.secret == request.cookies.get('session')).one_or_none()
+        res = db.query(Session, User).join(User, Session.user == User.id).filter(Session.secret == request.cookies.get('session')).one_or_none()
         if res:
-            session, g.user = res
+            session, user = res
             if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config.session_duration):
                 session.last_active = datetime.datetime.now()
-                g.session = session.secret
-                permissions = db.session.query(Grant.department, Role.event, Permission.operation).filter(Grant.user == g.user.id).join(Role, Grant.role == Role.id).join(Permission, Permission.role == Role.id).all()
-                for permission in permissions:
-                    g.perms.append({"department": permission.department, "event": permission.event, "operation": permission.operation})
-                db.session.add(session)
-                event = None
-                if request.method == "GET":
-                    if "event" in request.args:
-                        event = request.args['event']
-                if request.method == "POST":
-                    if request.json:
-                        data = request.json
-                    else:
-                        data = request.form
-                    if "event" in data:
-                        event = int(data['event'])
-                g.event = event
-                g.badge = db.session.query(Badge).filter(Badge.user == g.user.id, Badge.event == event).one_or_none()
+                g.session = session
+                g.user = user
+                if "event" in values:
+                    g.badge = db.query(Badge).filter(Badge.user == g.user.id, Badge.event == values['event']).one_or_none()
+                g.perms = json.loads(session.permissions)
+                db.add(session)
             else:
-                db.session.delete(session)
-            db.session.commit()
+                db.delete(session)
+            db.commit()
 
-def check_permission(permission=None, event=0, department=0):
+def flush_session_perms(user_id=None):
+    if user_id:
+        sessions = db.query(Session).filter(Session.user == user_id).all()
+    else:
+        sessions = db.query(Session).all()
+    for session in sessions:
+        perms = get_permissions(user_id=session.user)
+        session.permissions=json.dumps(perms)
+        db.add(session)
+    db.commit()
+
+def get_permissions(user=None):
+    if not user and g.user:
+        user = g.user.id
+    perm_cache = {
+        "event": {},
+        "department": {}
+    }
+    if not user:
+        return perm_cache
+
+    perms = db.query(Permission, Grant, Role).filter(Grant.user == user, Grant.role == Role.id, Permission.role == Role.id).all()
+    for permission, grant, role in perms:
+        event = grant.event
+        if event == None:
+            event = "*"
+        if not event in perm_cache['event']:
+            perm_cache['event'][event] = []
+        perm_cache['event'][event].append(permission.operation)
+
+    perm_cache['department'] = {}
+    dep_perms = db.query(Department, DepartmentPermission, DepartmentGrant, DepartmentRole).filter(DepartmentGrant.department == Department.id, DepartmentGrant.user == user, DepartmentGrant.role == DepartmentRole.id, DepartmentPermission.role == DepartmentRole.id).all()
+    for department, permission, grant, role in dep_perms:
+        department = grant.department
+        if not department.event in perm_cache['department']:
+            perm_cache['department'][department.event] = {}
+        if not department in perm_cache['department'][department.event]:
+            perm_cache['department'][department.event][department.id] = []
+        perm_cache['department'][department.event][department.id].append(permission.operation)
+    return perm_cache
+
+def check_permission(permission=None, event="*", department="*"):
     if isinstance(permission, list):
         if len(permission) > 1:
             return check_permission(permission[0], event, department) or check_permission(permission[1:], event, department)
         permission = permission[0]
-    if callable(permission):
-        return permission(event, department)
-    for i in g.perms:
-        if int(event) and (not (i['event'] is None)) and (i['event'] != int(event)):
-            continue
-        if int(department) and (not i['department'] is None) and (i['department'] != int(department)):
-            continue
-        perm_entity, perm_op = i['operation'].split(".")
-        req_entity, req_op = permission.split(".")
-        if perm_entity != "*" and req_entity != perm_entity:
-            continue
-        if perm_op != "*" and req_op != perm_op:
-            continue
-        return True
+    req_table, req_instance, req_action = permission.split(".")
+    for perm_event in g.perms['event']:
+        for perm in g.perms['event'][perm_event]:
+            table, instance, action = perm.split(".")
+            if perm_event != "*" and perm_event != event:
+                continue
+            if table != "*" and table != req_table:
+                continue
+            if instance != "*" and instance != req_instance:
+                continue
+            if action != "*" and action != req_action:
+                continue
+            return True
+    for perm_event in g.department_perms:
+        for perm_dept in g.department_perms[perm_event]:
+            for perm in g.department_perms[perm_event][perm_dept]:
+                table, instance, action = perm.split(".")
+                if perm_event != "*" and perm_event != event:
+                    continue
+                if perm_dept != department:
+                    continue
+                if table != "*" and table != req_table:
+                    continue
+                if instance != "*" and instance != req_instance:
+                    continue
+                if action != "*" and action != req_action:
+                    continue
+                return True
     return False
-        

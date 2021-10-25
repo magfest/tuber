@@ -1,59 +1,88 @@
-from tuber import db
+from tuber.models import Base
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean
+from sqlalchemy.orm import relationship
 
-class BadgeToDepartment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
-    department = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
+class BadgeToDepartment(Base):
+    __tablename__ = "badge_to_department"
+    id = Column(Integer, primary_key=True)
+    badge = Column(Integer, ForeignKey('badge.id'))
+    department = Column(Integer, ForeignKey('department.id'))
 
-class Badge(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    event = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    badge_type = db.Column(db.Integer, db.ForeignKey('badge_type.id'))
-    printed_number = db.Column(db.String(32))
-    printed_name = db.Column(db.String(256))
-    search_name = db.Column(db.String(256))
-    first_name = db.Column(db.String(128))
-    last_name = db.Column(db.String(128))
-    legal_name = db.Column(db.String(256), nullable=False)
-    legal_name_matches = db.Column(db.Boolean)
-    phone = db.Column(db.String(64))
-    email = db.Column(db.String(128))
-    user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    uber_id = db.Column(db.String(128), unique=True, nullable=True)
-    departments = db.relationship("Department", secondary="badge_to_department", back_populates="badges")
-    room_night_requests = db.relationship("RoomNightRequest")
-    room_night_assignments = db.relationship("RoomNightAssignment")
-    room_night_approvals = db.relationship("RoomNightApproval")
-    hotel_room_request = db.relationship("HotelRoomRequest")
+class DepartmentPermission(Base):
+    __tablename__ = "department_permission"
+    __url__ = "/api/event/<int:event>/department_permission"
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    event = Column(Integer, ForeignKey('event.id'))
+    role = Column(Integer, ForeignKey('department_role.id'))
 
-    def __repr__(self):
-        return '<Badge %r %r>' % (self.first_name, self.last_name)
+class DepartmentRole(Base):
+    __tablename__ = "department_role"
+    __url__ = "/api/event/<int:event>/department_role"
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    event = Column(Integer, ForeignKey('event.id'))
+    description = Column(String)
+    permissions = relationship(DepartmentPermission)
 
-class Department(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    uber_id = db.Column(db.String(128), unique=True, nullable=True)
-    description = db.Column(db.String(256), nullable=True)
-    event = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    name = db.Column(db.String(256))
-    badges = db.relationship("Badge", secondary="badge_to_department", back_populates="departments")
+class DepartmentGrant(Base):
+    __tablename__ = "department_grant"
+    __url__ = "/api/event/<int:event>/department_grant"
+    id = Column(Integer, primary_key=True)
+    user = Column(Integer, ForeignKey('user.id'))
+    event = Column(Integer, ForeignKey('event.id'))
+    role = Column(Integer, ForeignKey('department_role.id'))
+    department = Column(Integer, ForeignKey('department.id'), nullable=True)
 
-class BadgeType(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), unique=True, nullable=False)
-    description = db.Column(db.String(256), nullable=False)
+class Badge(Base):
+    __tablename__ = "badge"
+    __url__ = "/api/event/<int:event>/badge"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    badge_type = Column(Integer, ForeignKey('badge_type.id'))
+    printed_number = Column(String(32))
+    printed_name = Column(String(256))
+    search_name = Column(String(256))
+    first_name = Column(String(128))
+    last_name = Column(String(128))
+    legal_name = Column(String(256))
+    legal_name_matches = Column(Boolean)
+    phone = Column(String(64))
+    email = Column(String(128))
+    user = Column(Integer, ForeignKey('user.id'), nullable=True)
+    uber_id = Column(String(128), unique=True, nullable=True)
+    departments = relationship("Department", secondary="badge_to_department", back_populates="badges")
+    room_night_requests = relationship("RoomNightRequest")
+    room_night_assignments = relationship("RoomNightAssignment")
+    room_night_approvals = relationship("RoomNightApproval")
+    hotel_room_request = relationship("HotelRoomRequest")
 
-    def __repr__(self):
-        return '<BadgeType %r>' % self.name
+class Department(Base):
+    __tablename__ = "department"
+    __url__ = "/api/event/<int:event>/department"
+    id = Column(Integer, primary_key=True)
+    uber_id = Column(String(128), unique=True, nullable=True)
+    description = Column(String(256), nullable=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    name = Column(String(256))
+    badges = relationship("Badge", secondary="badge_to_department", back_populates="departments")
 
-class RibbonType(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), unique=True, nullable=False)
-    description = db.Column(db.String(256), nullable=False)
+class BadgeType(Base):
+    __tablename__ = "badge_type"
+    __url__ = "/api/event/<int:event>/badge_type"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(128), unique=True)
+    description = Column(String(256))
 
-    def __repr__(self):
-        return '<RibbonType %r>' % self.name
+class RibbonType(Base):
+    __tablename__ = "ribbon_type"
+    __url__ = "/api/event/<int:event>/ribbon_type"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(128), unique=True)
+    description = Column(String(256))
 
-class RibbonToBadge(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    ribbon = db.Column(db.Integer, db.ForeignKey('ribbon_type.id'))
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
+class RibbonToBadge(Base):
+    __tablename__ = "ribbon_to_badge"
+    id = Column(Integer, primary_key=True)
+    ribbon = Column(Integer, ForeignKey('ribbon_type.id'))
+    badge = Column(Integer, ForeignKey('badge.id'))

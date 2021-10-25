@@ -1,93 +1,120 @@
-from tuber import db
+from tuber.models import Base
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, JSON, DateTime, Float
+from sqlalchemy.orm import relationship
 import datetime
 
-class Schedule(db.Model):
+class Schedule(Base):
     """A Schedule is used to store ScheduleEvents that are used for shift 
     creation and the public event schedule.
     """
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    description = db.Column(db.String)
-    event = db.Column(db.Integer, db.ForeignKey('event.id'))
-    tags = db.Column(db.JSON)
+    __tablename__ = "schedule"
+    __url__ = "/api/event/<int:event>/schedule"
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    description = Column(String)
+    event = Column(Integer, ForeignKey('event.id'))
+    tags = Column(JSON)
 
-class ScheduleEvent(db.Model):
+class ScheduleEvent(Base):
     """A ScheduleEvent is used to store when something will happen during an Event.
     """
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    description = db.Column(db.String)
-    starttime = db.Column(db.DateTime())
-    duration = db.Column(db.Float)
-    schedule = db.Column(db.Integer, db.ForeignKey('schedule.id'))
+    __tablename__ = "schedule_event"
+    __url__ = "/api/event/<int:event>/schedule_event"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    name = Column(String)
+    description = Column(String)
+    starttime = Column(DateTime())
+    duration = Column(Integer)
+    schedule = Column(Integer, ForeignKey('schedule.id'))
 
-class JobScheduleAssociation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    job = db.Column(db.Integer, db.ForeignKey('job.id'))
-    schedule = db.Column(db.Integer, db.ForeignKey('schedule.id'))
+class JobScheduleAssociation(Base):
+    __tablename__ = "job_schedule_association"
+    __url__ = "/api/event/<int:event>/job_schedule_association"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    job = Column(Integer, ForeignKey('job.id'))
+    schedule = Column(Integer, ForeignKey('schedule.id'))
 
-class JobScheduleEventAssociation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    job = db.Column(db.Integer, db.ForeignKey('job.id'))
-    schedule_event = db.Column(db.Integer, db.ForeignKey('schedule_event.id'))
+class JobScheduleEventAssociation(Base):
+    __tablename__ = "job_schedule_event_association"
+    __url__ = "/api/event/<int:event>/job_schedule_event_association"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    job = Column(Integer, ForeignKey('job.id'))
+    schedule_event = Column(Integer, ForeignKey('schedule_event.id'))
 
-class JobRoleAssociation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    job = db.Column(db.Integer, db.ForeignKey('job.id'))
-    role = db.Column(db.Integer, db.ForeignKey('role.id'))
+class JobRoleAssociation(Base):
+    __tablename__ = "job_role_association"
+    __url__ = "/api/event/<int:event>/job_role_association"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    job = Column(Integer, ForeignKey('job.id'))
+    role = Column(Integer, ForeignKey('department_role.id'))
 
-class Job(db.Model):
+class Job(Base):
     """A Job describes something we might ask a volunteer to do. It holds the actual
     job description for the human as well as scheduling rules for the system to
     create Shifts. All Shifts are linked to a Job.
     """
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    description = db.Column(db.String)
-    event = db.Column(db.Integer, db.ForeignKey('event.id'))
-    documentation = db.Column(db.String)
-    department = db.Column(db.Integer, db.ForeignKey('department.id'))
-    method = db.Column(db.JSON)
-    signuprules = db.Column(db.JSON)
-    sticky = db.Column(db.Boolean)
-    schedules = db.relationship("Schedule", secondary="job_schedule_association")
-    schedule_events = db.relationship("ScheduleEvent", secondary="job_schedule_event_association")
-    roles = db.relationship("Role", secondary="job_role_association")
-    shifts = db.relationship("Shift")
+    __tablename__ = "job"
+    __url__ = "/api/event/<int:event>/job"
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    description = Column(String)
+    event = Column(Integer, ForeignKey('event.id'))
+    documentation = Column(String)
+    department = Column(Integer, ForeignKey('department.id'))
+    method = Column(JSON)
+    signuprules = Column(JSON)
+    sticky = Column(Boolean)
+    schedules = relationship("Schedule", secondary="job_schedule_association")
+    schedule_events = relationship("ScheduleEvent", secondary="job_schedule_event_association")
+    roles = relationship("DepartmentRole", secondary="job_role_association")
+    shifts = relationship("Shift")
 
-class Shift(db.Model):
+class Shift(Base):
     """A Shift is a block of time that a staffer can sign up to work. All Shifts are linked to a Job.
     """
-    id = db.Column(db.Integer, primary_key=True)
-    job = db.Column(db.Integer, db.ForeignKey('job.id'))
-    schedule = db.Column(db.Integer, db.ForeignKey('schedule.id'))
-    schedule_event = db.Column(db.Integer, db.ForeignKey('schedule_event.id'))
-    starttime = db.Column(db.DateTime())
-    duration = db.Column(db.Float)
-    slots = db.Column(db.Integer)
-    filledslots = db.Column(db.Integer)
-    weighting = db.Column(db.Float)
+    __tablename__ = "shift"
+    __url__ = '/api/event/<int:event>/shift'
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    job = Column(Integer, ForeignKey('job.id'))
+    schedule = Column(Integer, ForeignKey('schedule.id'))
+    schedule_event = Column(Integer, ForeignKey('schedule_event.id'))
+    starttime = Column(DateTime())
+    duration = Column(Integer)
+    slots = Column(Integer)
+    filledslots = Column(Integer)
+    weighting = Column(Float)
 
-class ShiftAssignment(db.Model):
+class ShiftAssignment(Base):
     """A ShiftAssignment connect badges to shifts that they will work. They store the current state,
     and may be blown away when jobs or schedules are changed without direct user intervention.
     """
-    id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
-    shift = db.Column(db.Integer, db.ForeignKey('shift.id'))
+    __tablename__ = "shift_assignment"
+    __url__ = "/api/event/<int:event>/shift_assignment"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    badge = Column(Integer, ForeignKey('badge.id'))
+    shift = Column(Integer, ForeignKey('shift.id'))
 
-class ShiftSignup(db.Model):
+class ShiftSignup(Base):
     """A ShiftSignup tracks the intent of a user to signup for a shift. This is different than a
     ShiftAssignment. A ShiftSignup persists even if the underlying shift is removed, so that the
     user's desires are still known if a new, similar shift is created. Thus it must hold a copy
     of the associated shift so that it can be compared to potential replacement shifts.
     """
-    id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.Integer, db.ForeignKey('badge.id'))
-    job = db.Column(db.Integer, db.ForeignKey('job.id'))
-    shift = db.Column(db.Integer, db.ForeignKey('shift.id'))
-    schedule = db.Column(db.Integer, db.ForeignKey('schedule.id'))
-    schedule_event = db.Column(db.Integer, db.ForeignKey('schedule_event.id'))
-    starttime = db.Column(db.DateTime())
-    duration = db.Column(db.Float())
-    signuptime = db.Column(db.DateTime(), default=datetime.datetime.utcnow)
+    __tablename__ = "shift_signup"
+    __url__ = "/api/event/<int:event>/shift_signup"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id'))
+    badge = Column(Integer, ForeignKey('badge.id'))
+    job = Column(Integer, ForeignKey('job.id'))
+    shift = Column(Integer, ForeignKey('shift.id'))
+    schedule = Column(Integer, ForeignKey('schedule.id'))
+    schedule_event = Column(Integer, ForeignKey('schedule_event.id'))
+    starttime = Column(DateTime())
+    duration = Column(Integer())
+    signuptime = Column(DateTime(), default=datetime.datetime.utcnow)

@@ -1,60 +1,53 @@
 <template>
-  <div>
-    <div>
-      <br>
-      <v-card max-width="1000" :raised="true" class="mx-auto" :loading="login_loading">
-        <v-card-title>Welcome to Tuber!</v-card-title>
-        <v-card-text>
-          <v-form>
-            <p>Please log in:</p>
-            <v-text-field label="Username" v-model="username" outlined></v-text-field>
-            <v-text-field label="Password" v-model="password" type="password" outlined></v-text-field>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn outlined type="submit" @click.prevent="login">Login</v-btn>
-            </v-card-actions>
-          </v-form>
-        </v-card-text>
-      </v-card>
+    <div class="card">
+        <Toast />
+        <h3>Please Log In</h3>
+        <form @action.prevent>
+          <div class="field grid">
+              <label for="username" class="col-fixed" style="width:100px">Username</label>
+              <div class="col">
+                  <InputText id="username" v-model="user.username" type="text" />
+              </div>
+          </div>
+          <div class="field grid">
+              <label for="password" class="col-fixed" style="width:100px">Password</label>
+              <div class="col">
+                  <InputText id="password" v-model="user.password" type="password" />
+              </div>
+          </div>
+          <Button type="submit" @click="login">Login</button>
+        </form>
     </div>
-  </div>
 </template>
 
 <style>
 </style>
 
-<script>
-export default {
+<script lang="ts">
+import { Options, Vue } from 'vue-class-component'
+import { AppActionTypes } from '../store/modules/app/actions'
+
+@Options({
   name: 'Login',
+  components: {
+  },
   data: () => ({
-    login_loading: false,
-    username: '',
-    password: '',
+    user: {
+      username: '',
+      password: ''
+    }
   }),
   methods: {
-    login() {
-      this.login_loading = true;
-      const self = this;
-      this.post('/api/login', {
-        username: this.username,
-        password: this.password,
-      }).then((resp) => {
-        if (resp) {
-          self.$store.dispatch('check_logged_in').then(() => {
-            self.$router.push({ name: 'home' });
-          }).catch(() => {
-            self.notify('Failed to check if you are logged in.');
-          });
-          self.notify('Logged in successfully!');
-        } else {
-          this.login_loading = false;
-          self.notify('Failed to log in. Are your credentials correct?');
+    login: async function () {
+      this.$store.dispatch(AppActionTypes.LOGIN, this.user).then(() => {
+        if (this.$route.name === 'logout') {
+          this.$router.push('/')
         }
       }).catch(() => {
-        self.login_loading = false;
-        self.notify('Network error while logging in.');
-      });
-    },
-  },
-};
+        this.$toast.add({ severity: 'error', summary: 'Login Failed', detail: 'Incorrect username or password. Please try again.' })
+      })
+    }
+  }
+})
+export default class Login extends Vue {}
 </script>

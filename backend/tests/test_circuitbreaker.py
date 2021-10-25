@@ -14,20 +14,19 @@ def test_job_retrieval(client):
     """Make sure jobs can be retrieved after a long running job is started."""
     result = client.get("/api/slow")
     assert result.status_code == 202
-    assert "job" in result.json
-    job_id = result.json['job']
+    assert "Location" in result.headers
+    url = result.headers['Location']
     start_time = time.time()
     while time.time() - start_time < 15:
-        result = client.get("/api/jobs", query_string={"job": job_id})
+        result = client.get(url)
         time.sleep(0.2)
-        assert result.status_code == 200
-        assert "progress" in result.json
-        assert "complete" in result.json['progress']
-        assert "result" in result.json
-        if result.json['progress']['complete']:
+        if result.status_code == 202:
+            assert "complete" in result.json
+            assert not result.json['complete']
+        if result.status_code == 200:
             break
-    assert result.json['result']['status_code'] == 200
-    assert result.json['result']['data'] == "success"
-    assert result.json['result']['mimetype'] == "text/html"
-    assert result.json['result']['headers']
-    assert result.json['result']['execution_time']
+    assert result.json
+    assert "amount" in result.json
+    assert "complete" in result.json
+    assert "messages" in result.json
+    assert "status" in result.json

@@ -1,9 +1,9 @@
-from tuber import db
+from tuber.models import Base
+from sqlalchemy import Column, Integer, String
 
-class Event(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), unique=True, nullable=False)
-    description = db.Column(db.String(256), nullable=False)
-
-    def __repr__(self):
-        return '<Event %r>' % self.name
+class Event(Base):
+    __tablename__ = "event"
+    __url__ = "/api/event"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(128), unique=True)
+    description = Column(String(256))

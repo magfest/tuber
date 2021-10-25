@@ -1,41 +1,57 @@
-from tuber import db
+from tuber.models import Base
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, DateTime, JSON
+from sqlalchemy.orm import relationship
 
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(128), default="")
-    active = db.Column(db.Boolean)
-    badges = db.relationship("Badge")
-    sessions = db.relationship("Session")
-    grants = db.relationship("Grant")
+class User(Base):
+    __tablename__ = "user"
+    __url__ = "/api/user"
+    id = Column(Integer, primary_key=True)
+    id.allow_r = {"self"}
+    username = Column(String(80), unique=True)
+    username.allow_rw = {"self"}
+    email = Column(String(120), unique=True)
+    email.allow_rw = {"self"}
+    password = Column(String(128), default="")
+    password.hidden = True
+    active = Column(Boolean)
+    active.allow_r = {"self"}
+    badges = relationship("Badge")
+    badges.allow_r = {"self"}
+    sessions = relationship("Session")
+    sessions.allow_r = {"self"}
+    grants = relationship("Grant")
+    grants.allow_r = {"self"}
 
-    def __repr__(self):
-        return '<User %r>' % self.username
+class Session(Base):
+    __tablename__ = "session"
+    __url__ = "/api/session"
+    id = Column(Integer, primary_key=True)
+    user = Column(Integer, ForeignKey('user.id'))
+    secret = Column(String(64))
+    secret.hidden = True
+    permissions = Column(JSON)
+    last_active = Column(DateTime)
 
-class Session(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.Integer, db.ForeignKey('user.id'))
-    secret = db.Column(db.String(64))
-    last_active = db.Column(db.DateTime)
+class Permission(Base):
+    __tablename__ = "permission"
+    __url__ = "/api/permission"
+    id = Column(Integer, primary_key=True)
+    operation = Column(String(64))
+    role = Column(Integer, ForeignKey('role.id'))
 
-    def __repr__(self):
-        return '<Session %r>' % self.id
+class Role(Base):
+    __tablename__ = "role"
+    __url__ = "/api/role"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(64), unique=True)
+    description = Column(String(128))
+    permissons = relationship("Permission")
 
-class Permission(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    operation = db.Column(db.String(64), unique=True)
-    role = db.Column(db.Integer, db.ForeignKey('role.id'))
-
-class Role(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), unique=True)
-    description = db.Column(db.String(128))
-    event = db.Column(db.Integer, nullable=True)
-
-class Grant(db.Model):
+class Grant(Base):
+    __tablename__ = "grant"
+    __url__ = "/api/grant"
     # Null values become wildcards, i.e. if event is NULL, then the grant applies to all events
-    id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    role = db.Column(db.Integer, nullable=True)
-    department = db.Column(db.Integer, nullable=True)
+    id = Column(Integer, primary_key=True)
+    user = Column(Integer, ForeignKey('user.id'), nullable=False)
+    role = Column(Integer, ForeignKey('role.id'), nullable=False)
+    event = Column(Integer, ForeignKey('event.id'), nullable=True)

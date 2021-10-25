@@ -1,58 +1,18 @@
-from tuber import app, config, db
-from flask import send_from_directory, send_file, request, jsonify, Response, stream_with_context, escape
+from tuber import app
+from flask import request, Response, stream_with_context, escape
 from tuber.models import *
+from tuber.database import db
 from tuber.permissions import *
-from passlib.hash import sha256_crypt
 from botocore.exceptions import ClientError
 import datetime
 import jinja2
 import boto3
-import uuid
 import lupa
 from tuber.api import *
 from tuber.models import *
-from marshmallow_sqlalchemy import ModelSchema
-import csv
-import io
 
-class EmailSchemaRead(ModelSchema):
-    class Meta:
-        model = Email
-        sqla_session = db.session
-        fields = ['id', 'name', 'description', 'event', 'code', 'subject', 'body', 'active', 'send_once', 'source', 'receipts']
-
-class EmailSchemaWrite(ModelSchema):
-    class Meta:
-        model = Email
-        sqla_session = db.session
-        fields = ['id', 'name', 'description', 'event', 'code', 'subject', 'body', 'active', 'send_once', 'source']
-
-register_crud("emails", {EmailSchemaRead():["GET"], EmailSchemaWrite(): ["POST", "PATCH", "DELETE"]})
-
-class EmailSourceSchemaRead(ModelSchema):
-    class Meta:
-        model = EmailSource
-        sqla_session = db.session
-        fields = ['id', 'name', 'description', 'event', 'address', 'region', 'ses_access_key', 'ses_secret_key', 'active', 'emails', 'receipts']
-
-class EmailSourceSchemaWrite(ModelSchema):
-    class Meta:
-        model = EmailSource
-        sqla_session = db.session
-        fields = ['id', 'name', 'description', 'event', 'address', 'region', 'ses_access_key', 'ses_secret_key', 'active']
-
-register_crud("email_sources", {EmailSourceSchemaRead(): ["GET"], EmailSourceSchemaWrite(): ["POST", "PATCH", "DELETE"]})
-
-class EmailReceiptSchemaRead(ModelSchema):
-    class Meta:
-        model = EmailReceipt
-        sqla_session = db.session
-        fields = ['id', 'email', 'source', 'to_address', 'from_address', 'subject', 'body', 'timestamp']
-
-register_crud("email_receipts", EmailReceiptSchemaRead(), methods=["GET"], url_scheme="badge")
-            
 def get_email_context(badge, tables):
-    event = db.session.query(Event).filter(Event.id == badge.event).one()
+    event = db.query(Event).filter(Event.id == badge.event).one()
     requested_nights = [x.room_night for x in badge.room_night_requests if x.requested]
     assigned_nights = [x.room_night for x in badge.room_night_assignments]
     hotel_room_ids = list(set([x.hotel_room for x in badge.room_night_assignments]))
@@ -66,7 +26,6 @@ def get_email_context(badge, tables):
                 start_night = i.room_night
             if i.room_night > end_night:
                 end_night = i.room_night
-        end_night = END_NIGHT_OFFSETS[end_night]
         roommates = {}
         for i in assignments:
             if not i.badge in roommates:
@@ -126,8 +85,8 @@ def get_email_context(badge, tables):
     }
 
 def generate_emails(email):
-    source = db.session.query(EmailSource).filter(EmailSource.id == email.source).one()
-    badges = db.session.query(Badge).filter(Badge.event == email.event).all()
+    source = db.query(EmailSource).filter(EmailSource.id == email.source).one()
+    badges = db.query(Badge).filter(Badge.event == email.event).all()
 
     L = lupa.LuaRuntime(register_eval=False)
     filter = L.execute(email.code)
@@ -135,13 +94,13 @@ def generate_emails(email):
     body_template = jinja2.Template(email.body)
 
     tables = {
-        "HotelRoomNight": db.session.query(HotelRoomNight).filter(HotelRoomNight.event == email.event).all(),
-        "HotelRoomRequest": db.session.query(HotelRoomRequest).join(Badge, Badge.id == HotelRoomRequest.badge).filter(Badge.event == email.event).all(),
-        "RoomNightApproval": db.session.query(RoomNightApproval).join(RoomNightRequest, RoomNightRequest.id == RoomNightApproval.room_night).filter(RoomNightApproval.approved == True).all(),
-        "Department": {x.id: x for x in db.session.query(Department).filter(Department.event == email.event).all()},
-        "HotelRoom": {x.id: x for x in db.session.query(HotelRoom).all()},
-        "Badge": {x.id: x for x in db.session.query(Badge).filter(Badge.event_id == email.event).all()},
-        "RoomNightAssignment": db.session.query(RoomNightAssignment).all(),
+        "HotelRoomNight": db.query(HotelRoomNight).filter(HotelRoomNight.event == email.event).all(),
+        "HotelRoomRequest": db.query(HotelRoomRequest).join(Badge, Badge.id == HotelRoomRequest.badge).filter(Badge.event == email.event).all(),
+        "RoomNightApproval": db.query(RoomNightApproval).join(RoomNightRequest, RoomNightRequest.id == RoomNightApproval.room_night).filter(RoomNightApproval.approved == True).all(),
+        "Department": {x.id: x for x in db.query(Department).filter(Department.event == email.event).all()},
+        "HotelRoom": {x.id: x for x in db.query(HotelRoom).all()},
+        "Badge": {x.id: x for x in db.query(Badge).filter(Badge.event_id == email.event).all()},
+        "RoomNightAssignment": db.query(RoomNightAssignment).all(),
     }
     
     for badge in badges:
@@ -153,12 +112,12 @@ def generate_emails(email):
 
 @app.route('/api/emails/csv')
 def email_csv():
-    if not check_permission('email.read', event=request.args['event']):
+    if not check_permission('email.*.read', event=request.args['event']):
         return "Permission Denied", 403
-    event = db.session.query(Event).filter(Event.id == request.args['event']).one()
+    event = db.query(Event).filter(Event.id == request.args['event']).one()
     if not 'email' in request.args:
         return "email is a required parameter", 406
-    email = db.session.query(Email).filter(Email.id == request.args['email']).one_or_none()
+    email = db.query(Email).filter(Email.id == request.args['email']).one_or_none()
     if not email:
         return "Could not find requested email {}".format(escape(request.args['email'])), 404
 
@@ -175,29 +134,28 @@ def email_csv():
 
 @app.route('/api/emails/trigger', methods=['POST'])
 def api_email_trigger():
-    if not check_permission('email.send', event=request.json['event']):
+    if not check_permission('email.*.send', event=request.json['event']):
         return "Permission Denied", 403
-    event = db.session.query(Event).filter(Event.id == request.json['event']).one()
+    event = db.query(Event).filter(Event.id == request.json['event']).one()
     if not 'email' in request.json:
         return "email is a required parameter", 400
-    email = db.session.query(Email).filter(Email.id == request.json['email']).one_or_none()
+    email = db.query(Email).filter(Email.id == request.json['email']).one_or_none()
     if not email:
         return "Could not find requested email {}".format(escape(request.json['email'])), 404
     if not email.active:
         return "Email must be activated before triggering.", 400
-    source = db.session.query(EmailSource).filter(EmailSource.id == email.source).one_or_none()
+    source = db.query(EmailSource).filter(EmailSource.id == email.source).one_or_none()
     if not source:
         return "Could not find EmailSource to send email from", 400
     if not source.active:
         return "The email source for this email is inactive.", 400
 
     def stream_emails():
-        temp_session = db.create_session({})()
         client = boto3.client('ses', region_name=source.region, aws_access_key_id=source.ses_access_key, aws_secret_access_key=source.ses_secret_key)
         yield '{'
         for compiled in generate_emails(email):
             if email.send_once:
-                receipts = db.session.query(EmailReceipt).filter(EmailReceipt.email == email.id, EmailReceipt.badge == compiled[0]).all()
+                receipts = db.query(EmailReceipt).filter(EmailReceipt.email == email.id, EmailReceipt.badge == compiled[0]).all()
                 if receipts:
                     continue
             try:
@@ -225,8 +183,8 @@ def api_email_trigger():
                 print(e.response['Error']['Message'])
             else:
                 receipt = EmailReceipt(email=email.id, badge=compiled[0], source=source.id, to_address=compiled[1], from_address=source.address, subject=compiled[3], body=compiled[4], timestamp=datetime.datetime.now())
-                temp_session.add(receipt)
-                temp_session.commit()
+                db.add(receipt)
+                db.commit()
             yield '"{}": true,'.format(compiled[0])
         yield '}'
     headers = {

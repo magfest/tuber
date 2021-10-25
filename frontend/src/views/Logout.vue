@@ -1,29 +1,28 @@
 <template>
-  <div>
-    <h1>You have logged out</h1>
-  </div>
+    <div class="card">
+        <Toast />
+        <h3>Logging out...</h3>
+    </div>
 </template>
 
 <style>
 </style>
 
-<script>
-export default {
-  name: 'Logout',
+<script lang="ts">
+import { Options, Vue } from 'vue-class-component'
+import { AppActionTypes } from '../store/modules/app/actions'
+
+@Options({
+  name: 'Login',
+  components: {
+  },
   data: () => ({
   }),
-  mounted() {
-    const self = this;
-    this.post('/api/logout').then(() => {
-      self.$store.dispatch('check_logged_in').then(() => {
-        self.$router.push({ name: 'home' });
-      }).catch(() => {
-        self.notify('Failed to check whether you are logged in.');
-      });
-      self.notify('Logged out successfully!');
-    }).catch(() => {
-      self.notify('Network error while logging out.');
-    });
-  },
-};
+  mounted () {
+    this.$store.dispatch(AppActionTypes.LOGOUT).catch(() => {
+      this.$toast.add({ severity: 'error', summary: 'Failed to Log Out', detail: 'Could not terminate user session. Are you online?' })
+    })
+  }
+})
+export default class Login extends Vue {}
 </script>

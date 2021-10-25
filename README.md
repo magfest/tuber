@@ -111,7 +111,7 @@ copy contrib\tuber.json.devel tuber.json
 python -m venv venv
 
 # Linux/MacOS
-venv/bin/activate 
+source venv/bin/activate 
 
 # Windows 
 venv\Scripts\activate.bat

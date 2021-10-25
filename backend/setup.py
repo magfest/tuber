@@ -1,8 +1,5 @@
 #!/bin/env python
 from setuptools import setup
-import subprocess
-import os
-import sys
 
 setup(
     name='tuber',
@@ -26,24 +23,25 @@ setup(
     ],
     install_requires=[
         'requests',
-        'Flask-SQLAlchemy',
         'alembic',
         'passlib',
-        'flask',
+        'flask>=1.0',
         'gunicorn',
         'flask-talisman',
         'redis',
-        'rq',
         'lupa',
         'boto3',
         'jinja2',
-        'marshmallow-sqlalchemy',
-        'names',
-        'psycopg2'
+        'psycopg2-binary'
     ],
-    setup_requires=[
-        'py2app'
-    ],
+    include_package_data=True,
+    package_data={
+        "tuber": [
+            "alembic.ini",
+            "migrations/*",
+            "migrations/**/*"
+        ]
+    },
     app=[
         "tuber/wsgi.py"
     ],
