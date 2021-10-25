@@ -49,7 +49,7 @@ http {
 		}
 
         location / {
-            root frontend/dist;
+            root ../frontend/dist;
             index index.html;
             try_files $uri $uri/ /index.html;
         }
