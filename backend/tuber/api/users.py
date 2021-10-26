@@ -105,12 +105,13 @@ def staffer_auth():
                 "full"
             ]
         }
-        resp = requests.post(config.uber_api_url, headers=headers, json=req)
-        if len(resp.json()['result']) == 0:
+        results = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
+        print(results)
+        if results == 0:
             return "no result", 403
     except:
         return "exception", 403
-    result = resp.json()['result'][0]
+    result = results[0]
     if not 'id' in result:
         return "no id", 403
     uber_id = result['id']
@@ -125,10 +126,11 @@ def staffer_auth():
         hotel_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
     if not hotel_request or not badge:
         req = {"method": "hotel.eligible_attendees"}
-        resp = requests.post(config.uber_api_url, headers=headers, json=req)
-        if len(resp.json()['result']) == 0:
+        eligible = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
+        if len(eligible) == 0:
             return "Failed to load eligible attendees", 403
-        if not uber_id in resp.json()['result']:
+        print(eligible, uber_id)
+        if not uber_id in eligible:
             return "You are not eligible", 403
     if not badge:
         staff_badge_type = db.query(BadgeType).filter(BadgeType.name == "Staff").one_or_none()
