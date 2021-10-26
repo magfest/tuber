@@ -19,7 +19,9 @@ import { AppActionTypes } from '../store/modules/app/actions'
   data: () => ({
   }),
   mounted () {
-    this.$store.dispatch(AppActionTypes.LOGOUT).catch(() => {
+    this.$store.dispatch(AppActionTypes.LOGOUT).then(() => {
+      this.$router.push('/')
+    }).catch(() => {
       this.$toast.add({ severity: 'error', summary: 'Failed to Log Out', detail: 'Could not terminate user session. Are you online?' })
     })
   }

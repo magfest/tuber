@@ -40,7 +40,8 @@ setup(
         "tuber": [
             "alembic.ini",
             "migrations/*",
-            "migrations/**/*"
+            "migrations/**/*",
+            "static/*"
         ]
     },
     app=[

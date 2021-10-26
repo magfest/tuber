@@ -7,7 +7,7 @@ from tuber import app
 from tuber.database import db
 import inspect
 
-READ_PERMS = {"read", "write", "*"}
+READ_PERMS = {"read", "write", "*", "searchname"}
 WRITE_PERMS = {"write", "*"}
 
 def crud_group(model, event=None, department=None):
@@ -20,7 +20,8 @@ def crud_group(model, event=None, department=None):
             if limit:
                 offset = page*limit
         filters = []
-        perms = model_permissions(model)
+        perms = model_permissions(model.__name__.lower())
+        print(model, perms)
         if not READ_PERMS.intersection(perms['*']):
             ids = [x for x in perms.keys() if READ_PERMS.intersection(perms[x])]
             if not ids:
@@ -57,7 +58,7 @@ def crud_group(model, event=None, department=None):
     raise MethodNotAllowed()
 
 def crud_single(model, event=None, department=None, id=None):
-    perms = model_permissions(model)
+    perms = model_permissions(model.__name__.lower())
     if request.method == "GET":
         if READ_PERMS.intersection(perms['*']) or (id in perms and READ_PERMS.intersection(perms[id])):
             instance = db.query(model).filter(model.id == id).one_or_none()

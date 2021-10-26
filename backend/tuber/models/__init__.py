@@ -15,10 +15,11 @@ def model_permissions(name):
     and sets of permitted actions as values.
     """
     permissions = set(g.perms['event'].get('*', []))
-    if g.event in g.perms:
-        permissions = permissions.union(g.perms['event'][g.event])
-        if g.event in g.perms['department'] and g.department in g.perms['department'][g.event]:
-            permissions = permissions.union(set(g.perms['department'][g.event][g.department]))
+    if str(g.event) in g.perms['event']:
+        permissions = permissions.union(g.perms['event'][str(g.event)])
+    if str(g.event) in g.perms['department'] and str(g.department) in g.perms['department'][str(g.event)]:
+        permissions = permissions.union(set(g.perms['department'][str(g.event)][str(g.department)]))
+    print("model_permissions", name, permissions, g.event, g.perms['event'])
     model_perms = {"*": set()}
     for perm in permissions:
         table, instance, action = perm.split(".")
@@ -26,6 +27,7 @@ def model_permissions(name):
             if not instance in model_perms:
                 model_perms[instance] = set()
             model_perms[instance].add(action)
+    print(model_perms)
     return model_perms
 
 class Model_Base(object):
@@ -112,7 +114,7 @@ class Model_Base(object):
                 new_parents = parents + [cls,]
                 inst_ser[relation.key] = cls.modelclasses[relation.target.name].serialize(getattr(instance, relation.key), parents=new_parents)
             data.append(inst_ser)
-            
+
         for column in visible_columns:
             cls.serialize_column(data, instances, column)
         if single_item:

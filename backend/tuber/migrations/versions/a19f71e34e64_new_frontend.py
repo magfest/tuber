@@ -246,8 +246,8 @@ def upgrade():
         batch_op.add_column(sa.Column('event', sa.Integer(), nullable=True))
         batch_op.create_foreign_key(None, 'event', ['event'], ['id'])
 
-    with op.batch_alter_table('permission', schema=None) as batch_op:
-        batch_op.drop_constraint('permission_operation_key', type_='unique')
+    #with op.batch_alter_table('permission', schema=None) as batch_op:
+    #    batch_op.drop_constraint('permission_operation_key', type_='unique')
 
     with op.batch_alter_table('ribbon_type', schema=None) as batch_op:
         batch_op.alter_column('name',

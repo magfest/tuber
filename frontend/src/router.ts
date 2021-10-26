@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from './components/Dashboard.vue'
 import RoomRequest from './views/rooming/Request.vue'
+import UberLogin from './views/rooming/UberLogin.vue'
 
 import Login from './views/Login.vue'
 import Logout from './views/Logout.vue'
@@ -19,6 +20,11 @@ const routes = [
     path: '/rooming/requests',
     name: 'roomrequest',
     component: RoomRequest
+  },
+  {
+    path: '/hotels/request',
+    name: 'uberlogin',
+    component: UberLogin
   },
   {
     path: '/login',

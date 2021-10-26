@@ -7,7 +7,7 @@
 
         <div class="layout-main-container">
             <div class="layout-main">
-              <login v-if="!loggedIn & !initialSetup" />
+              <login v-if="!loggedIn & !initialSetup & !($route.name === 'uberlogin')" />
               <router-view v-else />
             </div>
             <AppFooter />

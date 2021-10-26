@@ -77,7 +77,7 @@ export const actions: ActionTree<State, RootState> & Actions = {
   },
   async [AppActionTypes.GET_PERMISSIONS] ({ state, commit }) {
     if (state.user) {
-      return get('/api/user/permissions', { user: state.user.id }).then((permissions) => {
+      return get('/api/user/permissions').then((permissions) => {
         commit(AppMutationTypes.SET_PERMISSIONS, permissions)
       })
     } else {

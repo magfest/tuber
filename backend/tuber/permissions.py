@@ -32,14 +32,14 @@ def load_session(endpoint, values):
     if 'department' in values:
         g.department = values['department']
     if 'session' in request.cookies:
-        res = db.query(Session, User).join(User, Session.user == User.id).filter(Session.secret == request.cookies.get('session')).one_or_none()
-        if res:
-            session, user = res
+        session = db.query(Session).filter(Session.secret == request.cookies.get('session')).one_or_none()
+        if session:
             if datetime.datetime.now() < session.last_active + datetime.timedelta(seconds=config.session_duration):
                 session.last_active = datetime.datetime.now()
                 g.session = session
-                g.user = user
-                if "event" in values:
+                g.user = db.query(User).filter(User.id == session.user).one_or_none()
+                g.badge = db.query(Badge).filter(Badge.id == session.badge).one_or_none()
+                if "event" in values and not g.badge and g.user:
                     g.badge = db.query(Badge).filter(Badge.user == g.user.id, Badge.event == values['event']).one_or_none()
                 g.perms = json.loads(session.permissions)
                 db.add(session)
@@ -106,9 +106,9 @@ def check_permission(permission=None, event="*", department="*"):
             if action != "*" and action != req_action:
                 continue
             return True
-    for perm_event in g.department_perms:
-        for perm_dept in g.department_perms[perm_event]:
-            for perm in g.department_perms[perm_event][perm_dept]:
+    for perm_event in g.perms['department']:
+        for perm_dept in g.perms['department'][perm_event]:
+            for perm in g.perms['department'][perm_event][perm_dept]:
                 table, instance, action = perm.split(".")
                 if perm_event != "*" and perm_event != event:
                     continue
