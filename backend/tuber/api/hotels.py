@@ -341,7 +341,7 @@ def hotel_room_block_settings(event):
             return "null", 200
     return "", 403
 
-@app.route('/hotel/request_complete.png')
+@app.route('/hotels/request_complete.png')
 def request_complete():
     if not 'id' in request.args:
         resp = send_file(os.path.join(config.static_path, "checkbox_unchecked.png"))
