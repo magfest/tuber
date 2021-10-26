@@ -91,6 +91,7 @@ import { post } from '@/lib/rest'
 import { mapGetters } from 'vuex'
 import RoommateField from './RoommateField.vue'
 import { ModelActionTypes } from '@/store/modules/models/actions'
+import { AppActionTypes } from '@/store/modules/app/actions'
 
 export default {
   name: 'RoomRequest',
@@ -175,6 +176,7 @@ export default {
   },
   mounted () {
     this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
+    this.$store.dispatch(AppActionTypes.GET_EVENTS)
   },
   methods: {
     addBadges () {

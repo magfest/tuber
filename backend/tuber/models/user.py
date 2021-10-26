@@ -27,6 +27,7 @@ class Session(Base):
     __url__ = "/api/session"
     id = Column(Integer, primary_key=True)
     user = Column(Integer, ForeignKey('user.id'))
+    badge = Column(Integer, ForeignKey('badge.id'))
     secret = Column(String(64))
     secret.hidden = True
     permissions = Column(JSON)

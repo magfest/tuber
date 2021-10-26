@@ -1,6 +1,6 @@
 <template>
 <div>
-  <AutoComplete v-model="roommates" field="printed_name" forceSelection :multiple="true" :suggestions="suggestedNames" @complete="completeNames($event)" @item-select="updated" @item-unselect="updated" />
+  <AutoComplete v-model="roommates" field="public_name" forceSelection :multiple="true" :suggestions="suggestedNames" @complete="completeNames($event)" @item-select="updated" @item-unselect="updated" />
 </div>
 </template>
 

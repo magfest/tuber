@@ -39,9 +39,11 @@ def client_fresh(tuber):
     """Creates a client with a fresh database and no active sessions. Initial setup will not yet be completed.
     """
     tuber.database.create_tables()
-    #with tuber.app.test_client() as client:
-    #    yield client
-    yield Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
+    if os.environ['ENABLE_CIRCUITBREAKER'].lower() == "true":
+        yield Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
+    else:
+        with tuber.app.test_client() as client:
+            yield client
     tuber.database.drop_tables()
     del sys.modules['tuber']
 
@@ -51,8 +53,12 @@ def client(tuber):
     Also patches the get/post/patch/delete functions to handle CSRF tokens for you.
     """
     tuber.database.create_tables()
+    if os.environ['ENABLE_CIRCUITBREAKER'].lower() == "true":
+        client = Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
+    else:
+        client = tuber.app.test_client()
     #with tuber.app.test_client() as client:
-    client = Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
+    #client = Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
     client.post('/api/initial_setup', json={"username": "admin", "email": "admin@magfest.org", "password": "admin"})
     client.post("/api/login", json={"username": "admin", "password": "admin"}, headers={"CSRF-Token": csrf(client)})
     client.post("/api/event", json={"name": "Tuber Event", "description": "It's a potato"}, headers={"CSRF-Token": csrf(client)})
@@ -101,8 +107,11 @@ def prod_client():
     tuber = importlib.import_module('tuber')
     tuber.backgroundjobs = importlib.import_module('tuber.backgroundjobs')
     tuber.database.create_tables()
-    #with tuber.app.test_client() as client:
-    yield Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
+    if os.environ['ENABLE_CIRCUITBREAKER'].lower() == "true":
+        yield Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
+    else:
+        with tuber.app.test_client() as client:
+            yield client
     tuber.database.drop_tables()
     for key in list(sys.modules.keys()):
         if key.startswith("tuber"):

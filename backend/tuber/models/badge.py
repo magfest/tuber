@@ -38,15 +38,21 @@ class Badge(Base):
     __tablename__ = "badge"
     __url__ = "/api/event/<int:event>/badge"
     id = Column(Integer, primary_key=True)
+    id.allow_r = {"searchname"}
     event = Column(Integer, ForeignKey('event.id'))
     badge_type = Column(Integer, ForeignKey('badge_type.id'))
     printed_number = Column(String(32))
     printed_name = Column(String(256))
+    public_name = Column(String())
+    public_name.allow_r = {"searchname"}
     search_name = Column(String(256))
+    search_name.allow_r = {"searchname"}
     first_name = Column(String(128))
     last_name = Column(String(128))
     legal_name = Column(String(256))
     legal_name_matches = Column(Boolean)
+    emergency_contact_name = Column(String())
+    emergency_contact_phone = Column(String())
     phone = Column(String(64))
     email = Column(String(128))
     user = Column(Integer, ForeignKey('user.id'), nullable=True)
