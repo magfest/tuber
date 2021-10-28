@@ -124,8 +124,6 @@ def staffer_auth():
     uber_id = result['id']
     if uber_id != request.json['token']:
         return "wrong token", 403
-    if not result['staffing']:
-        return "not staff", 403
 
     badge = db.query(Badge).filter(Badge.uber_id == uber_id).one_or_none()
     hotel_request = None
