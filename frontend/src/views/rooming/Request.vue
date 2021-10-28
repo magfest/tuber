@@ -109,7 +109,6 @@ import { get, post, patch } from '@/lib/rest'
 import { mapGetters } from 'vuex'
 import RoommateField from './RoommateField.vue'
 import { ModelActionTypes } from '@/store/modules/models/actions'
-import { AppActionTypes } from '@/store/modules/app/actions'
 
 export default {
   name: 'RoomRequest',
@@ -210,7 +209,6 @@ export default {
   },
   mounted () {
     this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
-    this.$store.dispatch(AppActionTypes.GET_EVENTS)
     this.loadRequest()
   },
   methods: {
@@ -220,8 +218,6 @@ export default {
       }
       get('/api/event/' + this.event.id + '/hotel/request').then((request) => {
         this.request = request
-      }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Failed to load hotel room request.', detail: 'Could not find your request. Are you logged in?' })
       })
     },
     saveRequest () {
