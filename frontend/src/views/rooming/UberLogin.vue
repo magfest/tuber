@@ -14,6 +14,7 @@
 import { Options, Vue } from 'vue-class-component'
 import { mapGetters } from 'vuex'
 import { post } from '../../lib/rest'
+import { AppActionTypes } from '../../store/modules/app/actions'
 
 @Options({
   name: 'uber-login',
@@ -48,6 +49,7 @@ import { post } from '../../lib/rest'
   methods: {
     uberlogin () {
       post('/api/uber_login', { token: this.uberID }).then((session) => {
+        this.$store.dispatch(AppActionTypes.GET_LOGGED_IN)
         this.$router.push('/rooming/requests')
       }).catch((e) => {
         this.showForm = true

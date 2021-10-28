@@ -43,13 +43,15 @@ export const actions: ActionTree<State, RootState> & Actions = {
   },
   async [AppActionTypes.GET_LOGGED_IN] ({ commit, dispatch }) {
     return get('/api/check_login').then((userSession: UserSession) => {
-      commit(AppMutationTypes.SET_USER, userSession.user)
+      commit(AppMutationTypes.SET_USER, userSession.user ? userSession.user : null)
+      commit(AppMutationTypes.SET_BADGE, userSession.badge ? userSession.badge : null)
       dispatch(AppActionTypes.GET_PERMISSIONS).then(() => {
         commit(AppMutationTypes.SET_LOGIN, true)
       })
     }).catch(() => {
       commit(AppMutationTypes.SET_LOGIN, false)
       commit(AppMutationTypes.SET_USER, null)
+      commit(AppMutationTypes.SET_BADGE, null)
       dispatch(AppActionTypes.GET_PERMISSIONS)
     })
   },
@@ -76,7 +78,7 @@ export const actions: ActionTree<State, RootState> & Actions = {
     })
   },
   async [AppActionTypes.GET_PERMISSIONS] ({ state, commit }) {
-    if (state.user) {
+    if (state.user || state.badge) {
       return get('/api/user/permissions').then((permissions) => {
         commit(AppMutationTypes.SET_PERMISSIONS, permissions)
       })

@@ -8,6 +8,8 @@ class HotelRoomRequest(Base):
     id = Column(Integer, primary_key=True)
     event = Column(Integer, ForeignKey('event.id'))
     badge = Column(Integer, ForeignKey('badge.id'))
+    first_name = Column(String(), nullable=True)
+    last_name = Column(String(), nullable=True)
     declined = Column(Boolean, nullable=True)
     prefer_department = Column(Boolean, nullable=True)
     preferred_department = Column(Integer, ForeignKey('department.id'), nullable=True)

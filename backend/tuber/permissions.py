@@ -28,9 +28,9 @@ def load_session(endpoint, values):
     if not values:
         values = {}
     if 'event' in values:
-        g.event = values['event']
+        g.event = int(values['event'])
     if 'department' in values:
-        g.department = values['department']
+        g.department = int(values['department'])
     if 'session' in request.cookies:
         session = db.query(Session).filter(Session.secret == request.cookies.get('session')).one_or_none()
         if session:
@@ -41,7 +41,11 @@ def load_session(endpoint, values):
                 g.badge = db.query(Badge).filter(Badge.id == session.badge).one_or_none()
                 if "event" in values and not g.badge and g.user:
                     g.badge = db.query(Badge).filter(Badge.user == g.user.id, Badge.event == values['event']).one_or_none()
-                g.perms = json.loads(session.permissions)
+                perms = json.loads(session.permissions)
+                g.perms = {
+                    "event": {int(k) if k != '*' else k: v for k, v in perms['event'].items()},
+                    "department": {int(k) if k != '*' else k: {int(m) if m != '*' else m: n for m, n in v.items()} for k, v in perms['department'].items()}
+                }
                 db.add(session)
             else:
                 db.delete(session)

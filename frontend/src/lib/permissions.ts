@@ -7,8 +7,8 @@ function checkPermission (permission: string) {
     permissions = store.getters.permissions['*']
   }
   if (store.getters.event) {
-    if (Object.prototype.hasOwnProperty.call(store.getters.permissions, store.getters.event.id)) {
-      permissions = permissions.concat(store.getters.permissions[store.getters.event.id])
+    if (Object.prototype.hasOwnProperty.call(store.getters.permissions, String(store.getters.event.id))) {
+      permissions = permissions.concat(store.getters.permissions[String(store.getters.event.id)])
     }
   }
   return evalPermission(permission, permissions)
@@ -16,7 +16,7 @@ function checkPermission (permission: string) {
 
 function checkDepartmentPermission (permission: string, department: number) {
   if (store.getters.event) {
-    return evalPermission(permission, store.getters.departmentPermissions[store.getters.event.id][department])
+    return evalPermission(permission, store.getters.departmentPermissions[String(store.getters.event.id)][department])
   }
   return evalPermission(permission, [])
 }

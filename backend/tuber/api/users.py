@@ -49,7 +49,6 @@ def initial_setup():
 
 @app.route("/api/login", methods=["POST"])
 def login():
-    print("log in")
     if request.json['username'] and request.json['password']:
         user = db.query(User).filter(User.username == request.json['username']).one_or_none()
         if user:
@@ -65,12 +64,17 @@ def login():
 
 @app.route("/api/check_login")
 def check_login():
+    res = {}
     if g.user:
         user = db.query(User).filter(User.id == g.user.id).one()
-        return jsonify(user={"email": user.email, "username": user.username, "id": user.id}, session=g.session.secret)
+        res['user'] = User.serialize(user)
+        res['session'] = g.session.secret
     if g.badge:
         badge = db.query(Badge).filter(Badge.id == g.badge.id).one()
-        return jsonify(badge={"email": badge.email, "username": badge.public_name, "id": badge.id}, session=g.session.secret)
+        res['badge'] = Badge.serialize(badge)
+        res['session'] = g.session.secret
+    if res:
+        return jsonify(res)
     return "", 406
 
 @app.route("/api/logout", methods=["POST"])
@@ -86,7 +90,11 @@ def get_user_permissions():
         if check_permission("user." + request.args['user'] + ".read"):
             return jsonify(get_permissions(user=request.args['user']))
         return "", 403
-    return jsonify(g.perms)
+    res = {
+        "event": {str(k): v for k, v in g.perms['event'].items()},
+        "department": {str(k): {str(m): n for m, n in v.items()} for k, v in g.perms['department']}
+    }
+    return jsonify(res)
 
 headers = {
     'X-Auth-Token': config.uber_api_token
@@ -106,7 +114,6 @@ def staffer_auth():
             ]
         }
         results = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
-        print(results)
         if results == 0:
             return "no result", 403
     except:
@@ -129,7 +136,6 @@ def staffer_auth():
         eligible = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
         if len(eligible) == 0:
             return "Failed to load eligible attendees", 403
-        print(eligible, uber_id)
         if not uber_id in eligible:
             return "You are not eligible", 403
     if not badge:
@@ -194,6 +200,8 @@ def staffer_auth():
             ],
             "*": [
                 "event.*.read",
+                f"badge.{badge.id}.read",
+                "department.*.read"
             ]
         },
         "department": {}
