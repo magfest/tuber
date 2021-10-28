@@ -452,7 +452,7 @@ def hotel_request_api(event):
             if not night.hidden:
                 room_nights.append({
                     "id": night.id,
-                    "checked": req.requested,
+                    "requested": req.requested,
                     "date": night.date,
                     "name": night.name,
                     "restricted": night.restricted,
@@ -466,7 +466,7 @@ def hotel_request_api(event):
             else:
                 room_nights.append({
                     "id": room_night.id,
-                    "checked": False,
+                    "requested": False,
                     "date": room_night.date,
                     "name": room_night.name,
                     "restricted": room_night.restricted,

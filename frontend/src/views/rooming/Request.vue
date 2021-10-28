@@ -37,7 +37,7 @@
           <h4>Which nights would you like a room?</h4>
           <p>Nights marked "Setup" or "Teardown" will require department head approval. Talk to your department head for details.</p>
           <div v-for="night in request.room_nights" :key="night.name" class="field-checkbox">
-            <Checkbox v-model="night.checked" :id="night.name" :disabled="request.declined" :binary="true" />
+            <Checkbox v-model="night.requested" :id="night.name" :disabled="request.declined" :binary="true" />
             <label :for="night.name">{{ night.restricted ? night.name + ' (' + night.restriction_type + ')' : night.name }}</label>
           </div>
 
@@ -169,7 +169,7 @@ export default {
         return false
       }
       for (let i = 0; i < this.request.room_nights.length; i += 1) {
-        if (this.request.room_nights[i].restricted && this.request.room_nights[i].checked) {
+        if (this.request.room_nights[i].restricted && this.request.room_nights[i].requested) {
           return true
         }
       }
