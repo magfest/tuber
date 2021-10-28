@@ -34,6 +34,13 @@ import { Badge } from '../../lib/interfaces'
   },
   watch: {
     badgeLookup () {
+      this.roommates = []
+      this.modelValue.forEach((val: number) => {
+        this.roommates.push(this.badgeLookup[val])
+      })
+    },
+    modelValue () {
+      this.roommates = []
       this.modelValue.forEach((val: number) => {
         this.roommates.push(this.badgeLookup[val])
       })

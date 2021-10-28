@@ -20,79 +20,81 @@
           <label for="decline">I do NOT want a staff room.</label>
         </div><br>
 
-        <h4>What is your name?</h4>
-        <p>The software used by our host hotel requires a first and last name. The front desk will compare these against your photo ID at checkin time. This will be shared only with STOPS and the hotel.</p>
-        <div class="formgrid grid">
-            <div class="field col">
-              <label for="first_name">First Name</label>
-              <InputText id="first_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64" v-model="request.first_name" />
-            </div>
-            <div class="field col">
-              <label for="last_name">Last Name</label>
-              <InputText id="last_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64" v-model="request.last_name" /><br>
-            </div>
+        <div v-if="!request.declined">
+          <h4>What is your name?</h4>
+          <p>The software used by our host hotel requires a first and last name. The front desk will compare these against your photo ID at checkin time. This will be shared only with STOPS and the hotel.</p>
+          <div class="formgrid grid">
+              <div class="field col">
+                <label for="first_name">First Name</label>
+                <InputText id="first_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64" v-model="request.first_name" />
+              </div>
+              <div class="field col">
+                <label for="last_name">Last Name</label>
+                <InputText id="last_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64" v-model="request.last_name" /><br>
+              </div>
+          </div>
+
+          <h4>Which nights would you like a room?</h4>
+          <p>Nights marked "Setup" or "Teardown" will require department head approval. Talk to your department head for details.</p>
+          <div v-for="night in request.room_nights" :key="night.name" class="field-checkbox">
+            <Checkbox v-model="night.checked" :id="night.name" :disabled="request.declined" :binary="true" />
+            <label :for="night.name">{{ night.restricted ? night.name + ' (' + night.restriction_type + ')' : night.name }}</label>
+          </div>
+
+          <p v-if="justification_required">Please provide justification for requesting restricted nights:</p>
+          <Textarea v-model="request.justification" @input="blah" v-if="justification_required" :disabled="request.declined" :autoResize="true" rows="5" cols="50" placeholder="I'm helping with setup in <department>."></Textarea>
+          <br><br>
+
+          <h4>Who would you like to room with?</h4>
+          <roommate-field label="Requested Roommates" v-model="request.requested_roommates" :disabled="request.declined"></roommate-field>
+          <br>
+
+          <h4>Who would you <b>not</b> like to room with?</h4>
+          <roommate-field label="Anti-requested Roommates" v-model="request.antirequested_roommates" :disabled="request.declined"></roommate-field><br>
+
+          <p v-if="invalidRoommates">You cannot both request and anti-request a single person, and you can't request or anti-request yourself.</p>
+
+          <h4>Is there anything else we should know?</h4>
+          <Textarea v-model="request.notes" rows="5" cols="50" :autoResize="true" :disabled="request.declined" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></TextArea>
+
+          <br><br>
+          <Divider />
+          <br>
+          <p>The following questions are optional, but will help us match you with roommates.
+            Note that the above roommate requests and anti-requests will take precedence over the below preferences.</p><br>
+
+          <h4>Would you prefer to room with other people in your department?</h4>
+          <div class="field-checkbox">
+            <Checkbox :disabled="request.declined" v-model="request.prefer_department" :binary="true" />
+            <label for="prefer_department">Yes, I would prefer to room with my department.</label>
+          </div>
+          <p v-if="request.prefer_department && badge.departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
+          <Dropdown :disabled="request.declined" :options="badge.departments" v-if="request.prefer_department && badge.departments.length > 1" optionValue="id" optionLabel="name" v-model="request.preferred_department"></Dropdown>
+          <p v-if="request.prefer_department && badge.departments.length == 1">We will try to put you with the {{ badge.departments[0].name }} department.</p><br>
+
+          <h4>Would you prefer single gender rooming?</h4>
+          <div class="field-checkbox">
+            <Checkbox class="my-n5" :disabled="request.declined" v-model="request.prefer_single_gender" :binary="true"/>
+            <label for="single_gender">Yes, I would prefer a single-gender room.</label>
+          </div>
+          <div v-if="request.prefer_single_gender" class="field">
+            <label for="single_gender">What gender would you like to room with?</label><br>
+            <InputText id="single_gender" :disabled="request.declined" counter="64" v-if="request.prefer_single_gender" v-model="request.preferred_gender" /><br>
+            <small>We will do our best to group entries logically. I.e., males will be grouped with guys.</small>
+          </div><br>
+
+          <h4>What is your preferred noise level?</h4>
+          <Dropdown :disabled="request.declined" v-model="request.noise_level" :options="noise_levels"></Dropdown><br><br>
+
+          <h4>Would you prefer non-smoking roommates?</h4>
+          <div class="field-checkbox">
+            <Checkbox :disabled="request.declined" v-model="request.smoke_sensitive" :binary="true"/><br>
+            <label for="smoke_sensitive">Yes, I would prefer non-smoking roommates.</label>
+          </div><br>
+
+          <h4>When do you plan to go to sleep?</h4>
+          <Dropdown :disabled="request.declined" v-model="request.sleep_time" :options="sleep_times"></Dropdown><br><br>
         </div>
-
-        <h4>Which nights would you like a room?</h4>
-        <p>Nights marked "Setup" or "Teardown" will require department head approval. Talk to your department head for details.</p>
-        <div v-for="night in request.room_nights" :key="night.name" class="field-checkbox">
-          <Checkbox v-model="night.checked" :id="night.name" :disabled="request.declined" :binary="true" />
-          <label :for="night.name">{{ night.restricted ? night.name + ' (' + night.restriction_type + ')' : night.name }}</label>
-        </div>
-
-        <p v-if="justification_required">Please provide justification for requesting restricted nights:</p>
-        <Textarea v-model="request.justification" @input="blah" v-if="justification_required" :disabled="request.declined" :autoResize="true" rows="5" cols="50" placeholder="I'm helping with setup in <department>."></Textarea>
-        <br><br>
-
-        <h4>Who would you like to room with?</h4>
-        <roommate-field label="Requested Roommates" v-model="request.requested_roommates" :disabled="request.declined"></roommate-field>
-        <br>
-
-        <h4>Who would you <b>not</b> like to room with?</h4>
-        <roommate-field label="Anti-requested Roommates" v-model="request.antirequested_roommates" :disabled="request.declined"></roommate-field><br>
-
-        <p v-if="invalidRoommates">You cannot both request and anti-request a single person, and you can't request or anti-request yourself.</p>
-
-        <h4>Is there anything else we should know?</h4>
-        <Textarea v-model="request.notes" rows="5" cols="50" :autoResize="true" :disabled="request.declined" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></TextArea>
-
-        <br><br>
-        <Divider />
-        <br>
-        <p>The following questions are optional, but will help us match you with roommates.
-          Note that the above roommate requests and anti-requests will take precedence over the below preferences.</p><br>
-
-        <h4>Would you prefer to room with other people in your department?</h4>
-        <div class="field-checkbox">
-          <Checkbox :disabled="request.declined" v-model="request.prefer_department" :binary="true" />
-          <label for="prefer_department">Yes, I would prefer to room with my department.</label>
-        </div>
-        <p v-if="request.prefer_department && badge.departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
-        <Dropdown :disabled="request.declined" :options="badge.departments" v-if="request.prefer_department && badge.departments.length > 1" optionValue="id" optionLabel="name" v-model="request.preferred_department"></Dropdown>
-        <p v-if="request.prefer_department && badge.departments.length == 1">We will try to put you with the {{ badge.departments[0].name }} department.</p><br>
-
-        <h4>Would you prefer single gender rooming?</h4>
-        <div class="field-checkbox">
-          <Checkbox class="my-n5" :disabled="request.declined" v-model="request.prefer_single_gender" :binary="true"/>
-          <label for="single_gender">Yes, I would prefer a single-gender room.</label>
-        </div>
-        <div v-if="request.prefer_single_gender" class="field">
-          <label for="single_gender">What gender would you like to room with?</label><br>
-          <InputText id="single_gender" :disabled="request.declined" counter="64" v-if="request.prefer_single_gender" v-model="request.preferred_gender" /><br>
-          <small>We will do our best to group entries logically. I.e., males will be grouped with guys.</small>
-        </div><br>
-
-        <h4>What is your preferred noise level?</h4>
-        <Dropdown :disabled="request.declined" v-model="request.noise_level" :options="noise_levels"></Dropdown><br><br>
-
-        <h4>Would you prefer non-smoking roommates?</h4>
-        <div class="field-checkbox">
-          <Checkbox :disabled="request.declined" v-model="request.smoke_sensitive" :binary="true"/><br>
-          <label for="smoke_sensitive">Yes, I would prefer non-smoking roommates.</label>
-        </div><br>
-
-        <h4>When do you plan to go to sleep?</h4>
-        <Dropdown :disabled="request.declined" v-model="request.sleep_time" :options="sleep_times"></Dropdown><br><br>
 
         <Button type="submit" :disabled="invalidRoommates" @click="saveRequest">Save</Button>
 
@@ -120,7 +122,7 @@ export default {
     roommates: [1, 2],
     confirmation: false,
     request: {
-      decline: false,
+      declined: false,
       justification: '',
       first_name: '',
       last_name: '',
