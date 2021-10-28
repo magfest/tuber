@@ -1,3 +1,5 @@
+scripts/secrets.py
+scripts/__pycache__
 .vscode/
 database.db
 test.db
