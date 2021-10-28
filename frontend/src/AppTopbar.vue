@@ -54,7 +54,6 @@ import { AppActionTypes } from './store/modules/app/actions'
       this.$emit('topbar-menu-toggle', event)
     },
     updateEvent (e: {value: {}}) {
-      console.log('Update event', e.value)
       this.$store.dispatch(AppActionTypes.SET_EVENT, e.value)
     },
     toggleUserMenu (e: Event) {
