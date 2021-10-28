@@ -38,7 +38,8 @@ interface User {
 
 interface UserSession {
     session: string,
-    user: User
+    user?: User,
+    badge?: Badge,
 }
 
 export {

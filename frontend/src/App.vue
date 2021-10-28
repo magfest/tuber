@@ -49,6 +49,9 @@ type LayoutMode = 'static' | 'overlay'
             label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
+            label: 'Room Request', icon: 'pi pi-fw pi-home', to: '/rooming/requests', permission: 'rooming.*.request'
+          },
+          {
             label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/', permission: 'staffer.*.read'
           },
           {
@@ -57,7 +60,7 @@ type LayoutMode = 'static' | 'overlay'
         },
         {
           label: 'Department Home',
-          permission: 'department.*.read',
+          permission: 'department.*.write',
           items: [{
             label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
           },
@@ -147,6 +150,9 @@ type LayoutMode = 'static' | 'overlay'
     permissions () {
       this.refreshMenu(this.menu)
     },
+    event () {
+      this.refreshMenu(this.menu)
+    },
     departmentPermissions () {
       this.refreshMenu(this.menu)
     }
@@ -227,6 +233,7 @@ type LayoutMode = 'static' | 'overlay'
   computed: {
     ...mapGetters([
       'user',
+      'event',
       'loggedIn',
       'initialSetup',
       'permissions',

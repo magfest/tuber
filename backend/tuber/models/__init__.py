@@ -15,19 +15,18 @@ def model_permissions(name):
     and sets of permitted actions as values.
     """
     permissions = set(g.perms['event'].get('*', []))
-    if str(g.event) in g.perms['event']:
-        permissions = permissions.union(g.perms['event'][str(g.event)])
-    if str(g.event) in g.perms['department'] and str(g.department) in g.perms['department'][str(g.event)]:
-        permissions = permissions.union(set(g.perms['department'][str(g.event)][str(g.department)]))
-    print("model_permissions", name, permissions, g.event, g.perms['event'])
+    if g.event in g.perms['event']:
+        permissions = permissions.union(g.perms['event'][g.event])
+    if g.event in g.perms['department'] and g.department in g.perms['department'][g.event]:
+        permissions = permissions.union(set(g.perms['department'][g.event][g.department]))
     model_perms = {"*": set()}
     for perm in permissions:
         table, instance, action = perm.split(".")
+        instance = instance if instance == '*' else int(instance)
         if table == name or table == "*":
             if not instance in model_perms:
                 model_perms[instance] = set()
             model_perms[instance].add(action)
-    print(model_perms)
     return model_perms
 
 class Model_Base(object):
@@ -75,7 +74,12 @@ class Model_Base(object):
             single_item = False
         instance_ids = [instance.id for instance in instances]
         model_perms = model_permissions(cls.__tablename__)
-        perms = set.union(set.intersection({model_perms[x] for x in instance_ids if x in model_perms}), model_perms['*'])
+        instance_perms = [model_perms[x] for x in instance_ids if x in model_perms]
+        if any(instance_perms):
+            instance_perms = set.intersection(*instance_perms)
+        else:
+            instance_perms = set()
+        perms = set.union(instance_perms, model_perms['*'])
         if not parents:
             parents = []
         # If we are recursing then just truncate to the ID

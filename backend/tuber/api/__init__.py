@@ -20,13 +20,12 @@ def crud_group(model, event=None, department=None):
             if limit:
                 offset = page*limit
         filters = []
-        perms = model_permissions(model.__name__.lower())
-        print(model, perms)
+        perms = model_permissions(model.__tablename__.lower())
         if not READ_PERMS.intersection(perms['*']):
-            ids = [x for x in perms.keys() if READ_PERMS.intersection(perms[x])]
+            ids = [int(x) for x in perms.keys() if READ_PERMS.intersection(perms[x])]
             if not ids:
                 raise PermissionDenied(f"User is not able to read any values in {model.__tablename__}")
-            filters.append(model.id.id_(ids))
+            filters.append(model.id.in_(ids))
         if event:
             filters.append(model.event == event)
         if department:
@@ -58,7 +57,7 @@ def crud_group(model, event=None, department=None):
     raise MethodNotAllowed()
 
 def crud_single(model, event=None, department=None, id=None):
-    perms = model_permissions(model.__name__.lower())
+    perms = model_permissions(model.__tablename__.lower())
     if request.method == "GET":
         if READ_PERMS.intersection(perms['*']) or (id in perms and READ_PERMS.intersection(perms[id])):
             instance = db.query(model).filter(model.id == id).one_or_none()
@@ -79,9 +78,7 @@ def crud_single(model, event=None, department=None, id=None):
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):
             instance = db.query(model).filter(model.id == id).one_or_none()
             db.delete(instance)
-            print("Precheck")
             if hasattr(instance, 'onchange_cb'):
-                print("Precallback")
                 db.flush()
                 for cb in instance.onchange_cb:
                     cb(db, instance)

@@ -8,7 +8,6 @@ def test_staffer_auth(mock_post, client):
     results = [{"result": []}, {"result": ["234"]},{"result": [{"id": "234", "email": "test1@test.com", "assigned_depts_labels": [], "staffing": True, "badge_num": "", "badge_printed_name": "", "full_name": "", "first_name": "", "last_name": "", "legal_name": "", "ec_name": "", "ec_phone": "", "cellphone": ""}]}]
     mock_post.return_value.json = results.pop
     rv = client.post('/api/uber_login', json={"token": "234"})
-    print(rv)
     assert(rv.status_code == 200)
 
     from tuber.database import db
@@ -20,7 +19,6 @@ def test_staffer_auth(mock_post, client):
     results = [{"result": []}, {"result": ["123"]},{"result": [{"id": "123", "email": "test2@test.com", "assigned_depts_labels": [], "staffing": True, "badge_num": "", "badge_printed_name": "", "full_name": "", "first_name": "", "last_name": "", "legal_name": "", "ec_name": "", "ec_phone": "", "cellphone": ""}]}]
     mock_post.return_value.json = results.pop
     rv = client.post('/api/uber_login', json={"token": "123"})
-    print(rv.data)
     assert(rv.status_code == 200)
 
     results = [{"result": []}, {"result": ["234"]},{"result": [{"id": "456", "email": "test3@test.com", "assigned_depts_labels": [], "staffing": True, "badge_num": "", "badge_printed_name": "", "full_name": "", "first_name": "", "last_name": "", "legal_name": "", "ec_name": "", "ec_phone": "", "cellphone": ""}]}]

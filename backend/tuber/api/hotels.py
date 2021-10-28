@@ -341,7 +341,7 @@ def hotel_room_block_settings(event):
             return "null", 200
     return "", 403
 
-@app.route('/hotel/request_complete.png')
+@app.route('/hotels/request_complete.png')
 def request_complete():
     if not 'id' in request.args:
         resp = send_file(os.path.join(config.static_path, "checkbox_unchecked.png"))
@@ -428,3 +428,89 @@ def hotel_badges(event):
             "last_name": badge.last_name,
         })
     return jsonify(ret)
+
+@app.route("/api/event/<int:event>/hotel/request", methods=["GET", "PATCH"])
+def hotel_request_api(event):
+    if not check_permission("rooming.*.request", event=event):
+        return "", 403
+    if not g.badge:
+        return "Could not locate badge", 404
+    if request.method == "GET":
+        hotel_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.badge == g.badge.id).one_or_none()
+        if not hotel_request:
+            return "Could not locate hotel room request", 404
+        roommate_requests = db.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == g.badge.id).all()
+        roommate_requests = [x.requested for x in roommate_requests]
+        antiroommate_requests = db.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == g.badge.id).all()
+        antiroommate_requests = [x.requested for x in antiroommate_requests]
+        room_nights = []
+        requested = db.query(RoomNightRequest, HotelRoomNight).join(HotelRoomNight, RoomNightRequest.room_night == HotelRoomNight.id).filter(RoomNightRequest.badge == g.badge.id).all()
+        for req, night in requested:
+            if not night.hidden:
+                room_nights.append({
+                    "id": night.id,
+                    "checked": req.requested,
+                    "date": night.date,
+                    "name": night.name,
+                    "restricted": night.restricted,
+                    "restriction_type": night.restriction_type,
+                })
+        return jsonify({
+            "event": hotel_request.event,
+            "badge": hotel_request.badge,
+            "first_name": hotel_request.first_name,
+            "last_name": hotel_request.last_name,
+            "declined": hotel_request.declined,
+            "prefer_department": hotel_request.prefer_department,
+            "preferred_department": hotel_request.preferred_department,
+            "notes": hotel_request.notes,
+            "prefer_single_gender": hotel_request.prefer_single_gender,
+            "preferred_gender": hotel_request.preferred_gender,
+            "noise_level": hotel_request.noise_level,
+            "smoke_sensitive": hotel_request.smoke_sensitive,
+            "sleep_time": hotel_request.sleep_time,
+            "room_night_justification": hotel_request.room_night_justification,
+            "requested_roommates": roommate_requests,
+            "antirequested_roommates": antiroommate_requests,
+            "room_nights": room_nights
+        })
+    elif request.method == "PATCH":
+        hotel_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.badge == g.badge.id).one_or_none()
+        if not hotel_request:
+            return "Could not locate hotel room request", 404
+        db.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == g.badge.id).all()
+        db.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == g.badge.id).all()
+        hotel_request.first_name = g.data['first_name']
+        hotel_request.last_name = g.data['last_name']
+        hotel_request.declined = g.data['declined']
+        hotel_request.prefer_department = g.data['prefer_department']
+        hotel_request.preferred_department = g.data['preferred_department']
+        hotel_request.notes = g.data['notes']
+        hotel_request.prefer_single_gender = g.data['prefer_single_gender']
+        hotel_request.preferred_gender = g.data['preferred_gender']
+        hotel_request.noise_level = g.data['noise_level']
+        hotel_request.smoke_sensitive = g.data['smoke_sensitive']
+        hotel_request.sleep_time = g.data['sleep_time']
+        hotel_request.room_night_justification = g.data['room_night_justification']
+        db.add(hotel_request)
+        db.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == g.badge.id).delete()
+        db.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == g.badge.id).delete()
+        for requested in g.data['requested_roommates']:
+            roommate_request = HotelRoommateRequest(requester=g.badge.id, requested=requested)
+            db.add(roommate_request)
+        for requested in g.data['antirequested_roommates']:
+            antiroommate_request = HotelAntiRoommateRequest(requester=g.badge.id, requested=requested)
+            db.add(antiroommate_request)
+        requested = db.query(RoomNightRequest, HotelRoomNight).join(HotelRoomNight, RoomNightRequest.room_night == HotelRoomNight.id).filter(RoomNightRequest.badge == g.badge.id).all()
+        night_status = {}
+        for req, night in requested:
+            night_status[night.id] = req
+        for room_night_request in g.data['room_nights']:
+            if room_night_request['id'] in night_status:
+                night_status[room_night_request['id']].requested = room_night_request['requested']
+                db.add(night_status[room_night_request['id']])
+            else:
+                requested_night = RoomNightRequest(event=event, badge=g.badge.id, requested=room_night_request['requested'], room_night=room_night_request['id'])
+                db.add(requested_night)
+        db.commit()
+        return "null", 200

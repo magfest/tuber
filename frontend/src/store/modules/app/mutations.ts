@@ -1,12 +1,13 @@
 import { MutationTree } from 'vuex'
 
-import { User, Event } from '../../../lib/interfaces'
+import { User, Event, Badge } from '../../../lib/interfaces'
 
 import { State } from './state'
 
 export enum AppMutationTypes {
     SET_LOGIN = 'SET_LOGIN',
     SET_USER = 'SET_USER',
+    SET_BADGE = 'SET_BADGE',
     SET_EVENT = 'SET_EVENT',
     SET_EVENTS = 'SET_EVENTS',
     SET_INITIAL_SETUP = 'SET_INITIAL_SETUP',
@@ -16,6 +17,7 @@ export enum AppMutationTypes {
 export type Mutations<S = State> = {
     [AppMutationTypes.SET_LOGIN](state: S, loggedIn: boolean): void;
     [AppMutationTypes.SET_USER](state: S, user: User | null): void;
+    [AppMutationTypes.SET_BADGE](state: S, badge: Badge | null): void;
     [AppMutationTypes.SET_EVENT](state: S, event: Event | null): void;
     [AppMutationTypes.SET_EVENTS](state: S, events: Event[]): void;
     [AppMutationTypes.SET_INITIAL_SETUP](state: S, initialSetup: boolean): void;
@@ -28,6 +30,9 @@ export const mutations: MutationTree<State> & Mutations = {
   },
   [AppMutationTypes.SET_USER] (state, user) {
     state.user = user
+  },
+  [AppMutationTypes.SET_BADGE] (state, badge) {
+    state.badge = badge
   },
   [AppMutationTypes.SET_EVENT] (state, event) {
     state.event = event
