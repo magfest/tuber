@@ -65,7 +65,7 @@ class Model_Base(object):
             data[i][column.name] = transform(instances[i], column)
 
     @classmethod
-    def serialize(cls, instances, parents=None):
+    def serialize(cls, instances, parents=None, serialize_relationships=False):
         cls.get_modelclasses()
         if type(instances) is cls:
             single_item = True
@@ -78,6 +78,10 @@ class Model_Base(object):
         if any(instance_perms):
             instance_perms = set.intersection(*instance_perms)
         else:
+            instance_perms = set()
+        instances_with_perms = set(model_perms.keys())
+
+        if set(instance_ids).difference(instances_with_perms):
             instance_perms = set()
         perms = set.union(instance_perms, model_perms['*'])
         if not parents:
@@ -114,9 +118,13 @@ class Model_Base(object):
         data = []
         for instance in instances:
             inst_ser = {}
-            for relation in visible_relationships:
-                new_parents = parents + [cls,]
-                inst_ser[relation.key] = cls.modelclasses[relation.target.name].serialize(getattr(instance, relation.key), parents=new_parents)
+            if serialize_relationships:
+                for relation in visible_relationships:
+                    new_parents = parents + [cls,]
+                    inst_ser[relation.key] = cls.modelclasses[relation.target.name].serialize(getattr(instance, relation.key), parents=new_parents)
+            else:
+                for relation in visible_relationships:
+                    inst_ser[relation.key] = [getattr(x, 'id') for x in getattr(instance, relation.key)]
             data.append(inst_ser)
 
         for column in visible_columns:

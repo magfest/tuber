@@ -15,7 +15,7 @@
         </button>
         <ul class="layout-topbar-menu hidden lg:flex origin-top">
             <li>
-              <Dropdown v-if="loggedIn & events.length > 0" :modelValue="event" dataKey="id" :options="events" optionLabel="name" @input="updateEvent" placeHolder="Select an Event" />
+              <Dropdown v-if="loggedIn & events.length > 0" :modelValue="event" :options="events" optionLabel="name" @change="updateEvent" placeHolder="Select an Event" />
             </li>
             <li>
                 <button class="p-link layout-topbar-button" @click="toggleUserMenu">
@@ -32,7 +32,6 @@
 import { Options, Vue } from 'vue-class-component'
 import { mapGetters } from 'vuex'
 import { AppActionTypes } from './store/modules/app/actions'
-import { AppMutationTypes } from './store/modules/app/mutations'
 
 @Options({
   data: (): {} => ({
@@ -44,7 +43,8 @@ import { AppMutationTypes } from './store/modules/app/mutations'
           { label: 'Sign In', visible: true, icon: 'pi pi-fw pi-power-on', to: '/login' }
         ]
       }
-    ]
+    ],
+    activeEvent: null
   }),
   methods: {
     onMenuToggle (event: Event) {
@@ -53,33 +53,41 @@ import { AppMutationTypes } from './store/modules/app/mutations'
     onTopbarMenuToggle (event: Event) {
       this.$emit('topbar-menu-toggle', event)
     },
-    updateEvent (e: {target: {value: Event}}) {
-      this.$store.commit(AppMutationTypes.SET_EVENT, e.target.value)
+    updateEvent (e: {value: {}}) {
+      console.log('Update event', e.value)
+      this.$store.dispatch(AppActionTypes.SET_EVENT, e.value)
     },
     toggleUserMenu (e: Event) {
       this.$refs.userMenu.toggle(e)
     },
-    menuVisible () {
-
-    }
-  },
-  computed: {
-    ...mapGetters([
-      'loggedIn',
-      'events',
-      'event'
-    ])
-  },
-  watch: {
-    loggedIn (newLoggedIn, oldLoggedIn) {
-      this.$store.dispatch(AppActionTypes.GET_EVENTS)
-      if (newLoggedIn) {
+    refreshTopBar () {
+      if (this.loggedIn) {
         this.userMenuItems[0].items[0].visible = true
         this.userMenuItems[0].items[1].visible = false
       } else {
         this.userMenuItems[0].items[0].visible = false
         this.userMenuItems[0].items[1].visible = true
       }
+    }
+  },
+  computed: {
+    ...mapGetters([
+      'loggedIn',
+      'events',
+      'event',
+      'user',
+      'badge'
+    ])
+  },
+  watch: {
+    user () {
+      this.refreshTopBar()
+    },
+    badge () {
+      this.refreshTopBar()
+    },
+    events () {
+      this.refreshTopBar()
     }
   },
   mounted () {

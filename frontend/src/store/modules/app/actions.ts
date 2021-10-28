@@ -2,7 +2,7 @@ import { ActionTree, ActionContext } from 'vuex'
 
 import { RootState } from '@/store'
 
-import { State } from './state'
+import { state, State } from './state'
 import { Mutations, AppMutationTypes } from './mutations'
 
 import { Event, UserSession } from '@/lib/interfaces'
@@ -12,6 +12,7 @@ export enum AppActionTypes {
     GET_INITIAL_SETUP = 'GET_INITIAL_SETUP',
     GET_LOGGED_IN = 'GET_LOGGED_IN',
     GET_EVENTS = 'GET_EVENTS',
+    SET_EVENT = 'SET_EVENT',
     LOGOUT = 'LOGOUT',
     LOGIN = 'LOGIN',
     GET_PERMISSIONS = 'GET_PERMISSIONS'
@@ -28,6 +29,7 @@ export interface Actions {
     [AppActionTypes.GET_INITIAL_SETUP]({ commit }: AugmentedActionContext): Promise<void>;
     [AppActionTypes.GET_LOGGED_IN]({ commit }: AugmentedActionContext): Promise<void>;
     [AppActionTypes.GET_EVENTS]({ commit }: AugmentedActionContext): Promise<void>;
+    [AppActionTypes.SET_EVENT]({ commit }: AugmentedActionContext, event: Event | null): Promise<void>;
     [AppActionTypes.LOGOUT]({ dispatch }: AugmentedActionContext): Promise<void>;
     [AppActionTypes.LOGIN]({ dispatch }: AugmentedActionContext, user: {username: string, password: string}): Promise<void>;
     [AppActionTypes.GET_PERMISSIONS]({ dispatch }: AugmentedActionContext): Promise<void>;
@@ -43,15 +45,19 @@ export const actions: ActionTree<State, RootState> & Actions = {
   },
   async [AppActionTypes.GET_LOGGED_IN] ({ commit, dispatch }) {
     return get('/api/check_login').then((userSession: UserSession) => {
-      commit(AppMutationTypes.SET_USER, userSession.user ? userSession.user : null)
-      commit(AppMutationTypes.SET_BADGE, userSession.badge ? userSession.badge : null)
-      dispatch(AppActionTypes.GET_PERMISSIONS).then(() => {
-        commit(AppMutationTypes.SET_LOGIN, true)
+      dispatch(AppActionTypes.GET_EVENTS).then(() => {
+        commit(AppMutationTypes.SET_USER, userSession.user ? userSession.user : null)
+        commit(AppMutationTypes.SET_BADGE, userSession.badge ? userSession.badge : null)
+        dispatch(AppActionTypes.GET_PERMISSIONS).then(() => {
+          commit(AppMutationTypes.SET_LOGIN, true)
+        })
       })
     }).catch(() => {
       commit(AppMutationTypes.SET_LOGIN, false)
       commit(AppMutationTypes.SET_USER, null)
       commit(AppMutationTypes.SET_BADGE, null)
+      commit(AppMutationTypes.SET_EVENT, null)
+      commit(AppMutationTypes.SET_EVENTS, [])
       dispatch(AppActionTypes.GET_PERMISSIONS)
     })
   },
@@ -59,13 +65,26 @@ export const actions: ActionTree<State, RootState> & Actions = {
     return get('/api/event').then((events: Event[]) => {
       commit(AppMutationTypes.SET_EVENTS, events)
       if (events.length > 0) {
-        commit(AppMutationTypes.SET_EVENT, events[0])
+        console.log(events, events[0])
+        commit(AppMutationTypes.SET_EVENT, events[1])
       } else {
         commit(AppMutationTypes.SET_EVENT, null)
       }
     }).catch(() => {
       commit(AppMutationTypes.SET_EVENT, null)
     })
+  },
+  async [AppActionTypes.SET_EVENT] ({ commit }, event: Event | null) {
+    commit(AppMutationTypes.SET_EVENT, event)
+    if (event && state.user) {
+      return get('/api/event/' + event.id + '/badges', { user: state.user.id }).then((badge) => {
+        if (badge) {
+          commit(AppMutationTypes.SET_BADGE, badge)
+        } else {
+          commit(AppMutationTypes.SET_BADGE, null)
+        }
+      })
+    }
   },
   async [AppActionTypes.LOGOUT] ({ dispatch }) {
     return post('/api/logout').then(() => {

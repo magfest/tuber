@@ -32,6 +32,13 @@ export const mutations: MutationTree<State> & Mutations = {
     state.user = user
   },
   [AppMutationTypes.SET_BADGE] (state, badge) {
+    if (badge) {
+      state.events.forEach((event) => {
+        if (badge.event === event.id) {
+          state.event = event
+        }
+      })
+    }
     state.badge = badge
   },
   [AppMutationTypes.SET_EVENT] (state, event) {
