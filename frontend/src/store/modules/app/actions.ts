@@ -65,7 +65,6 @@ export const actions: ActionTree<State, RootState> & Actions = {
     return get('/api/event').then((events: Event[]) => {
       commit(AppMutationTypes.SET_EVENTS, events)
       if (events.length > 0) {
-        console.log(events, events[0])
         commit(AppMutationTypes.SET_EVENT, events[1])
       } else {
         commit(AppMutationTypes.SET_EVENT, null)

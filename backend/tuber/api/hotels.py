@@ -355,7 +355,8 @@ def request_complete():
         return resp
     req = db.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
     if req:
-        return send_file(os.path.join(config.static_path, "checkbox_checked.png"))
+        if all(req.first_name, req.last_name) or req.declined:
+            return send_file(os.path.join(config.static_path, "checkbox_checked.png"))
     resp = send_file(os.path.join(config.static_path, "checkbox_unchecked.png"))
     resp.cache_control.max_age = 10
     return resp
@@ -455,21 +456,36 @@ def hotel_request_api(event):
                     "restricted": night.restricted,
                     "restriction_type": night.restriction_type,
                 })
+        all_room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
+        for room_night in all_room_nights:
+            for existing in room_nights:
+                if existing['id'] == room_night.id:
+                    break
+            else:
+                room_nights.append({
+                    "id": room_night.id,
+                    "checked": False,
+                    "date": room_night.date,
+                    "name": room_night.name,
+                    "restricted": room_night.restricted,
+                    "restriction_type": room_night.restriction_type
+                })
+        room_nights.sort(key=lambda x: x['date'])
         return jsonify({
             "event": hotel_request.event,
             "badge": hotel_request.badge,
-            "first_name": hotel_request.first_name,
-            "last_name": hotel_request.last_name,
+            "first_name": hotel_request.first_name or "",
+            "last_name": hotel_request.last_name or "",
             "declined": hotel_request.declined,
             "prefer_department": hotel_request.prefer_department,
             "preferred_department": hotel_request.preferred_department,
-            "notes": hotel_request.notes,
+            "notes": hotel_request.notes or "",
             "prefer_single_gender": hotel_request.prefer_single_gender,
-            "preferred_gender": hotel_request.preferred_gender,
-            "noise_level": hotel_request.noise_level,
+            "preferred_gender": hotel_request.preferred_gender or "",
+            "noise_level": hotel_request.noise_level or "",
             "smoke_sensitive": hotel_request.smoke_sensitive,
-            "sleep_time": hotel_request.sleep_time,
-            "room_night_justification": hotel_request.room_night_justification,
+            "sleep_time": hotel_request.sleep_time or "",
+            "room_night_justification": hotel_request.room_night_justification or "",
             "requested_roommates": roommate_requests,
             "antirequested_roommates": antiroommate_requests,
             "room_nights": room_nights
