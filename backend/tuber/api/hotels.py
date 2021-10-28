@@ -355,8 +355,10 @@ def request_complete():
         return resp
     req = db.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
     if req:
-        if all(req.first_name, req.last_name) or req.declined:
-            return send_file(os.path.join(config.static_path, "checkbox_checked.png"))
+        room_nights = db.query(RoomNightRequest).filter(RoomNightRequest.event == badge.event, RoomNightRequest.badge == badge.id).all()
+        if room_nights:
+            if (req.first_name and req.last_name and any([x.requested for x in room_nights])) or req.declined:
+                return send_file(os.path.join(config.static_path, "checkbox_checked.png"))
     resp = send_file(os.path.join(config.static_path, "checkbox_unchecked.png"))
     resp.cache_control.max_age = 10
     return resp
