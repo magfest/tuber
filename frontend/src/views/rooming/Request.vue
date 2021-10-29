@@ -21,7 +21,7 @@
         </div><br>
 
         <div v-if="!request.declined">
-          <h4>What is your name?</h4>
+          <h4>What name is on your photo ID?</h4>
           <p>The software used by our host hotel requires a first and last name. The front desk will compare these against your photo ID at checkin time. This will be shared only with STOPS and the hotel.</p>
           <div class="formgrid grid">
               <div class="field col">
