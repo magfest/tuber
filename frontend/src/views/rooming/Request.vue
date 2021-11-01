@@ -81,7 +81,7 @@
             <label for="prefer_department">Yes, I would prefer to room with my department.</label>
           </div>
           <p v-if="request.prefer_department && badge.departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
-          <Dropdown :disabled="request.declined" :options="badge.departments" v-if="request.prefer_department && badge.departments.length > 1" optionValue="id" optionLabel="name" v-model="request.preferred_department"></Dropdown>
+          <Dropdown :disabled="request.declined" :options="badge_departments" v-if="request.prefer_department && badge.departments.length > 1" optionValue="id" optionLabel="name" v-model="request.preferred_department"></Dropdown>
           <p v-if="request.prefer_department && badge.departments.length == 1">We will try to put you with the {{ badge.departments[0].name }} department.</p><br>
 
           <h4>What is your preferred noise level?</h4>
@@ -152,10 +152,6 @@ export default {
       '4pm-6pm',
       '6pm-8pm',
       'I have no idea.'
-    ],
-    alldepartments: [
-      { id: 2, name: 'TechOps' },
-      { id: 3, name: 'Not TechOps' }
     ]
   }),
   computed: {
@@ -163,7 +159,8 @@ export default {
       'loggedIn',
       'event',
       'user',
-      'badge'
+      'badge',
+      'departmentLookup'
     ]),
     justification_required () {
       if (!this.request.room_nights) {
@@ -176,11 +173,11 @@ export default {
       }
       return false
     },
-    departments () {
+    badge_departments () {
       const res = []
-      for (let i = 0; i < this.alldepartments.length; i += 1) {
-        if (this.badge.departments.indexOf(this.alldepartments[i].id) >= 0) {
-          res.push(this.alldepartments[i])
+      for (let i = 0; i < this.badge.departments.length; i += 1) {
+        if (Object.prototype.hasOwnProperty.call(this.departmentLookup, this.badge.departments[i])) {
+          res.push(this.departmentLookup[this.badge.departments[i]])
         }
       }
       return res
@@ -205,6 +202,7 @@ export default {
   },
   mounted () {
     this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
+    this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
     this.loadRequest()
   },
   methods: {
