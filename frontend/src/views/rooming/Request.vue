@@ -21,7 +21,7 @@
         </div><br>
 
         <div v-if="!request.declined">
-          <h4>What is your name?</h4>
+          <h4>What name is on your photo ID?</h4>
           <p>The software used by our host hotel requires a first and last name. The front desk will compare these against your photo ID at checkin time. This will be shared only with STOPS and the hotel.</p>
           <div class="formgrid grid">
               <div class="field col">
@@ -54,6 +54,18 @@
 
           <p v-if="invalidRoommates">You cannot both request and anti-request a single person, and you can't request or anti-request yourself.</p>
 
+          <h4>Would you prefer single gender rooming?</h4>
+          <div class="field-checkbox">
+            <Checkbox class="my-n5" :disabled="request.declined" v-model="request.prefer_single_gender" :binary="true"/>
+            <label for="single_gender">Yes, I would prefer a single-gender room.</label>
+          </div>
+
+          <div class="field">
+            <label for="single_gender">What is your gender?</label><br>
+            <InputText id="single_gender" :disabled="request.declined" counter="64" v-model="request.preferred_gender" /><br>
+            <small>This will be used to help match single-gender rooms. We will do our best to group entries logically.</small>
+          </div><br>
+
           <h4>Is there anything else we should know?</h4>
           <Textarea v-model="request.notes" rows="5" cols="50" :autoResize="true" :disabled="request.declined" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></TextArea>
 
@@ -71,17 +83,6 @@
           <p v-if="request.prefer_department && badge.departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
           <Dropdown :disabled="request.declined" :options="badge.departments" v-if="request.prefer_department && badge.departments.length > 1" optionValue="id" optionLabel="name" v-model="request.preferred_department"></Dropdown>
           <p v-if="request.prefer_department && badge.departments.length == 1">We will try to put you with the {{ badge.departments[0].name }} department.</p><br>
-
-          <h4>Would you prefer single gender rooming?</h4>
-          <div class="field-checkbox">
-            <Checkbox class="my-n5" :disabled="request.declined" v-model="request.prefer_single_gender" :binary="true"/>
-            <label for="single_gender">Yes, I would prefer a single-gender room.</label>
-          </div>
-          <div v-if="request.prefer_single_gender" class="field">
-            <label for="single_gender">What gender would you like to room with?</label><br>
-            <InputText id="single_gender" :disabled="request.declined" counter="64" v-if="request.prefer_single_gender" v-model="request.preferred_gender" /><br>
-            <small>We will do our best to group entries logically. I.e., males will be grouped with guys.</small>
-          </div><br>
 
           <h4>What is your preferred noise level?</h4>
           <Dropdown :disabled="request.declined" v-model="request.noise_level" :options="noise_levels"></Dropdown><br><br>
