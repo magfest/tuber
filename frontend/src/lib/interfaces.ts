@@ -42,9 +42,19 @@ interface UserSession {
     badge?: Badge,
 }
 
+interface Department {
+    id: number,
+    uber_id: string,
+    description: string,
+    event: number,
+    name: string,
+    badges: [number]
+}
+
 export {
     Badge,
     Event,
     User,
-    UserSession
+    UserSession,
+    Department,
 }
