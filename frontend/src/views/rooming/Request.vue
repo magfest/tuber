@@ -26,11 +26,11 @@
           <div class="formgrid grid">
               <div class="field col">
                 <label for="first_name">First Name</label>
-                <InputText id="first_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64" v-model="request.first_name" />
+                <InputText id="first_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64" maxlength="64" v-model="request.first_name" />
               </div>
               <div class="field col">
                 <label for="last_name">Last Name</label>
-                <InputText id="last_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64" v-model="request.last_name" /><br>
+                <InputText id="last_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64" maxlength="64" v-model="request.last_name" /><br>
               </div>
           </div>
 
@@ -42,7 +42,7 @@
           </div>
 
           <p v-if="justification_required">Please provide justification for requesting restricted nights:</p>
-          <Textarea v-model="request.room_night_justification" @input="blah" v-if="justification_required" :disabled="request.declined" :autoResize="true" rows="5" cols="50" placeholder="I'm helping with setup in <department>."></Textarea>
+          <Textarea v-model="request.room_night_justification" @input="blah" v-if="justification_required" :disabled="request.declined" :autoResize="true" rows="5" cols="50" placeholder="I'm helping with setup in <department>." maxlength="512"></Textarea>
           <br><br>
 
           <h4>Who would you like to room with?</h4>
@@ -62,12 +62,12 @@
 
           <div class="field">
             <label for="single_gender">What is your gender?</label><br>
-            <InputText id="single_gender" :disabled="request.declined" counter="64" v-model="request.preferred_gender" /><br>
+            <InputText id="single_gender" :disabled="request.declined" counter="64" maxlength="64" v-model="request.preferred_gender" /><br>
             <small>This will be used to help match single-gender rooms. We will do our best to group entries logically.</small>
           </div><br>
 
           <h4>Is there anything else we should know?</h4>
-          <Textarea v-model="request.notes" rows="5" cols="50" :autoResize="true" :disabled="request.declined" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></TextArea>
+          <Textarea maxlength="512" v-model="request.notes" rows="5" cols="50" :autoResize="true" :disabled="request.declined" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></TextArea>
 
           <br><br>
           <Divider />
