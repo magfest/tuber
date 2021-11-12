@@ -14,7 +14,16 @@ class DepartmentPermission(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     event = Column(Integer, ForeignKey('event.id'))
-    role = Column(Integer, ForeignKey('department_role.id'))
+    role = Column(Integer, ForeignKey('department_role.id', ondelete="CASCADE"))
+
+class DepartmentGrant(Base):
+    __tablename__ = "department_grant"
+    __url__ = "/api/event/<int:event>/department_grant"
+    id = Column(Integer, primary_key=True)
+    user = Column(Integer, ForeignKey('user.id'))
+    event = Column(Integer, ForeignKey('event.id'))
+    role = Column(Integer, ForeignKey('department_role.id', ondelete="CASCADE"))
+    department = Column(Integer, ForeignKey('department.id', ondelete="CASCADE"), nullable=True)
 
 class DepartmentRole(Base):
     __tablename__ = "department_role"
@@ -23,23 +32,15 @@ class DepartmentRole(Base):
     name = Column(String)
     event = Column(Integer, ForeignKey('event.id'))
     description = Column(String)
-    permissions = relationship(DepartmentPermission)
-
-class DepartmentGrant(Base):
-    __tablename__ = "department_grant"
-    __url__ = "/api/event/<int:event>/department_grant"
-    id = Column(Integer, primary_key=True)
-    user = Column(Integer, ForeignKey('user.id'))
-    event = Column(Integer, ForeignKey('event.id'))
-    role = Column(Integer, ForeignKey('department_role.id'))
-    department = Column(Integer, ForeignKey('department.id'), nullable=True)
+    permissions = relationship(DepartmentPermission, cascade="all, delete", passive_deletes=True)
+    grants = relationship(DepartmentGrant, cascade="all, delete", passive_deletes=True)
 
 class Badge(Base):
     __tablename__ = "badge"
     __url__ = "/api/event/<int:event>/badge"
     id = Column(Integer, primary_key=True)
     id.allow_r = {"searchname"}
-    event = Column(Integer, ForeignKey('event.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     badge_type = Column(Integer, ForeignKey('badge_type.id'))
     printed_number = Column(String())
     printed_name = Column(String())
@@ -58,10 +59,11 @@ class Badge(Base):
     user = Column(Integer, ForeignKey('user.id'), nullable=True)
     uber_id = Column(String(), unique=True, nullable=True)
     departments = relationship("Department", secondary="badge_to_department", back_populates="badges")
-    room_night_requests = relationship("RoomNightRequest")
-    room_night_assignments = relationship("RoomNightAssignment")
-    room_night_approvals = relationship("RoomNightApproval")
-    hotel_room_request = relationship("HotelRoomRequest")
+    ribbons = relationship("RibbonType", secondary="ribbon_to_badge", back_populates="badges")
+    room_night_requests = relationship("RoomNightRequest", cascade="all, delete", passive_deletes=True)
+    room_night_assignments = relationship("RoomNightAssignment", cascade="all, delete", passive_deletes=True)
+    room_night_approvals = relationship("RoomNightApproval", cascade="all, delete", passive_deletes=True)
+    hotel_room_request = relationship("HotelRoomRequest", cascade="all, delete", passive_deletes=True)
 
 class Department(Base):
     __tablename__ = "department"
@@ -69,7 +71,7 @@ class Department(Base):
     id = Column(Integer, primary_key=True)
     uber_id = Column(String(), unique=True, nullable=True)
     description = Column(String(), nullable=True)
-    event = Column(Integer, ForeignKey('event.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     name = Column(String(256))
     badges = relationship("Badge", secondary="badge_to_department", back_populates="departments")
 
@@ -86,6 +88,7 @@ class RibbonType(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(), unique=True)
     description = Column(String())
+    badges = relationship("Badge", secondary="ribbon_to_badge", back_populates="ribbons")
 
 class RibbonToBadge(Base):
     __tablename__ = "ribbon_to_badge"

@@ -8,7 +8,7 @@ class Email(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(), unique=True)
     description = Column(String())
-    event = Column(Integer, ForeignKey('event.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     code = Column(String(), nullable=True)
     subject = Column(String())
     body = Column(String())
@@ -21,6 +21,7 @@ class EmailTrigger(Base):
     __tablename__ = "email_trigger"
     __url__ = "/api/event/<int:event>/email_trigger"
     id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     trigger = Column(String())
     timestamp = Column(DateTime())
     context = Column(JSON())
@@ -29,9 +30,9 @@ class EmailSource(Base):
     __tablename__ = "email_source"
     __url__ = "/api/event/<int:event>/email_source"
     id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     name = Column(String(), unique=True)
     description = Column(String(), nullable=True)
-    event = Column(Integer, ForeignKey('event.id'))
     address = Column(String())
     region = Column(String())
     ses_access_key = Column(String())
@@ -44,6 +45,7 @@ class EmailReceipt(Base):
     __tablename__ = "email_receipt"
     __url__ = "/api/event/<int:event>/email_receipt"
     id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     email = Column(Integer, ForeignKey('email.id'))
     badge = Column(Integer, ForeignKey('badge.id'))
     source = Column(Integer, ForeignKey('email_source.id'))

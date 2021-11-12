@@ -10,3 +10,14 @@ def get_eligible_attendees():
         "method": "hotel.eligible_attendees"
     }
     return requests.post(UBER_URL, headers=headers, json=req).json()['result']
+
+def get_attendee(uber_id, full=False):
+    req = {
+        "method": "attendee.search",
+        "params": [
+            uber_id
+        ]
+    }
+    if full:
+        req['params'].append("full")
+    return requests.post(UBER_URL, headers=headers, json=req).json()['result'][0]

@@ -1,6 +1,7 @@
 from tuber import app, config
 from flask import g, request
-from tuber.models import Permission, Grant, Role, Department, DepartmentPermission, DepartmentGrant, DepartmentRole, Session, User, Badge
+from tuber.models import Permission, Grant, Role, Department, DepartmentPermission, DepartmentGrant, DepartmentRole, Session, User, Badge, APIKey
+from tuber.errors import *
 from tuber.database import db
 import datetime
 import json
@@ -55,6 +56,26 @@ def load_session(endpoint, values):
             else:
                 db.delete(session)
             db.commit()
+    elif request.headers.get('X-Auth-Token', ""):
+        key = request.headers.get('X-Auth-Token')
+        apikey = db.query(APIKey).filter(APIKey.key == key).one_or_none()
+        if not apikey:
+            raise PermissionDenied(message="Invalid API Key")
+        if not apikey.enabled:
+            raise PermissionDenied(message="API Key is disabled")
+        user = db.query(User).filter(User.id == apikey.user).one_or_none()
+        if not user:
+            raise PermissionDenied(message="Invalid API Key")
+        if not user.active:
+            raise PermissionDenied(message="API Key is disabled")
+        g.user=user
+        perms = get_permissions()
+        g.perms = {
+            "event": {int(k) if k != '*' else k: v for k, v in perms['event'].items()},
+            "department": {int(k) if k != '*' else k: {int(m) if m != '*' else m: n for m, n in v.items()} for k, v in perms['department'].items()}
+        }
+        if "event" in values and not g.badge and g.user:
+            g.badge = db.query(Badge).filter(Badge.user == g.user.id, Badge.event == values['event']).one_or_none()
 
 def flush_session_perms(user_id=None):
     if user_id:

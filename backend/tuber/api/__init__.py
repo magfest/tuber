@@ -77,6 +77,8 @@ def crud_single(model, event=None, department=None, id=None):
     elif request.method == "DELETE":
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):
             instance = db.query(model).filter(model.id == id).one_or_none()
+            if not instance:
+                return "", 404
             db.delete(instance)
             if hasattr(instance, 'onchange_cb'):
                 db.flush()
