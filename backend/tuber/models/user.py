@@ -7,11 +7,11 @@ class User(Base):
     __url__ = "/api/user"
     id = Column(Integer, primary_key=True)
     id.allow_r = {"self"}
-    username = Column(String(80), unique=True)
+    username = Column(String(), unique=True)
     username.allow_rw = {"self"}
-    email = Column(String(120), unique=True)
+    email = Column(String(), unique=True)
     email.allow_rw = {"self"}
-    password = Column(String(128), default="")
+    password = Column(String(), default="")
     password.hidden = True
     active = Column(Boolean)
     active.allow_r = {"self"}
@@ -28,7 +28,7 @@ class Session(Base):
     id = Column(Integer, primary_key=True)
     user = Column(Integer, ForeignKey('user.id'))
     badge = Column(Integer, ForeignKey('badge.id'))
-    secret = Column(String(64))
+    secret = Column(String())
     secret.hidden = True
     permissions = Column(JSON)
     last_active = Column(DateTime)
@@ -37,15 +37,15 @@ class Permission(Base):
     __tablename__ = "permission"
     __url__ = "/api/permission"
     id = Column(Integer, primary_key=True)
-    operation = Column(String(64))
+    operation = Column(String())
     role = Column(Integer, ForeignKey('role.id'))
 
 class Role(Base):
     __tablename__ = "role"
     __url__ = "/api/role"
     id = Column(Integer, primary_key=True)
-    name = Column(String(64), unique=True)
-    description = Column(String(128))
+    name = Column(String(), unique=True)
+    description = Column(String())
     permissons = relationship("Permission")
 
 class Grant(Base):

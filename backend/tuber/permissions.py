@@ -5,6 +5,11 @@ from tuber.database import db
 import datetime
 import json
 
+@app.after_request
+def cleanup_db(response):
+    db.remove()
+    return response
+
 @app.url_value_preprocessor
 def load_session(endpoint, values):
     g.user = None

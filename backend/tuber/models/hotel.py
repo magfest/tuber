@@ -13,21 +13,21 @@ class HotelRoomRequest(Base):
     declined = Column(Boolean, nullable=True)
     prefer_department = Column(Boolean, nullable=True)
     preferred_department = Column(Integer, ForeignKey('department.id'), nullable=True)
-    notes = Column(String(512), nullable=True)
+    notes = Column(String(), nullable=True)
     prefer_single_gender = Column(Boolean, nullable=True)
-    preferred_gender = Column(String(64), nullable=True)
-    noise_level = Column(String(64), nullable=True)
+    preferred_gender = Column(String(), nullable=True)
+    noise_level = Column(String(), nullable=True)
     smoke_sensitive = Column(Boolean, nullable=True)
-    sleep_time = Column(String(64), nullable=True)
-    room_night_justification = Column(String(512), nullable=True)
+    sleep_time = Column(String(), nullable=True)
+    room_night_justification = Column(String(), nullable=True)
 
 class HotelRoomBlock(Base):
     __tablename__ = "hotel_room_block"
     __url__ = "/api/event/<int:event>/hotel_room_block"
     id = Column(Integer, primary_key=True)
     event = Column(Integer, ForeignKey('event.id'))
-    name = Column(String(128), nullable=True)
-    description = Column(String(256), nullable=True)
+    name = Column(String(), nullable=True)
+    description = Column(String(), nullable=True)
     rooms = relationship("HotelRoom")
 
 class HotelRoom(Base):
@@ -35,9 +35,9 @@ class HotelRoom(Base):
     __url__ = "/api/event/<int:event>/hotel_room"
     id = Column(Integer, primary_key=True)
     event = Column(Integer, ForeignKey('event.id'))
-    name = Column(String(128), nullable=True)
-    notes = Column(String(512), nullable=True)
-    messages = Column(String(512), nullable=True)
+    name = Column(String(), nullable=True)
+    notes = Column(String(), nullable=True)
+    messages = Column(String(), nullable=True)
     hotel_block = Column(Integer, ForeignKey('hotel_room_block.id'))
     hotel_location = Column(Integer, ForeignKey('hotel_location.id'))
     completed = Column(Boolean)
@@ -59,8 +59,8 @@ class HotelLocation(Base):
     __tablename__ = "hotel_location"
     __url__ = "/api/event/<int:event>/hotel_location"
     id = Column(Integer, primary_key=True)
-    name = Column(String(32))
-    address = Column(String(128))
+    name = Column(String())
+    address = Column(String())
     event = Column(Integer, ForeignKey('event.id'))
     rooms = relationship("HotelRoom")
 
@@ -70,9 +70,9 @@ class HotelRoomNight(Base):
     id = Column(Integer, primary_key=True)
     event = Column(Integer, ForeignKey('event.id'))
     date = Column(Date)
-    name = Column(String(16))
+    name = Column(String())
     restricted = Column(Boolean, default=False)
-    restriction_type = Column(String(64), nullable=True)
+    restriction_type = Column(String(), nullable=True)
     hidden = Column(Boolean, default=False)
     requests = relationship("RoomNightRequest")
     assignments = relationship("RoomNightAssignment")

@@ -41,22 +41,22 @@ class Badge(Base):
     id.allow_r = {"searchname"}
     event = Column(Integer, ForeignKey('event.id'))
     badge_type = Column(Integer, ForeignKey('badge_type.id'))
-    printed_number = Column(String(32))
-    printed_name = Column(String(256))
+    printed_number = Column(String())
+    printed_name = Column(String())
     public_name = Column(String())
     public_name.allow_r = {"searchname"}
-    search_name = Column(String(256))
+    search_name = Column(String())
     search_name.allow_r = {"searchname"}
-    first_name = Column(String(128))
-    last_name = Column(String(128))
-    legal_name = Column(String(256))
+    first_name = Column(String())
+    last_name = Column(String())
+    legal_name = Column(String())
     legal_name_matches = Column(Boolean)
     emergency_contact_name = Column(String())
     emergency_contact_phone = Column(String())
-    phone = Column(String(64))
-    email = Column(String(128))
+    phone = Column(String())
+    email = Column(String())
     user = Column(Integer, ForeignKey('user.id'), nullable=True)
-    uber_id = Column(String(128), unique=True, nullable=True)
+    uber_id = Column(String(), unique=True, nullable=True)
     departments = relationship("Department", secondary="badge_to_department", back_populates="badges")
     room_night_requests = relationship("RoomNightRequest")
     room_night_assignments = relationship("RoomNightAssignment")
@@ -67,8 +67,8 @@ class Department(Base):
     __tablename__ = "department"
     __url__ = "/api/event/<int:event>/department"
     id = Column(Integer, primary_key=True)
-    uber_id = Column(String(128), unique=True, nullable=True)
-    description = Column(String(256), nullable=True)
+    uber_id = Column(String(), unique=True, nullable=True)
+    description = Column(String(), nullable=True)
     event = Column(Integer, ForeignKey('event.id'))
     name = Column(String(256))
     badges = relationship("Badge", secondary="badge_to_department", back_populates="departments")
@@ -77,15 +77,15 @@ class BadgeType(Base):
     __tablename__ = "badge_type"
     __url__ = "/api/event/<int:event>/badge_type"
     id = Column(Integer, primary_key=True)
-    name = Column(String(128), unique=True)
-    description = Column(String(256))
+    name = Column(String(), unique=True)
+    description = Column(String())
 
 class RibbonType(Base):
     __tablename__ = "ribbon_type"
     __url__ = "/api/event/<int:event>/ribbon_type"
     id = Column(Integer, primary_key=True)
-    name = Column(String(128), unique=True)
-    description = Column(String(256))
+    name = Column(String(), unique=True)
+    description = Column(String())
 
 class RibbonToBadge(Base):
     __tablename__ = "ribbon_to_badge"

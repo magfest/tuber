@@ -119,56 +119,45 @@ def hotel_all_requests(event):
             del results[i]
         return jsonify(results)
 
-@app.route("/api/event/<int:event>/hotel/requests", methods=["GET"])
-def hotel_requests(event):
-    if check_permission("hotel_request.*.approve", event=event):
-        requests = db.query(Department, Badge, HotelRoomRequest).join(BadgeToDepartment, BadgeToDepartment.department == Department.id).join(HotelRoomRequest, HotelRoomRequest.badge == BadgeToDepartment.badge).join(Badge, Badge.id == BadgeToDepartment.badge).all()
-        departments = {}
-        for req in requests:
-            dept, badge, roomrequest = req
-            if not check_permission("hotel_request.*.approve", event=event, department=dept.id):
-                continue
-            if not dept.id in departments:
-                departments[dept.id] = {
-                    "id": dept.id,
-                    "name": dept.name,
-                    "requests": []
-                }
-            room_nights = db.query(RoomNightRequest, RoomNightApproval).join(RoomNightApproval, and_(RoomNightApproval.room_night == RoomNightRequest.id, RoomNightApproval.department == dept.id), isouter=True).filter(RoomNightRequest.badge == badge.id).all()
-            departments[dept.id]['requests'].append({
-                "id": badge.id,
-                "name": badge.first_name + " " + badge.last_name,
-                "justification": roomrequest.room_night_justification,
-                "room_nights": {
-                    btr.room_night: {
-                    "id": btr.id,
-                    "requested": btr.requested,
-                    "room_night": btr.room_night,
-                    "approved": rna.approved if rna else None
-                } for btr, rna in room_nights}
-            })
-        res = []
-        for i in departments:
-            res.append(departments[i])
-        return jsonify(res)
-    return "", 403
-            
-@app.route("/api/event/<int:event>/hotel/approve", methods=["POST"])
-def hotel_approve(event):
-    if check_permission("hotel_request.*.approve", event=request.json['event'], department=request.json['department']):
-        room_night = db.query(RoomNightRequest).filter(RoomNightRequest.id == request.json['room_night_request']).one_or_none()
-        if not room_night:
+@app.route("/api/event/<int:event>/hotel/requests/<int:department>", methods=["GET"])
+def hotel_requests(event, department):
+    requests = db.query(Badge, HotelRoomRequest).join(BadgeToDepartment, BadgeToDepartment.badge == Badge.id).filter(BadgeToDepartment.department == department).join(HotelRoomRequest, HotelRoomRequest.badge == BadgeToDepartment.badge).all()
+    res = []
+    for req in requests:
+        badge, roomrequest = req
+        if not check_permission("hotel_request.*.approve", event=event, department=department):
+            continue
+        room_nights = db.query(RoomNightRequest, RoomNightApproval).join(RoomNightApproval, and_(RoomNightApproval.badge == RoomNightRequest.badge, RoomNightApproval.room_night == RoomNightRequest.room_night, RoomNightApproval.department == department), isouter=True).filter(RoomNightRequest.badge == badge.id).all()
+        res.append({
+            "id": badge.id,
+            "name": badge.public_name,
+            "justification": roomrequest.room_night_justification,
+            "room_nights": {
+                btr.room_night: {
+                "id": btr.id,
+                "requested": btr.requested,
+                "room_night": btr.room_night,
+                "approved": rna.approved if rna else None
+            } for btr, rna in room_nights}
+        })
+    res = sorted(res, key=lambda x: x['name'])
+    return jsonify(res)
+        
+@app.route("/api/event/<int:event>/hotel/approve/<int:department>", methods=["POST"])
+def hotel_approve(event, department):
+    if check_permission("hotel_request.*.approve", event=event, department=department):
+        room_night_request = db.query(RoomNightRequest).filter(RoomNightRequest.room_night == request.json['room_night'], RoomNightRequest.badge == request.json['badge']).one_or_none()
+        if not room_night_request:
             return "Could not find corresponding request.", 404
-        approval = db.query(RoomNightApproval).filter(RoomNightApproval.room_night == room_night.id, RoomNightApproval.department == request.json['department']).one_or_none()
+        approval = db.query(RoomNightApproval).filter(RoomNightApproval.room_night == request.json['room_night'], RoomNightApproval.department == department).one_or_none()
         if request.json['approved'] is None:
             if approval:
                 db.delete(approval)
         else:
             if not approval:
-                approval = RoomNightApproval()
+                approval = RoomNightApproval(event=event, badge=request.json['badge'], department=department)
             approval.approved = request.json['approved']
-            approval.department = request.json['department']
-            approval.room_night = room_night.id
+            approval.room_night = request.json['room_night']
             db.add(approval)
         db.commit()
         return "null", 200

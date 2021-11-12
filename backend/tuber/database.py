@@ -48,3 +48,10 @@ def migrate():
 r = None
 if config.redis_url:
     r = redis.Redis.from_url(config.redis_url)
+
+@app.errorhandler(500)
+def internal_error(error):
+    print(error)
+    print("Rolling back transaction")
+    db.rollback()
+    return "Error", 500

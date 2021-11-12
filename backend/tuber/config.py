@@ -27,7 +27,7 @@ for i in conf.keys():
 
 conf.update(environment)
 pathlib.Path("/tmp/app-initialized").touch()
-conf['database_url'] = conf['database_url'].replace("postgres:", "postgresql:")
+conf['database_url'] = conf['database_url'].replace("postgres:", "postgresql:", 1)
 
 for i in ["verbose", "force_https", "enable_circuitbreaker"]:
     if isinstance(conf[i], str):

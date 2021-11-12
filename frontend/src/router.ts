@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from './components/Dashboard.vue'
 import RoomRequest from './views/rooming/Request.vue'
+import RoomApproval from './views/rooming/Approvals.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
+import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
 
 import Login from './views/Login.vue'
 import Logout from './views/Logout.vue'
@@ -25,6 +27,17 @@ const routes = [
     path: '/hotels/request',
     name: 'uberlogin',
     component: UberLogin
+  },
+  {
+    path: '/rooming/approvals/:departmentID',
+    name: 'roomapproval',
+    component: RoomApproval,
+    props: true
+  },
+  {
+    path: '/hotels/approvals',
+    name: 'uberdepartmentlogin',
+    component: UberDepartmentLogin
   },
   {
     path: '/login',
