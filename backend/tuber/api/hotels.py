@@ -146,16 +146,20 @@ def hotel_requests(event, department):
 @app.route("/api/event/<int:event>/hotel/approve/<int:department>", methods=["POST"])
 def hotel_approve(event, department):
     if check_permission("hotel_request.*.approve", event=event, department=department):
+        print(request.json)
         room_night_request = db.query(RoomNightRequest).filter(RoomNightRequest.room_night == request.json['room_night'], RoomNightRequest.badge == request.json['badge']).one_or_none()
         if not room_night_request:
             return "Could not find corresponding request.", 404
-        approval = db.query(RoomNightApproval).filter(RoomNightApproval.room_night == request.json['room_night'], RoomNightApproval.department == department).one_or_none()
+        approval = db.query(RoomNightApproval).filter(RoomNightApproval.badge == request.json['badge'], RoomNightApproval.room_night == request.json['room_night'], RoomNightApproval.department == department).one_or_none()
         if request.json['approved'] is None:
+            print("Deleting")
             if approval:
                 db.delete(approval)
         else:
             if not approval:
+                print("Creating new approval")
                 approval = RoomNightApproval(event=event, badge=request.json['badge'], department=department)
+            print("Setting approval")
             approval.approved = request.json['approved']
             approval.room_night = request.json['room_night']
             db.add(approval)
