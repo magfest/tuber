@@ -6,8 +6,8 @@ class HotelRoomRequest(Base):
     __tablename__ = "hotel_room_request"
     __url__ = "/api/event/<int:event>/hotel_room_request"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    badge = Column(Integer, ForeignKey('badge.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    badge = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
     first_name = Column(String(), nullable=True)
     last_name = Column(String(), nullable=True)
     declined = Column(Boolean, nullable=True)
@@ -25,7 +25,7 @@ class HotelRoomBlock(Base):
     __tablename__ = "hotel_room_block"
     __url__ = "/api/event/<int:event>/hotel_room_block"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     name = Column(String(), nullable=True)
     description = Column(String(), nullable=True)
     rooms = relationship("HotelRoom")
@@ -34,26 +34,26 @@ class HotelRoom(Base):
     __tablename__ = "hotel_room"
     __url__ = "/api/event/<int:event>/hotel_room"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     name = Column(String(), nullable=True)
     notes = Column(String(), nullable=True)
     messages = Column(String(), nullable=True)
     hotel_block = Column(Integer, ForeignKey('hotel_room_block.id'))
     hotel_location = Column(Integer, ForeignKey('hotel_location.id'))
     completed = Column(Boolean)
-    room_night_assignments = relationship('RoomNightAssignment')
+    room_night_assignments = relationship('RoomNightAssignment', cascade="all, delete", passive_deletes=True)
 
 class HotelRoommateRequest(Base):
     __tablename__ = "hotel_roommate_request"
     id = Column(Integer, primary_key=True)
-    requester = Column(Integer, ForeignKey('badge.id'))
-    requested = Column(Integer, ForeignKey('badge.id'))
+    requester = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
+    requested = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
 
 class HotelAntiRoommateRequest(Base):
     __tablename__ = "hotel_anti_roommate_request"
     id = Column(Integer, primary_key=True)
-    requester = Column(Integer, ForeignKey('badge.id'))
-    requested = Column(Integer, ForeignKey('badge.id'))
+    requester = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
+    requested = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
 
 class HotelLocation(Base):
     __tablename__ = "hotel_location"
@@ -68,40 +68,40 @@ class HotelRoomNight(Base):
     __tablename__ = "hotel_room_night"
     __url__ = "/api/event/<int:event>/hotel_room_night"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     date = Column(Date)
     name = Column(String())
     restricted = Column(Boolean, default=False)
     restriction_type = Column(String(), nullable=True)
     hidden = Column(Boolean, default=False)
-    requests = relationship("RoomNightRequest")
-    assignments = relationship("RoomNightAssignment")
-    approvals = relationship("RoomNightApproval")
+    requests = relationship("RoomNightRequest", cascade="all, delete", passive_deletes=True)
+    assignments = relationship("RoomNightAssignment", cascade="all, delete", passive_deletes=True)
+    approvals = relationship("RoomNightApproval", cascade="all, delete", passive_deletes=True)
 
 class RoomNightRequest(Base):
     __tablename__ = "room_night_request"
     __url__ = "/api/event/<int:event>/room_night_request"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    badge = Column(Integer, ForeignKey('badge.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    badge = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
     requested = Column(Boolean)
-    room_night = Column(Integer, ForeignKey('hotel_room_night.id'))
+    room_night = Column(Integer, ForeignKey('hotel_room_night.id', ondelete="CASCADE"))
 
 class RoomNightAssignment(Base):
     __tablename__ = "room_night_assignment"
     __url__ = "/api/event/<int:event>/room_night_assignment"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    badge = Column(Integer, ForeignKey('badge.id'))
-    room_night = Column(Integer, ForeignKey('hotel_room_night.id'))
-    hotel_room = Column(Integer, ForeignKey('hotel_room.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    badge = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
+    room_night = Column(Integer, ForeignKey('hotel_room_night.id', ondelete="CASCADE"))
+    hotel_room = Column(Integer, ForeignKey('hotel_room.id', ondelete="CASCADE"))
 
 class RoomNightApproval(Base):
     __tablename__ = "room_night_approval"
     __url__ = "/api/event/<int:event>/department/<int:department>/room_night_approval"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    badge = Column(Integer, ForeignKey('badge.id'))
-    room_night = Column(Integer, ForeignKey('hotel_room_night.id'))
-    department = Column(Integer, ForeignKey('department.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    badge = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
+    room_night = Column(Integer, ForeignKey('hotel_room_night.id', ondelete="CASCADE"))
+    department = Column(Integer, ForeignKey('department.id', ondelete="CASCADE"))
     approved = Column(Boolean)

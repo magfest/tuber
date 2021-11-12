@@ -12,7 +12,8 @@ class Schedule(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     description = Column(String)
-    event = Column(Integer, ForeignKey('event.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    schedule_events = relationship("ScheduleEvent", cascade="all, delete", passive_deletes=True)
     tags = Column(JSON)
 
 class ScheduleEvent(Base):
@@ -21,36 +22,36 @@ class ScheduleEvent(Base):
     __tablename__ = "schedule_event"
     __url__ = "/api/event/<int:event>/schedule_event"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     name = Column(String)
     description = Column(String)
     starttime = Column(DateTime())
     duration = Column(Integer)
-    schedule = Column(Integer, ForeignKey('schedule.id'))
+    schedule = Column(Integer, ForeignKey('schedule.id', ondelete="CASCADE"))
 
 class JobScheduleAssociation(Base):
     __tablename__ = "job_schedule_association"
     __url__ = "/api/event/<int:event>/job_schedule_association"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    job = Column(Integer, ForeignKey('job.id'))
-    schedule = Column(Integer, ForeignKey('schedule.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    job = Column(Integer, ForeignKey('job.id', ondelete="CASCADE"))
+    schedule = Column(Integer, ForeignKey('schedule.id', ondelete="CASCADE"))
 
 class JobScheduleEventAssociation(Base):
     __tablename__ = "job_schedule_event_association"
     __url__ = "/api/event/<int:event>/job_schedule_event_association"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    job = Column(Integer, ForeignKey('job.id'))
-    schedule_event = Column(Integer, ForeignKey('schedule_event.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    job = Column(Integer, ForeignKey('job.id', ondelete="CASCADE"))
+    schedule_event = Column(Integer, ForeignKey('schedule_event.id', ondelete="CASCADE"))
 
 class JobRoleAssociation(Base):
     __tablename__ = "job_role_association"
     __url__ = "/api/event/<int:event>/job_role_association"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    job = Column(Integer, ForeignKey('job.id'))
-    role = Column(Integer, ForeignKey('department_role.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    job = Column(Integer, ForeignKey('job.id', ondelete="CASCADE"))
+    role = Column(Integer, ForeignKey('department_role.id', ondelete="CASCADE"))
 
 class Job(Base):
     """A Job describes something we might ask a volunteer to do. It holds the actual
@@ -62,9 +63,9 @@ class Job(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     description = Column(String)
-    event = Column(Integer, ForeignKey('event.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     documentation = Column(String)
-    department = Column(Integer, ForeignKey('department.id'))
+    department = Column(Integer, ForeignKey('department.id', ondelete="CASCADE"))
     method = Column(JSON)
     signuprules = Column(JSON)
     sticky = Column(Boolean)
@@ -79,8 +80,8 @@ class Shift(Base):
     __tablename__ = "shift"
     __url__ = '/api/event/<int:event>/shift'
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    job = Column(Integer, ForeignKey('job.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    job = Column(Integer, ForeignKey('job.id', ondelete="CASCADE"))
     schedule = Column(Integer, ForeignKey('schedule.id'))
     schedule_event = Column(Integer, ForeignKey('schedule_event.id'))
     starttime = Column(DateTime())
@@ -96,9 +97,9 @@ class ShiftAssignment(Base):
     __tablename__ = "shift_assignment"
     __url__ = "/api/event/<int:event>/shift_assignment"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    badge = Column(Integer, ForeignKey('badge.id'))
-    shift = Column(Integer, ForeignKey('shift.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    badge = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
+    shift = Column(Integer, ForeignKey('shift.id', ondelete="CASCADE"))
 
 class ShiftSignup(Base):
     """A ShiftSignup tracks the intent of a user to signup for a shift. This is different than a
@@ -109,8 +110,8 @@ class ShiftSignup(Base):
     __tablename__ = "shift_signup"
     __url__ = "/api/event/<int:event>/shift_signup"
     id = Column(Integer, primary_key=True)
-    event = Column(Integer, ForeignKey('event.id'))
-    badge = Column(Integer, ForeignKey('badge.id'))
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    badge = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
     job = Column(Integer, ForeignKey('job.id'))
     shift = Column(Integer, ForeignKey('shift.id'))
     schedule = Column(Integer, ForeignKey('schedule.id'))
