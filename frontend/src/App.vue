@@ -7,7 +7,7 @@
 
         <div class="layout-main-container">
             <div class="layout-main">
-              <login v-if="!loggedIn & !initialSetup & !($route.name === 'uberlogin')" />
+              <login v-if="!loggedIn & !initialSetup & !($route.name === 'uberlogin') & !($route.name === 'uberdepartmentlogin')" />
               <router-view v-else />
             </div>
             <AppFooter />
@@ -39,7 +39,7 @@ type LayoutMode = 'static' | 'overlay'
     return {
       layoutMode: 'static',
       layoutColorMode: 'light',
-      staticMenuInactive: false,
+      staticMenuInactive: true,
       overlayMenuActive: false,
       mobileMenuActive: false,
       menu: [
