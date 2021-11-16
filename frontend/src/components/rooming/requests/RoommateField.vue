@@ -12,7 +12,7 @@ import { Options, Vue } from 'vue-class-component'
 import { mapGetters } from 'vuex'
 
 import AutoComplete from 'primevue/autocomplete'
-import { Badge } from '../../lib/interfaces'
+import { Badge } from '../../../lib/interfaces'
 
 @Options({
   name: 'roommate-field',

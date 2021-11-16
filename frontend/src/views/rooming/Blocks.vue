@@ -19,7 +19,8 @@
                 <Dropdown v-model="filterModel.value" @change="filterCallback()" :options="departments" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter"></Dropdown>
             </template>
         </Column>
-        <Column header="Badge Type" filterField="badge_type" :sortable="true">
+        <Column header="Notes" field="notes" :sortable="true" />
+        <Column header="Badge Type" filterField="badge_type" :sortable="true" style="width: 12rem">
             <template #body="slotProps">
                 {{ badgeTypeLookup[slotProps.data.badge_type].name }}
             </template>
@@ -27,7 +28,7 @@
                 <Dropdown v-model="filterModel.value" @change="filterCallback()" :options="badgeTypes" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter"></Dropdown>
             </template>
         </Column>
-        <Column header="Room Block" filterField="room_block" :sortable="true">
+        <Column header="Room Block" filterField="room_block" :sortable="true" style="width: 12rem">
             <template #body="slotProps">
                 <Dropdown v-model="slotProps.data.hotel_block" @change="save(slotProps.data.hotel_room_request, slotProps.data.room_block)" :options="room_blocks" optionLabel="name" optionValue="id"></Dropdown>
             </template>
@@ -59,7 +60,7 @@ export default {
     requests: [],
     filters: {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      public_name: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+      public_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
       departments: { value: null, matchMode: FilterMatchMode.CONTAINS },
       badge_type: { value: null, matchMode: FilterMatchMode.EQUALS },
       room_block: { value: null, matchMode: FilterMatchMode.EQUALS }
@@ -84,7 +85,6 @@ export default {
   methods: {
     async load () {
       this.loading = true
-      await this.$store.dispatch(ModelActionTypes.LOAD_BADGETYPES)
       await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
       await this.$store.dispatch(ModelActionTypes.LOAD_BADGETYPES)
       this.room_blocks = await get('/api/event/' + this.event.id + '/hotel_room_block')

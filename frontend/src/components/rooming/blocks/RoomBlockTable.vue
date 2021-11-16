@@ -1,6 +1,6 @@
 <template>
     <div>
-        <DataTable :value="hotelRoomBlocks">
+        <DataTable :value="hotelRoomBlocks" :loading="loading">
             <Column field="name" header="Name"></Column>
             <Column field="description" header="Description"></Column>
             <Column header="Actions">
@@ -42,7 +42,8 @@ export default {
   data: () => ({
     hotelRoomBlocks: [],
     editing: false,
-    edited: null
+    edited: null,
+    loading: false
   }),
   computed: {
     ...mapGetters([
@@ -53,10 +54,10 @@ export default {
     this.load()
   },
   methods: {
-    load () {
-      get('/api/event/' + this.event.id + '/hotel_room_block').then((hotelRoomBlocks) => {
-        this.hotelRoomBlocks = hotelRoomBlocks
-      })
+    async load () {
+      this.loading = true
+      this.hotelRoomBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
+      this.loading = false
     },
     remove (event, data) {
       this.$confirm.require({

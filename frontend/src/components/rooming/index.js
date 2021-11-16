@@ -7,11 +7,18 @@ import LocationTable from './locations/LocationTable.vue'
 import RoomNightForm from './nights/RoomNightForm.vue'
 import RoomNightTable from './nights/RoomNightTable.vue'
 
+import RequestForm from './requests/RequestForm.vue'
+import RequestTable from './requests/RequestTable.vue'
+import RoommateField from './requests/RoommateField.vue'
+
 export {
   RoomBlockForm,
   RoomBlockTable,
   LocationForm,
   LocationTable,
   RoomNightForm,
-  RoomNightTable
+  RoomNightTable,
+  RequestForm,
+  RequestTable,
+  RoommateField
 }

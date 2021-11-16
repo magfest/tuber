@@ -1,13 +1,5 @@
 <template>
-  <div class="card">
-    <Toast />
-    <h3>Staff Hotel Room Request Form</h3>
-    <div v-if="!badge">
-      You do not current have a badge to this event.
-    </div>
-    <div v-else>
-      <p><b>You are filling out this form as {{ badge.public_name }}.</b></p>
-      <form @submit.prevent>
+    <form @submit.prevent>
         <p>These questions will help us find the best roommates for you. If you already have a group you'd like to room with the best way to be grouped
           together is to each request each other as roommates, and request the same nights. If this is your first time in staff housing or you don't
           know who you would like to room with then this form will help us match you with compatible roommates.</p>
@@ -96,25 +88,20 @@
           <h4>When do you plan to go to sleep?</h4>
           <Dropdown :disabled="request.declined" v-model="request.sleep_time" :options="sleep_times"></Dropdown><br><br>
         </div>
-
-        <Button type="submit" :disabled="invalidRoommates" @click="saveRequest">Save</Button>
-
-      </form>
-    </div>
-  </div>
+    </form>
 </template>
 
-<style>
-</style>
-
 <script>
-import { get, post, patch } from '@/lib/rest'
 import { mapGetters } from 'vuex'
-import { RoommateField } from '../../components/rooming'
+import { get, patch } from '@/lib/rest'
+import RoommateField from './RoommateField.vue'
 import { ModelActionTypes } from '@/store/modules/models/actions'
 
 export default {
-  name: 'RoomRequest',
+  name: 'RequestForm',
+  props: [
+    'id'
+  ],
   components: {
     RoommateField
   },
@@ -131,7 +118,8 @@ export default {
       antirequested_roommates: [],
       prefer_single_gender: false,
       preferred_gender: '',
-      room_nights: []
+      room_nights: [],
+      badge: null
     },
     noise_levels: [
       'Quiet - I am quiet, and prefer quiet.',
@@ -191,35 +179,40 @@ export default {
           return true
         }
       }
-      if (this.request.antirequested_roommates.includes(this.badge.id)) {
+      if (this.request.antirequested_roommates.includes(this.request.badge)) {
         return true
       }
-      if (this.request.requested_roommates.includes(this.badge.id)) {
+      if (this.request.requested_roommates.includes(this.request.badge)) {
         return true
       }
       return false
+    },
+    url () {
+      if (this.id) {
+        return '/api/event/' + this.event.id + '/hotel/request/' + this.id
+      }
+      return ''
     }
   },
   mounted () {
-    this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
-    this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
-    this.loadRequest()
+    this.load()
   },
   methods: {
-    loadRequest () {
-      if (!this.event) {
-        return {}
+    async load () {
+      await this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
+      await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
+      if (this.id) {
+        this.request = await get(this.url)
       }
-      get('/api/event/' + this.event.id + '/hotel/request').then((request) => {
-        this.request = request
-      })
     },
-    saveRequest () {
-      patch('/api/event/' + this.event.id + '/hotel/request', this.request).then((request) => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: 'Your request has been saved. You may continue editing it until the deadline.', life: 3000 })
-      }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
-      })
+    save () {
+      if (this.id) {
+        return patch(this.url, this.request).then(() => {
+          this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
+        }).catch(() => {
+          this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })
+        })
+      }
     },
     blah () {
       const len = this.request.room_night_justification.length
@@ -231,25 +224,9 @@ export default {
           this.request.room_night_justification += 'blah '.slice(0, (len % 5))
         }
       }
-    },
-    submitRequest () {
-      post('/api/hotels/request', {
-        badge: self.badge.id,
-        request: self.request
-      }).then(() => {
-        self.loading = false
-        self.confirmation = true
-      }).catch(() => {
-        self.notify('Failed to submit hotel request.')
-        self.loading = false
-      })
     }
   },
   watch: {
-    event () {
-      this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
-      this.loadRequest()
-    }
   }
 }
 </script>
