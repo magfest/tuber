@@ -82,6 +82,8 @@ export const actions: ActionTree<State, RootState> & Actions = {
         } else {
           commit(AppMutationTypes.SET_BADGE, null)
         }
+      }).catch(() => {
+        commit(AppMutationTypes.SET_BADGE, null)
       })
     }
   },

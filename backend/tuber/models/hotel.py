@@ -13,6 +13,7 @@ class HotelRoomRequest(Base):
     declined = Column(Boolean, nullable=True)
     prefer_department = Column(Boolean, nullable=True)
     preferred_department = Column(Integer, ForeignKey('department.id'), nullable=True)
+    hotel_block = Column(Integer, ForeignKey('hotel_room_block.id'), nullable=True)
     notes = Column(String(), nullable=True)
     prefer_single_gender = Column(Boolean, nullable=True)
     preferred_gender = Column(String(), nullable=True)

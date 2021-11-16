@@ -49,7 +49,7 @@ type LayoutMode = 'static' | 'overlay'
             label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
           },
           {
-            label: 'Room Request', icon: 'pi pi-fw pi-home', to: '/rooming/requests', permission: 'rooming.*.request'
+            label: 'Room Request', icon: 'pi pi-fw pi-home', to: '/rooming/request', permission: 'rooming.*.request'
           },
           {
             label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/', permission: 'staffer.*.read'
@@ -80,21 +80,22 @@ type LayoutMode = 'static' | 'overlay'
           items: [{
             label: 'Rooming',
             permission: 'rooming.*.write',
-            items: [{
-              label: 'Eligibility', icon: 'pi pi-fw pi-home', to: '/'
-            },
-            {
-              label: 'Requests', icon: 'pi pi-fw pi-home', to: '/rooming/requests'
-            },
-            {
-              label: 'Approvals', icon: 'pi pi-fw pi-home', to: '/'
-            },
-            {
-              label: 'Assignments', icon: 'pi pi-fw pi-home', to: '/'
-            },
-            {
-              label: 'Settings', icon: 'pi pi-fw pi-home', to: '/'
-            }]
+            items: [
+              {
+                label: 'Requests', icon: 'pi pi-fw pi-home', to: '/rooming/requests'
+              },
+              {
+                label: 'Approvals', icon: 'pi pi-fw pi-home', to: '/rooming/approvals'
+              },
+              {
+                label: 'Assignments', icon: 'pi pi-fw pi-home', to: '/rooming/assignments'
+              },
+              {
+                label: 'Blocks', icon: 'pi pi-fw pi-home', to: '/rooming/blocks'
+              },
+              {
+                label: 'Settings', icon: 'pi pi-fw pi-home', to: '/rooming/settings'
+              }]
           },
           {
             label: 'Perks',

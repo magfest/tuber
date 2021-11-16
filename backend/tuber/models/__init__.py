@@ -61,6 +61,8 @@ class Model_Base(object):
         transform = lambda inst, column: getattr(inst, column.name)
         if type(column.type) is JSON:
             transform = lambda inst, column: json.loads(getattr(inst, column.name) or "{}")
+        elif type(column.type) is Date:
+            transform = lambda inst, calumn: getattr(inst, column.name).strftime("%Y-%m-%d")
         for i in range(len(instances)):
             data[i][column.name] = transform(instances[i], column)
 

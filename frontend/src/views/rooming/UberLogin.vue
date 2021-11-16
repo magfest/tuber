@@ -3,6 +3,7 @@
   <h3 v-if="!showForm">Please wait while we authenticate your session against Uber...</h3>
   <div v-else class="card">
       <h3>Please provide your staffing information to log in to the rooming system</h3>
+
   </div>
 </div>
 </template>
@@ -50,7 +51,7 @@ import { AppActionTypes } from '../../store/modules/app/actions'
     uberlogin () {
       post('/api/uber_login', { token: this.uberID }).then((session) => {
         this.$store.dispatch(AppActionTypes.GET_LOGGED_IN)
-        this.$router.push('/rooming/requests')
+        this.$router.push('/rooming/request')
       }).catch((e) => {
         this.showForm = true
       })

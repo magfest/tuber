@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <Toast />
-    <h3>Staff Hotel Room Request Form</h3>
+    <h3>All Room Requests</h3>
     <div v-if="!badge">
       You do not current have a badge to this event.
     </div>
@@ -114,7 +114,7 @@ import RoommateField from './RoommateField.vue'
 import { ModelActionTypes } from '@/store/modules/models/actions'
 
 export default {
-  name: 'RoomRequest',
+  name: 'RoomRequests',
   components: {
     RoommateField
   },
@@ -216,9 +216,9 @@ export default {
     },
     saveRequest () {
       patch('/api/event/' + this.event.id + '/hotel/request', this.request).then((request) => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: 'Your request has been saved. You may continue editing it until the deadline.', life: 3000 })
+        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: 'Your request has been saved. You may continue editing it until the deadline.' })
       }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
+        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.' })
       })
     },
     blah () {

@@ -57,7 +57,9 @@
     "parserOptions": {
       "parser": "@typescript-eslint/parser"
     },
-    "rules": {}
+    "rules": {
+      "vue/no-v-model-argument": "off"
+    }
   },
   "browserslist": [
     "> 1%",

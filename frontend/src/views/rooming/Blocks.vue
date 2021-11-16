@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <Toast />
-    <h3>Room Night Approvals</h3>
+    <h3>Room Blocking</h3>
   </div>
 </template>
 
@@ -13,7 +13,7 @@ import { mapGetters } from 'vuex'
 import { get, post } from '@/lib/rest'
 
 export default {
-  name: 'RoomApprovals',
+  name: 'RoomBlocks',
   props: [
     ''
   ],

@@ -85,7 +85,7 @@ def crud_single(model, event=None, department=None, id=None):
                 for cb in instance.onchange_cb:
                     cb(db, instance)
             db.commit()
-            return ""
+            return "null"
         raise PermissionDenied()
     raise MethodNotAllowed()
 

@@ -1,7 +1,19 @@
 <template>
   <div class="card">
     <Toast />
-    <h3>Room Night Approvals</h3>
+    <h3>Room Assignments</h3>
+    <TabView>
+      <TabPanel header="Automatic">
+        Automatcher Configuration<br> <br>
+        <Button>Do the thing</Button>
+      </TabPanel>
+      <TabPanel header="Rooms">
+        Table of all existing rooms
+      </TabPanel>
+      <TabPanel header="Requests">
+        Table of all remaining requests
+      </TabPanel>
+    </TabView>
   </div>
 </template>
 
@@ -13,7 +25,7 @@ import { mapGetters } from 'vuex'
 import { get, post } from '@/lib/rest'
 
 export default {
-  name: 'RoomApprovals',
+  name: 'RoomAssignments',
   props: [
     ''
   ],

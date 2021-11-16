@@ -1,7 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from './components/Dashboard.vue'
 import RoomRequest from './views/rooming/Request.vue'
-import RoomApproval from './views/rooming/Approvals.vue'
+import RoomApproval from './views/rooming/Approval.vue'
+import RoomApprovals from './views/rooming/Approvals.vue'
+import RoomSettings from './views/rooming/Settings.vue'
+import RoomBlocks from './views/rooming/Blocks.vue'
+import RoomAssignments from './views/rooming/Assignments.vue'
+import RoomRequests from './views/rooming/Requests.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
 
@@ -19,7 +24,7 @@ const routes = [
     component: Dashboard
   },
   {
-    path: '/rooming/requests',
+    path: '/rooming/request',
     name: 'roomrequest',
     component: RoomRequest
   },
@@ -33,6 +38,31 @@ const routes = [
     name: 'roomapproval',
     component: RoomApproval,
     props: true
+  },
+  {
+    path: '/rooming/approvals',
+    name: 'roomapprovals',
+    component: RoomApprovals
+  },
+  {
+    path: '/rooming/assignments',
+    name: 'roomassignments',
+    component: RoomAssignments
+  },
+  {
+    path: '/rooming/settings',
+    name: 'roomsettings',
+    component: RoomSettings
+  },
+  {
+    path: '/rooming/blocks',
+    name: 'roomblocks',
+    component: RoomBlocks
+  },
+  {
+    path: '/rooming/requests',
+    name: 'roomrequests',
+    component: RoomRequests
   },
   {
     path: '/hotels/approvals',
