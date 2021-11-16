@@ -15,6 +15,37 @@ def hotel_statistics(event):
         return jsonify(num_badges=num_badges, num_requests=num_requests)
     return "", 403
 
+@app.route("/api/event/<int:event>/hotel/block_assignments", methods=["GET", "POST"])
+def block_assignments(event):
+    if request.method == "GET":
+        if not check_permission("hotel_block.*.read", event=event):
+            return "", 403
+        subquery = db.query(RoomNightRequest.badge).filter(RoomNightRequest.event == event, RoomNightRequest.requested == True).distinct().subquery().select()
+        rows = db.query(Badge, HotelRoomRequest.declined, HotelRoomRequest.hotel_block, HotelRoomRequest.id).filter(HotelRoomRequest.event == event, HotelRoomRequest.badge.in_(subquery)).join(HotelRoomRequest, HotelRoomRequest.badge == Badge.id).all()
+        badge_dicts = []
+        for badge, declined, block, hrr in rows:
+            if not declined:
+                badge_dicts.append({
+                    "id": badge.id,
+                    "public_name": badge.public_name,
+                    "departments": [x.id for x in badge.departments],
+                    "department_names": [x.name for x in badge.departments],
+                    "badge_type": badge.badge_type,
+                    "hotel_block": block,
+                    "hotel_room_request": hrr
+                })
+        return jsonify(badge_dicts)
+    elif request.method == "POST":
+        if not check_permission("hotel_block.*.write", event=event):
+            return "", 403
+        room_requests = {x['id']: x['hotel_block'] for x in g.data['updates']}
+        hotel_room_requests = db.query(HotelRoomRequest).filter(HotelRoomRequest.id.in_(room_requests.keys()), HotelRoomRequest.event == event).all()
+        for hotel_room_request in hotel_room_requests:
+            hotel_room_request.hotel_block = room_requests[hotel_room_request.id]
+        db.commit()
+        return "null", 200
+    return "", 406
+
 @app.route("/api/event/<int:event>/hotel/all_requests", methods=["GET"])
 def hotel_all_requests(event):
     if request.method == "GET":

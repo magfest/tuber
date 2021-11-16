@@ -67,7 +67,7 @@ class Model_Base(object):
             data[i][column.name] = transform(instances[i], column)
 
     @classmethod
-    def serialize(cls, instances, parents=None, serialize_relationships=False):
+    def serialize(cls, instances, parents=None, serialize_relationships=False, deep=False):
         cls.get_modelclasses()
         if type(instances) is cls:
             single_item = True
@@ -120,11 +120,11 @@ class Model_Base(object):
         data = []
         for instance in instances:
             inst_ser = {}
-            if serialize_relationships:
+            if serialize_relationships and deep:
                 for relation in visible_relationships:
                     new_parents = parents + [cls,]
                     inst_ser[relation.key] = cls.modelclasses[relation.target.name].serialize(getattr(instance, relation.key), parents=new_parents)
-            else:
+            elif serialize_relationships:
                 for relation in visible_relationships:
                     inst_ser[relation.key] = [getattr(x, 'id') for x in getattr(instance, relation.key)]
             data.append(inst_ser)

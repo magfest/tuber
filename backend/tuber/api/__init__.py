@@ -6,11 +6,13 @@ from tuber.errors import *
 from tuber import app
 from tuber.database import db
 import inspect
+import time
 
 READ_PERMS = {"read", "write", "*", "searchname"}
 WRITE_PERMS = {"write", "*"}
 
 def crud_group(model, event=None, department=None):
+    start = time.time()
     if request.method == "GET":
         limit = request.args.get("limit", 0, type=int)
         offset = request.args.get("offset", 0, type=int)
@@ -39,7 +41,10 @@ def crud_group(model, event=None, department=None):
         elif offset:
             rows = rows.offset(offset).limit(10)
         rows = rows.all()
+        now = time.time()
+        print(f"{request.path} Load time {now - start}s")
         data = model.serialize(rows)
+        print(f"{request.path} Serialize time {time.time() - now}s")
         return jsonify(data)
     elif request.method == "POST":
         if event:
@@ -65,6 +70,7 @@ def crud_single(model, event=None, department=None, id=None):
         raise PermissionDenied()
     elif request.method == "PATCH":
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):
+            g.data['id'] = id
             instance = model.deserialize(g.data)
             db.add(instance)
             if hasattr(instance, 'onchange_cb'):

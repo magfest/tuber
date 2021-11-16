@@ -51,10 +51,17 @@ interface Department {
     badges: [number]
 }
 
+interface BadgeType {
+    id: number,
+    name: string,
+    description: string
+}
+
 export {
     Badge,
     Event,
     User,
     UserSession,
     Department,
+    BadgeType,
 }

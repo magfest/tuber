@@ -79,14 +79,16 @@ class BadgeType(Base):
     __tablename__ = "badge_type"
     __url__ = "/api/event/<int:event>/badge_type"
     id = Column(Integer, primary_key=True)
-    name = Column(String(), unique=True)
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    name = Column(String())
     description = Column(String())
 
 class RibbonType(Base):
     __tablename__ = "ribbon_type"
     __url__ = "/api/event/<int:event>/ribbon_type"
     id = Column(Integer, primary_key=True)
-    name = Column(String(), unique=True)
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    name = Column(String())
     description = Column(String())
     badges = relationship("Badge", secondary="ribbon_to_badge", back_populates="ribbons")
 

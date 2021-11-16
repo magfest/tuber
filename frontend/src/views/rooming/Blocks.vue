@@ -2,6 +2,40 @@
   <div class="card">
     <Toast />
     <h3>Room Blocking</h3>
+    <Dropdown v-model="selectedRoomBlock" :options="room_blocks" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter" ref="room_block"></Dropdown><Button @click="saveSelected" :disabled="selected.length === 0">Apply Selected</Button>
+    <DataTable :value="requests" :paginator="true" :rows="25" dataKey="id" v-model:filters="filters" filterDisplay="row" :loading="loading"
+                :globalFilterFields="['name','departments','badge_type']" v-model:selection="selected">
+        <Column selectionMode="multiple" style="width: 3rem"></Column>
+        <Column header="Name" field="public_name" filterField="public_name" :sortable="true">
+            <template #filter="{filterModel,filterCallback}">
+                <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter" :placeholder="`Search by name - `" v-tooltip.top.focus="'Hit enter key to filter'"/>
+            </template>
+        </Column>
+        <Column header="Departments" filterField="departments">
+            <template #body="slotProps">
+                {{ slotProps.data.department_names.join(", ") }}
+            </template>
+            <template #filter="{filterModel,filterCallback}">
+                <Dropdown v-model="filterModel.value" @change="filterCallback()" :options="departments" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter"></Dropdown>
+            </template>
+        </Column>
+        <Column header="Badge Type" filterField="badge_type" :sortable="true">
+            <template #body="slotProps">
+                {{ badgeTypeLookup[slotProps.data.badge_type].name }}
+            </template>
+            <template #filter="{filterModel,filterCallback}">
+                <Dropdown v-model="filterModel.value" @change="filterCallback()" :options="badgeTypes" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter"></Dropdown>
+            </template>
+        </Column>
+        <Column header="Room Block" filterField="room_block" :sortable="true">
+            <template #body="slotProps">
+                <Dropdown v-model="slotProps.data.hotel_block" @change="save(slotProps.data.hotel_room_request, slotProps.data.room_block)" :options="room_blocks" optionLabel="name" optionValue="id"></Dropdown>
+            </template>
+            <template #filter="{filterModel,filterCallback}">
+                <Dropdown v-model="filterModel.value" @change="filterCallback()" :options="room_blocks" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter"></Dropdown>
+            </template>
+        </Column>
+    </DataTable>
   </div>
 </template>
 
@@ -10,7 +44,9 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, post } from '@/lib/rest'
+import { get, post, patch } from '@/lib/rest'
+import { ModelActionTypes } from '@/store/modules/models/actions'
+import { FilterMatchMode } from 'primevue/api'
 
 export default {
   name: 'RoomBlocks',
@@ -20,76 +56,67 @@ export default {
   components: {
   },
   data: () => ({
-    department: {},
     requests: [],
-    roomNights: []
+    filters: {
+      global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+      public_name: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+      departments: { value: null, matchMode: FilterMatchMode.CONTAINS },
+      badge_type: { value: null, matchMode: FilterMatchMode.EQUALS },
+      room_block: { value: null, matchMode: FilterMatchMode.EQUALS }
+    },
+    loading: false,
+    selected: [],
+    selectedRoomBlock: null,
+    room_blocks: []
   }),
   computed: {
     ...mapGetters([
-      'event'
+      'event',
+      'departmentLookup',
+      'departments',
+      'badgeTypeLookup',
+      'badgeTypes'
     ])
   },
   mounted () {
     this.load()
   },
   methods: {
-    load () {
-      get('/api/event/' + this.event.id + '/department', { id: this.$route.params.departmentID }).then((department) => {
-        this.department = department[0]
+    async load () {
+      this.loading = true
+      await this.$store.dispatch(ModelActionTypes.LOAD_BADGETYPES)
+      await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
+      await this.$store.dispatch(ModelActionTypes.LOAD_BADGETYPES)
+      this.room_blocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
+      this.requests = await get('/api/event/' + this.event.id + '/hotel/block_assignments')
+      this.loading = false
+    },
+    save (hotelRoomRequest, roomBlock) {
+      patch('/api/event/' + this.event.id + '/hotel_room_request/' + hotelRoomRequest, { hotel_block: roomBlock }).then(() => {
+        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
+      }).catch(() => {
+        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })
       })
-      get('/api/event/' + this.event.id + '/hotel_room_night').then((roomNights) => {
-        this.roomNights = roomNights
-        get('/api/event/' + this.event.id + '/hotel/requests/' + this.$route.params.departmentID).then((requests) => {
-          this.requests = requests
+    },
+    saveSelected () {
+      const updates = []
+      for (const entry of this.selected) {
+        updates.push({
+          id: entry.hotel_room_request,
+          hotel_block: this.selectedRoomBlock
         })
-      })
-    },
-    approve (request, roomNight) {
-      post('/api/event/' + this.event.id + '/hotel/approve/' + this.$route.params.departmentID, {
-        room_night: roomNight,
-        badge: request.id,
-        approved: request.room_nights[roomNight].approved
-      }).then(() => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: request.name, life: 300 })
-      }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: request.name })
-      })
-    },
-    approveAll (request) {
-      const requests = []
-      for (const [roomNight] of Object.entries(request.room_nights)) {
-        request.room_nights[roomNight].approved = true
-        requests.push(post('/api/event/' + this.event.id + '/hotel/approve/' + this.$route.params.departmentID, {
-          room_night: roomNight,
-          badge: request.id,
-          approved: true
-        }))
+        entry.hotel_block = this.selectedRoomBlock
       }
-      Promise.all(requests).then(() => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: request.name, life: 300 })
+
+      post('/api/event/' + this.event.id + '/hotel/block_assignments', { updates: updates }).then(() => {
+        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
       }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: request.name })
-      })
-    },
-    rejectAll (request) {
-      const requests = []
-      for (const [roomNight] of Object.entries(request.room_nights)) {
-        request.room_nights[roomNight].approved = false
-        requests.push(post('/api/event/' + this.event.id + '/hotel/approve/' + this.$route.params.departmentID, {
-          room_night: roomNight,
-          badge: request.id,
-          approved: false
-        }))
-      }
-      Promise.all(requests).then(() => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: request.name, life: 300 })
-      }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: request.name })
+        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })
       })
     }
   },
   watch: {
-    $route () {
+    event () {
       this.load()
     }
   }

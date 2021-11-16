@@ -58,7 +58,7 @@
       "parser": "@typescript-eslint/parser"
     },
     "rules": {
-      "vue/no-v-model-argument": "off"
+      "no-v-model-argument": "off"
     }
   },
   "browserslist": [
