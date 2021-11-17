@@ -65,8 +65,9 @@ def crud_single(model, event=None, department=None, id=None):
     perms = model_permissions(model.__tablename__.lower())
     if request.method == "GET":
         if READ_PERMS.intersection(perms['*']) or (id in perms and READ_PERMS.intersection(perms[id])):
+            full = request.args.get("full", False, type=lambda x: x.lower()=='true')
             instance = db.query(model).filter(model.id == id).one_or_none()
-            return jsonify(model.serialize(instance))
+            return jsonify(model.serialize(instance, serialize_relationships=full))
         raise PermissionDenied()
     elif request.method == "PATCH":
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):

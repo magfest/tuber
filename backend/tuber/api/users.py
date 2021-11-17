@@ -71,7 +71,7 @@ def check_login():
         res['session'] = g.session.secret
     if g.badge:
         badge = db.query(Badge).filter(Badge.id == g.badge.id).one()
-        res['badge'] = Badge.serialize(badge)
+        res['badge'] = Badge.serialize(badge, serialize_relationships=True)
         res['session'] = g.session.secret
     if res:
         return jsonify(res)
@@ -81,7 +81,9 @@ def check_login():
 def logout():
     if g.user:
         db.query(Session).filter(Session.user == g.user.id).delete()
-        db.commit()
+    if 'session' in request.cookies:
+        db.query(Session).filter(Session.secret == request.cookies.get('session')).delete()
+    db.commit()
     return "null", 200
 
 @app.route("/api/user/permissions")

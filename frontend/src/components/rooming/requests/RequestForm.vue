@@ -74,7 +74,7 @@
           </div>
           <p v-if="request.prefer_department && badge.departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
           <Dropdown :disabled="request.declined" :options="badge_departments" v-if="request.prefer_department && badge.departments.length > 1" optionValue="id" optionLabel="name" v-model="request.preferred_department"></Dropdown>
-          <p v-if="request.prefer_department && badge.departments.length == 1">We will try to put you with the {{ badge.departments[0].name }} department.</p><br>
+          <p v-if="request.prefer_department && badge.departments.length == 1">We will try to put you with the {{ badge_departments[0].name }} department.</p><br>
 
           <h4>What is your preferred noise level?</h4>
           <Dropdown :disabled="request.declined" v-model="request.noise_level" :options="noise_levels"></Dropdown><br><br>
@@ -140,14 +140,16 @@ export default {
       '4pm-6pm',
       '6pm-8pm',
       'I have no idea.'
-    ]
+    ],
+    badge: {
+      departments: []
+    }
   }),
   computed: {
     ...mapGetters([
       'loggedIn',
       'event',
       'user',
-      'badge',
       'departmentLookup'
     ]),
     justification_required () {
@@ -203,6 +205,7 @@ export default {
       await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
       if (this.id) {
         this.request = await get(this.url)
+        this.badge = await get('/api/event/' + this.event.id + '/badge/' + this.request.badge, { full: true })
       }
     },
     save () {
@@ -227,6 +230,9 @@ export default {
     }
   },
   watch: {
+    event () {
+      this.load()
+    }
   }
 }
 </script>
