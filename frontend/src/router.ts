@@ -10,6 +10,9 @@ import RoomRequests from './views/rooming/Requests.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
 
+import UserSettings from './views/settings/Users.vue'
+import Badges from './views/event/Badges.vue'
+
 import Login from './views/Login.vue'
 import Logout from './views/Logout.vue'
 
@@ -78,6 +81,16 @@ const routes = [
     path: '/logout',
     name: 'logout',
     component: Logout
+  },
+  {
+    path: '/settings/users',
+    name: 'usersettings',
+    component: UserSettings
+  },
+  {
+    path: '/badges',
+    name: 'badges',
+    component: Badges
   },
   {
     path: '/initialsetup',

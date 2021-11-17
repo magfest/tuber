@@ -30,7 +30,7 @@
         </Column>
         <Column header="Room Block" filterField="room_block" :sortable="true" style="width: 12rem">
             <template #body="slotProps">
-                <Dropdown v-model="slotProps.data.hotel_block" @change="save(slotProps.data.hotel_room_request, slotProps.data.room_block)" :options="room_blocks" optionLabel="name" optionValue="id"></Dropdown>
+                <Dropdown v-model="slotProps.data.hotel_block" @change="save(slotProps.data.hotel_room_request, slotProps.data.hotel_block)" :options="room_blocks" optionLabel="name" optionValue="id"></Dropdown>
             </template>
             <template #filter="{filterModel,filterCallback}">
                 <Dropdown v-model="filterModel.value" @change="filterCallback()" :options="room_blocks" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter"></Dropdown>
@@ -92,6 +92,7 @@ export default {
       this.loading = false
     },
     save (hotelRoomRequest, roomBlock) {
+      console.log('saving', hotelRoomRequest, roomBlock)
       patch('/api/event/' + this.event.id + '/hotel_room_request/' + hotelRoomRequest, { hotel_block: roomBlock }).then(() => {
         this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
       }).catch(() => {

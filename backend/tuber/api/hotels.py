@@ -4,6 +4,7 @@ from tuber.models import *
 from tuber.permissions import *
 from tuber.database import db
 from sqlalchemy import and_
+from sqlalchemy.orm import joinedload
 import os
 from tuber.api import *
 
@@ -40,7 +41,7 @@ def block_assignments(event):
         if not check_permission("hotel_block.*.read", event=event):
             return "", 403
         subquery = db.query(RoomNightRequest.badge).filter(RoomNightRequest.event == event, RoomNightRequest.requested == True).distinct().subquery().select()
-        rows = db.query(Badge, HotelRoomRequest.declined, HotelRoomRequest.hotel_block, HotelRoomRequest.id, HotelRoomRequest.notes).filter(HotelRoomRequest.event == event, HotelRoomRequest.badge.in_(subquery)).join(HotelRoomRequest, HotelRoomRequest.badge == Badge.id).all()
+        rows = db.query(Badge, HotelRoomRequest.declined, HotelRoomRequest.hotel_block, HotelRoomRequest.id, HotelRoomRequest.notes).options(joinedload('departments')).filter(HotelRoomRequest.event == event, HotelRoomRequest.badge.in_(subquery)).join(HotelRoomRequest, HotelRoomRequest.badge == Badge.id).all()
         badge_dicts = []
         for badge, declined, block, hrr, notes in rows:
             if not declined:

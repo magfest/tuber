@@ -98,6 +98,12 @@ def get_permissions(user=None):
     if not user:
         return perm_cache
 
+    active = db.query(User.active).filter(User.id == user).one()
+    if not active:
+        return perm_cache 
+
+    perm_cache['event']['*'] = [f"user.{user}.self", "event.*.read"]
+
     perms = db.query(Permission, Grant, Role).filter(Grant.user == user, Grant.role == Role.id, Permission.role == Role.id).all()
     for permission, grant, role in perms:
         event = grant.event
@@ -116,6 +122,7 @@ def get_permissions(user=None):
         if not department in perm_cache['department'][department.event]:
             perm_cache['department'][department.event][department.id] = []
         perm_cache['department'][department.event][department.id].append(permission.operation)
+    print(perm_cache)
     return perm_cache
 
 def check_permission(permission=None, event="*", department="*"):

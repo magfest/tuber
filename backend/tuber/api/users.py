@@ -8,16 +8,17 @@ import datetime
 import uuid
 from tuber.api import *
 
-@app.route("/api/change_password", methods=["POST"])
-def change_password():
-    if not g.user:
+@app.route("/api/change_password/<int:user_id>", methods=["POST"])
+def change_password(user_id):
+    if not check_permission(f"user.{user_id}.change_password") and not check_permission(f"user.{user_id}.self"):
         return "", 403
+    user = db.query(User).filter(User.id == user_id).one()
     if not 'password' in g.data:
         return "You must provide a password", 406
     if len(g.data['password']) < 8:
         return "Your password must be at least 8 characters.", 406
-    g.user.password = sha256_crypt.hash(g.data['password'])
-    db.add(g.user)
+    user.password = sha256_crypt.hash(g.data['password'])
+    db.add(user)
     db.commit()
     return "null", 200
 

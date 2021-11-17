@@ -52,15 +52,15 @@ type LayoutMode = 'static' | 'overlay'
             label: 'Room Request', icon: 'pi pi-fw pi-home', to: '/rooming/request', permission: 'rooming.*.request'
           },
           {
-            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/', permission: 'staffer.*.read'
+            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/', visible: false
           },
           {
-            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/', permission: 'staffer.*.checklist'
+            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/', visible: false
           }]
         },
         {
           label: 'Department Home',
-          permission: 'department.*.write',
+          visible: false,
           items: [{
             label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
           },
@@ -85,7 +85,7 @@ type LayoutMode = 'static' | 'overlay'
                 label: 'Requests', icon: 'pi pi-fw pi-home', to: '/rooming/requests'
               },
               {
-                label: 'Approvals', icon: 'pi pi-fw pi-home', to: '/rooming/approvals'
+                label: 'Approvals', icon: 'pi pi-fw pi-home', to: '/rooming/approvals', visible: false
               },
               {
                 label: 'Assignments', icon: 'pi pi-fw pi-home', to: '/rooming/assignments'
@@ -99,45 +99,45 @@ type LayoutMode = 'static' | 'overlay'
           },
           {
             label: 'Perks',
-            permission: 'perks.*.write',
+            visible: false,
             items: [{
-              label: 'Merch', icon: 'pi pi-fw pi-home', to: '/'
+              label: 'Merch', icon: 'pi pi-fw pi-home', to: '/', visible: false
             },
             {
-              label: 'Food', icon: 'pi pi-fw pi-home', to: '/'
+              label: 'Food', icon: 'pi pi-fw pi-home', to: '/', visible: false
             }]
           },
           {
-            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/', permission: 'shifts.*.write'
+            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/', visible: false
           }]
         },
         {
           label: 'Event',
           permission: 'event.*.write',
           items: [{
-            label: 'Badges', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Badges', icon: 'pi pi-fw pi-home', to: '/badges'
           },
           {
-            label: 'Schedule', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Schedule', icon: 'pi pi-fw pi-home', to: '/', visible: false
           },
           {
-            label: 'Emails', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Emails', icon: 'pi pi-fw pi-home', to: '/', visible: false
           },
           {
-            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/', visible: false
           }]
         },
         {
           label: 'Server',
           permission: 'server.*.write',
           items: [{
-            label: 'Import/Export', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Import/Export', icon: 'pi pi-fw pi-home', to: '/', visible: false
           },
           {
-            label: 'Users', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Users', icon: 'pi pi-fw pi-home', to: '/settings/users'
           },
           {
-            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/', visible: false
           }]
         }
       ]

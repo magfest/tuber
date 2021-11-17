@@ -79,13 +79,7 @@ import { AppActionTypes } from './store/modules/app/actions'
     ])
   },
   watch: {
-    user () {
-      this.refreshTopBar()
-    },
-    badge () {
-      this.refreshTopBar()
-    },
-    events () {
+    loggedIn () {
       this.refreshTopBar()
     }
   },
