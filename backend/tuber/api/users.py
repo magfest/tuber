@@ -53,8 +53,12 @@ def login():
         user = db.query(User).filter(User.username == request.json['username']).one_or_none()
         if user:
             if sha256_crypt.verify(request.json['password'], user.password):
+                badges = db.query(Badge).filter(Badge.user == user.id).all()
+                badge = None
+                if badges:
+                    badge = badges[0].id
                 perm_cache = get_permissions(user=user.id)
-                session = Session(user=user.id, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()), permissions=json.dumps(perm_cache))
+                session = Session(user=user.id, badge=badge, last_active=datetime.datetime.now(), secret=str(uuid.uuid4()), permissions=json.dumps(perm_cache))
                 db.add(session)
                 db.commit()
                 response = jsonify(session.secret)

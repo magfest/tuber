@@ -17,6 +17,7 @@ def crud_group(model, event=None, department=None):
         limit = request.args.get("limit", 0, type=int)
         offset = request.args.get("offset", 0, type=int)
         page = request.args.get("page", 0, type=int)
+        full = request.args.get("full", False, type=lambda x: x.lower()=='true')
         if page:
             offset = page*10
             if limit:
@@ -43,8 +44,10 @@ def crud_group(model, event=None, department=None):
         rows = rows.all()
         now = time.time()
         print(f"{request.path} Load time {now - start}s")
-        data = model.serialize(rows)
+        data = model.serialize(rows, serialize_relationships=full)
         print(f"{request.path} Serialize time {time.time() - now}s")
+        if not data:
+            return "[]", 404
         return jsonify(data)
     elif request.method == "POST":
         if event:

@@ -1,6 +1,19 @@
 from tuber.models import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Date
+from .badge import Badge
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Date, Table
 from sqlalchemy.orm import relationship
+
+HotelRoommateRequest = Table("hotel_roommate_request", Base.metadata,
+    Column("id", Integer, primary_key=True),
+    Column("requester", Integer, ForeignKey('badge.id', ondelete="CASCADE")),
+    Column("requested", Integer, ForeignKey('badge.id', ondelete="CASCADE")),
+)
+
+HotelAntiRoommateRequest = Table("hotel_anti_roommate_request", Base.metadata,
+    Column("id", Integer, primary_key=True),
+    Column("requester", Integer, ForeignKey('badge.id', ondelete="CASCADE")),
+    Column("requested", Integer, ForeignKey('badge.id', ondelete="CASCADE")),
+)
 
 class HotelRoomRequest(Base):
     __tablename__ = "hotel_room_request"
@@ -21,6 +34,8 @@ class HotelRoomRequest(Base):
     smoke_sensitive = Column(Boolean, nullable=True)
     sleep_time = Column(String(), nullable=True)
     room_night_justification = Column(String(), nullable=True)
+    roommate_requests = relationship("Badge", secondary="hotel_roommate_request", foreign_keys=[HotelRoommateRequest.c.requested, HotelRoommateRequest.c.requester], primaryjoin=badge==HotelRoommateRequest.c.requester, secondaryjoin=Badge.id==HotelRoommateRequest.c.requested)
+    roommate_anti_requests = relationship("Badge", secondary="hotel_anti_roommate_request", foreign_keys=[HotelAntiRoommateRequest.c.requested, HotelAntiRoommateRequest.c.requester], primaryjoin=badge==HotelAntiRoommateRequest.c.requester, secondaryjoin=Badge.id==HotelAntiRoommateRequest.c.requested)
 
 class HotelRoomBlock(Base):
     __tablename__ = "hotel_room_block"
@@ -43,18 +58,6 @@ class HotelRoom(Base):
     hotel_location = Column(Integer, ForeignKey('hotel_location.id'))
     completed = Column(Boolean)
     room_night_assignments = relationship('RoomNightAssignment', cascade="all, delete", passive_deletes=True)
-
-class HotelRoommateRequest(Base):
-    __tablename__ = "hotel_roommate_request"
-    id = Column(Integer, primary_key=True)
-    requester = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
-    requested = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
-
-class HotelAntiRoommateRequest(Base):
-    __tablename__ = "hotel_anti_roommate_request"
-    id = Column(Integer, primary_key=True)
-    requester = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
-    requested = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
 
 class HotelLocation(Base):
     __tablename__ = "hotel_location"

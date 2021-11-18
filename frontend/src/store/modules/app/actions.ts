@@ -76,9 +76,9 @@ export const actions: ActionTree<State, RootState> & Actions = {
   async [AppActionTypes.SET_EVENT] ({ commit }, event: Event | null) {
     commit(AppMutationTypes.SET_EVENT, event)
     if (event && state.user) {
-      return get('/api/event/' + event.id + '/badges', { user: state.user.id }).then((badge) => {
+      return get('/api/event/' + event.id + '/badge', { user: state.user.id, full: true }).then((badge) => {
         if (badge) {
-          commit(AppMutationTypes.SET_BADGE, badge)
+          commit(AppMutationTypes.SET_BADGE, badge[0])
         } else {
           commit(AppMutationTypes.SET_BADGE, null)
         }

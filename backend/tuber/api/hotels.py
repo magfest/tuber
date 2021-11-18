@@ -67,110 +67,6 @@ def block_assignments(event):
         return "null", 200
     return "", 406
 
-@app.route("/api/event/<int:event>/hotel/all_requests", methods=["GET"])
-def hotel_all_requests(event):
-    if request.method == "GET":
-        if not check_permission("hotel_request.*.assign", event=request.args['event']):
-            return "", 403
-        room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == request.args['event']).all()
-        room_night_ids = [x.id for x in room_nights]
-        requests = db.query(Badge, HotelRoomRequest).join(HotelRoomRequest, Badge.id == HotelRoomRequest.badge).filter(HotelRoomRequest.declined != True).all()
-        badges = [x[0].id for x in requests]
-        default_room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == request.args['event'], HotelRoomNight.restricted != True).all()
-        default_room_nights = [x.id for x in default_room_nights]
-        approvals = db.query(RoomNightRequest).join(RoomNightApproval, RoomNightApproval.room_night == RoomNightRequest.id).filter(RoomNightRequest.badge.in_(badges), RoomNightApproval.approved == True).all()
-        requested_roommates = db.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester.in_(badges)).all()
-        antirequested_roommates = db.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester.in_(badges)).all()
-        department_membership = db.query(BadgeToDepartment).filter(BadgeToDepartment.badge.in_(badges)).all()
-        results = {}
-        genders = {
-            "male": 0,
-            "guy": 0,
-            "bro": 0,
-            "boys": 0,
-            "males": 0,
-            "female": 1,
-            "females": 1,
-            "woman": 1,
-            "women": 1,
-            "he/him": 0,
-            "she/her": 1,
-            "m": 0,
-            "f": 1,
-        }
-        noise_levels = {
-            'Quiet - I am quiet, and prefer quiet.': 0,
-            "Moderate - I don't make a lot of noise.": 1,
-            "Loud - I'm ok if someone snores or I snore.": 2,
-        }
-        sleep_times = {
-            '8pm-10pm': 0,
-            '10pm-12am': 1,
-            '12am-2am': 2,
-            '2am-4am': 3,
-            '4am-6am': 4,
-            '6am-8am': 5,
-            '8am-10am': 6,
-            '10am-12pm': 7,
-            '12pm-2pm': 8,
-            '2pm-4pm': 9,
-            '4pm-6pm': 10,
-            '6pm-8pm': 11,
-        }
-        for badge, req in requests:
-            notes = req.notes
-            preferred_gender = None
-            if req.preferred_gender:
-                if req.preferred_gender.lower().strip() in genders.keys():
-                    preferred_gender = genders[req.preferred_gender.lower().strip()]
-                elif "trans" in req.preferred_gender.lower():
-                    preferred_gender = 2
-                else:
-                    print("Unhandled gender preference: {}".format(req.preferred_gender))
-                    notes += "\nRequested to be roomed with ({}) gender.".format(req.preferred_gender)
-            noise_level = None
-            if req.noise_level in noise_levels:
-                noise_level = noise_levels[req.noise_level]
-            sleep_time = None
-            if req.sleep_time in sleep_times:
-                sleep_time = sleep_times[req.sleep_time]
-            results[badge.id] = {
-                "id": badge.id,
-                "name": "{} {}".format(badge.first_name, badge.last_name),
-                "first_name": badge.first_name,
-                "last_name": badge.last_name,
-                "legal_name": badge.legal_name if badge.legal_name else "",
-                "justification": req.room_night_justification,
-                "room_nights": [x for x in default_room_nights if x in [y.room_night for y in badge.room_night_requests if y.requested]],
-                "prefer_department": req.prefer_department,
-                "preferred_department": req.preferred_department,
-                "notes": notes,
-                "prefer_single_gender": req.prefer_single_gender,
-                "preferred_gender": preferred_gender,
-                "noise_level": noise_level,
-                "smoke_sensitive": req.smoke_sensitive,
-                "sleep_time": sleep_time,
-                "requested_roommates": [],
-                "antirequested_roommates": [],
-                "departments": []
-            }
-        for rnr in approvals:
-            if not rnr.room_night in results[rnr.badge]["room_nights"]:
-                results[rnr.badge]["room_nights"].append(rnr.room_night)
-        for req in requested_roommates:
-            results[req.requester]['requested_roommates'].append(req.requested)
-        for req in antirequested_roommates:
-            results[req.requester]['antirequested_roommates'].append(req.requested)
-        for membership in department_membership:
-            results[membership.badge]['departments'].append(membership.department)
-        to_del = []
-        for res in results.keys():
-            if not results[res]["room_nights"]:
-                to_del.append(res)
-        for i in to_del:
-            del results[i]
-        return jsonify(results)
-
 @app.route("/api/event/<int:event>/hotel/requests/<int:department>", methods=["GET"])
 def hotel_requests(event, department):
     requests = db.query(Badge, HotelRoomRequest).join(BadgeToDepartment, BadgeToDepartment.badge == Badge.id).filter(BadgeToDepartment.department == department).join(HotelRoomRequest, HotelRoomRequest.badge == BadgeToDepartment.badge).all()
@@ -387,10 +283,6 @@ def hotel_request_single_api(event, request_id):
         hotel_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.id == request_id).one_or_none()
         if not hotel_request:
             return "Could not locate hotel room request", 404
-        roommate_requests = db.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == hotel_request.badge).all()
-        roommate_requests = [x.requested for x in roommate_requests]
-        antiroommate_requests = db.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == hotel_request.badge).all()
-        antiroommate_requests = [x.requested for x in antiroommate_requests]
         room_nights = []
         requested = db.query(RoomNightRequest, HotelRoomNight).join(HotelRoomNight, RoomNightRequest.room_night == HotelRoomNight.id).filter(RoomNightRequest.badge == hotel_request.badge).all()
         for req, night in requested:
@@ -433,16 +325,14 @@ def hotel_request_single_api(event, request_id):
             "smoke_sensitive": hotel_request.smoke_sensitive,
             "sleep_time": hotel_request.sleep_time or "",
             "room_night_justification": hotel_request.room_night_justification or "",
-            "requested_roommates": roommate_requests,
-            "antirequested_roommates": antiroommate_requests,
+            "requested_roommates": hotel_request.roommate_requests,
+            "antirequested_roommates": hotel_request.roommate_anti_requests,
             "room_nights": room_nights
         })
     elif request.method == "PATCH":
         hotel_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.id == request_id).one_or_none()
         if not hotel_request:
             return "Could not locate hotel room request", 404
-        db.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == hotel_request.badge).all()
-        db.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == hotel_request.badge).all()
         hotel_request.first_name = g.data['first_name']
         hotel_request.last_name = g.data['last_name']
         hotel_request.declined = g.data['declined']
@@ -455,15 +345,9 @@ def hotel_request_single_api(event, request_id):
         hotel_request.smoke_sensitive = g.data['smoke_sensitive']
         hotel_request.sleep_time = g.data['sleep_time']
         hotel_request.room_night_justification = g.data['room_night_justification']
+        hotel_request.roommate_requests = db.query(Badge).filter(Badge.id.in_(g.data['requested_roommates'])).all()
+        hotel_request.roommate_anti_requests = db.query(Badge).filter(Badge.id.in_(g.data['antirequested_roommates'])).all()
         db.add(hotel_request)
-        db.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == hotel_request.badge).delete()
-        db.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == hotel_request.badge).delete()
-        for requested in g.data['requested_roommates']:
-            roommate_request = HotelRoommateRequest(requester=hotel_request.badge, requested=requested)
-            db.add(roommate_request)
-        for requested in g.data['antirequested_roommates']:
-            antiroommate_request = HotelAntiRoommateRequest(requester=hotel_request.badge, requested=requested)
-            db.add(antiroommate_request)
         requested = db.query(RoomNightRequest, HotelRoomNight).join(HotelRoomNight, RoomNightRequest.room_night == HotelRoomNight.id).filter(RoomNightRequest.badge == hotel_request.badge).all()
         night_status = {}
         for req, night in requested:
@@ -484,97 +368,7 @@ def hotel_request_api(event):
         return "", 403
     if not g.badge:
         return "Could not locate badge", 404
-    if request.method == "GET":
-        hotel_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.badge == g.badge.id).one_or_none()
-        if not hotel_request:
-            return "Could not locate hotel room request", 404
-        roommate_requests = db.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == g.badge.id).all()
-        roommate_requests = [x.requested for x in roommate_requests]
-        antiroommate_requests = db.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == g.badge.id).all()
-        antiroommate_requests = [x.requested for x in antiroommate_requests]
-        room_nights = []
-        requested = db.query(RoomNightRequest, HotelRoomNight).join(HotelRoomNight, RoomNightRequest.room_night == HotelRoomNight.id).filter(RoomNightRequest.badge == g.badge.id).all()
-        for req, night in requested:
-            if not night.hidden:
-                room_nights.append({
-                    "id": night.id,
-                    "requested": req.requested,
-                    "date": night.date,
-                    "name": night.name,
-                    "restricted": night.restricted,
-                    "restriction_type": night.restriction_type,
-                })
-        all_room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
-        for room_night in all_room_nights:
-            for existing in room_nights:
-                if existing['id'] == room_night.id:
-                    break
-            else:
-                room_nights.append({
-                    "id": room_night.id,
-                    "requested": False,
-                    "date": room_night.date,
-                    "name": room_night.name,
-                    "restricted": room_night.restricted,
-                    "restriction_type": room_night.restriction_type
-                })
-        room_nights.sort(key=lambda x: x['date'])
-        return jsonify({
-            "event": hotel_request.event,
-            "badge": hotel_request.badge,
-            "first_name": hotel_request.first_name or "",
-            "last_name": hotel_request.last_name or "",
-            "declined": hotel_request.declined,
-            "prefer_department": hotel_request.prefer_department,
-            "preferred_department": hotel_request.preferred_department,
-            "notes": hotel_request.notes or "",
-            "prefer_single_gender": hotel_request.prefer_single_gender,
-            "preferred_gender": hotel_request.preferred_gender or "",
-            "noise_level": hotel_request.noise_level or "",
-            "smoke_sensitive": hotel_request.smoke_sensitive,
-            "sleep_time": hotel_request.sleep_time or "",
-            "room_night_justification": hotel_request.room_night_justification or "",
-            "requested_roommates": roommate_requests,
-            "antirequested_roommates": antiroommate_requests,
-            "room_nights": room_nights
-        })
-    elif request.method == "PATCH":
-        hotel_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.badge == g.badge.id).one_or_none()
-        if not hotel_request:
-            return "Could not locate hotel room request", 404
-        db.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == g.badge.id).all()
-        db.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == g.badge.id).all()
-        hotel_request.first_name = g.data['first_name']
-        hotel_request.last_name = g.data['last_name']
-        hotel_request.declined = g.data['declined']
-        hotel_request.prefer_department = g.data['prefer_department']
-        hotel_request.preferred_department = g.data['preferred_department']
-        hotel_request.notes = g.data['notes']
-        hotel_request.prefer_single_gender = g.data['prefer_single_gender']
-        hotel_request.preferred_gender = g.data['preferred_gender']
-        hotel_request.noise_level = g.data['noise_level']
-        hotel_request.smoke_sensitive = g.data['smoke_sensitive']
-        hotel_request.sleep_time = g.data['sleep_time']
-        hotel_request.room_night_justification = g.data['room_night_justification']
-        db.add(hotel_request)
-        db.query(HotelRoommateRequest).filter(HotelRoommateRequest.requester == g.badge.id).delete()
-        db.query(HotelAntiRoommateRequest).filter(HotelAntiRoommateRequest.requester == g.badge.id).delete()
-        for requested in g.data['requested_roommates']:
-            roommate_request = HotelRoommateRequest(requester=g.badge.id, requested=requested)
-            db.add(roommate_request)
-        for requested in g.data['antirequested_roommates']:
-            antiroommate_request = HotelAntiRoommateRequest(requester=g.badge.id, requested=requested)
-            db.add(antiroommate_request)
-        requested = db.query(RoomNightRequest, HotelRoomNight).join(HotelRoomNight, RoomNightRequest.room_night == HotelRoomNight.id).filter(RoomNightRequest.badge == g.badge.id).all()
-        night_status = {}
-        for req, night in requested:
-            night_status[night.id] = req
-        for room_night_request in g.data['room_nights']:
-            if room_night_request['id'] in night_status:
-                night_status[room_night_request['id']].requested = room_night_request['requested']
-                db.add(night_status[room_night_request['id']])
-            else:
-                requested_night = RoomNightRequest(event=event, badge=g.badge.id, requested=room_night_request['requested'], room_night=room_night_request['id'])
-                db.add(requested_night)
-        db.commit()
-        return "null", 200
+    hotel_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.badge == g.badge.id).one_or_none()
+    if not hotel_request:
+        return "Could not locate hotel room request", 404
+    return hotel_request_single_api(event, hotel_request.id)
