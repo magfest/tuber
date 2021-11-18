@@ -28,7 +28,7 @@
                 <Dropdown v-model="filterModel.value" @change="filterCallback()" :options="badgeTypes" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter"></Dropdown>
             </template>
         </Column>
-        <Column header="Room Block" filterField="room_block" :sortable="true" style="width: 12rem">
+        <Column header="Room Block" filterField="hotel_block" :sortable="true" style="width: 12rem">
             <template #body="slotProps">
                 <Dropdown v-model="slotProps.data.hotel_block" @change="save(slotProps.data.hotel_room_request, slotProps.data.hotel_block)" :options="room_blocks" optionLabel="name" optionValue="id"></Dropdown>
             </template>
