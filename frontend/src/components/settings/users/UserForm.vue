@@ -65,7 +65,12 @@ export default {
     },
     async save () {
       try {
-        const newuser = await patch(this.url, this.user)
+        let newuser = {}
+        if (this.id) {
+          newuser = await patch(this.url, this.user)
+        } else {
+          newuser = await post(this.url, this.user)
+        }
         if (this.newPassword) {
           await post('/api/change_password/' + newuser.id, { password: this.newPassword })
         }
