@@ -63,7 +63,7 @@ export default {
       public_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
       departments: { value: null, matchMode: FilterMatchMode.CONTAINS },
       badge_type: { value: null, matchMode: FilterMatchMode.EQUALS },
-      room_block: { value: null, matchMode: FilterMatchMode.EQUALS }
+      hotel_block: { value: null, matchMode: FilterMatchMode.EQUALS }
     },
     loading: false,
     selected: [],
