@@ -118,7 +118,7 @@ for staffer in staffers:
             staffer.antiroommates.add(stafferlookup[rm_badge['id']])
             stafferlookup[rm_badge['id']].iantiroommates.add(staffer)
 
-def score_room(staffers, room_night_weight=100, roommate_weight=5, other_weight=1, allow_empty=True):
+def score_room(staffers, room_night_weight=10, roommate_weight=5, other_weight=1, allow_empty=True):
     staffers = set(staffers)
     nights = set().union(*[x.room_nights for x in staffers])
     filled_slots = sum([len(x.room_nights) for x in staffers])
@@ -149,9 +149,9 @@ def score_room(staffers, room_night_weight=100, roommate_weight=5, other_weight=
     for staffer in staffers:
         if staffer.prefer_dept:
             total_dept_req += len(staffers) - 1
-        for roommate in staffers.difference(set([staffer])):
-            if staffer.preferred_dept in roommate.departments:
-                filled_dept_req += 1
+            for roommate in staffers.difference(set([staffer])):
+                if staffer.preferred_dept in roommate.departments:
+                    filled_dept_req += 1
     if total_dept_req:
         dept_score = other_weight * (filled_dept_req / total_dept_req)
     else:
@@ -161,8 +161,8 @@ def score_room(staffers, room_night_weight=100, roommate_weight=5, other_weight=
         if staffer.antiroommates.intersection(staffers):
             raise AntiRequestException(f"{str(staffer)} anti-requested {', '.join([str(x) for x in staffer.antiroommates.intersection(staffers)])}")
 
-    #print(f"Scores: {room_night_score} {roommate_score} {dept_score} {', '.join([x.name for x in staffers])}")
-    return sum([room_night_score, roommate_score, dept_score])
+    #print(f"Scores: {room_night_score} {roommate_score} {dept_score} {filled_dept_req} {total_dept_req} {', '.join([x.name for x in staffers])}")
+    return room_night_score, roommate_score, dept_score
 
 def get_roommates(staffer, matched, visited=None):
     if not visited:
@@ -187,7 +187,7 @@ def match_perfect(staffers, matched, n):
         best_score = 0
         for perm in itertools.permutations(roommates, n):
             try:
-                score = score_room(perm)
+                score = sum(score_room(perm))
             except AntiRequestException:
                 print(f"Found antirequest in room")
                 print(perm)
@@ -219,7 +219,7 @@ def combine_rooms(rooms):
             try:
                 if len(perm[0]) + len(perm[1]) > 4:
                     continue
-                score = score_room(set.union(*perm), allow_empty=False)
+                score = sum(score_room(set.union(*perm), allow_empty=False))
             except AntiRequestException:
                 continue
             if score > best_score:
@@ -262,6 +262,7 @@ def match_block(staffers):
     return all_rooms
 
 for block in hotel_blocks[:-1]:
+    print(f"Matching {block['name']}")
     stats['block_counts'][block['name']] = 0
     block_staffers = []
     for staffer in staffers:
@@ -279,7 +280,7 @@ room_sizes = {4:0, 3:0, 2:0, 1:0, 0:0}
 total_empty_slots = 0
 total_empty_nights = {x: 0 for x in room_night_mapping.values()}
 rooms = list(rooms)
-rooms.sort(key=lambda x: score_room(x, allow_empty=False))
+rooms.sort(key=lambda x: sum(score_room(x, allow_empty=False)))
 rooms.reverse()
 for room in rooms:
     room_sizes[len(room)] += 1
@@ -294,7 +295,7 @@ for room in rooms:
         total_empty_nights[k] += v
     filled_slots = sum([len(x.room_nights) for x in staffers])
     total_slots = len(nights) * 4
-    print(f"{filled_slots}, {total_slots}, {score_room(room, allow_empty=False)}, {', '.join([str(x) for x in room])}")
+    print(f"{filled_slots}, {total_slots}, {', '.join([str(x) for x in score_room(room, allow_empty=False)])}, {', '.join([str(x) for x in room])}")
     empty_slots = total_slots - filled_slots
     total_empty_slots += empty_slots
 

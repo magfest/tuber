@@ -15,7 +15,7 @@
         </button>
         <ul class="layout-topbar-menu hidden lg:flex origin-top">
             <li>
-              <Dropdown v-if="loggedIn & events.length > 0" :modelValue="event" :options="events" optionLabel="name" @change="updateEvent" placeHolder="Select an Event" />
+              <Dropdown class="mt-2" v-if="loggedIn & events.length > 0" :modelValue="event" :options="events" optionLabel="name" @change="updateEvent" placeHolder="Select an Event" />
             </li>
             <li>
                 <button class="p-link layout-topbar-button" @click="toggleUserMenu">
