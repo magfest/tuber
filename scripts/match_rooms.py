@@ -118,7 +118,7 @@ for staffer in staffers:
             staffer.antiroommates.add(stafferlookup[rm_badge['id']])
             stafferlookup[rm_badge['id']].iantiroommates.add(staffer)
 
-def score_room(staffers, room_night_weight=10, roommate_weight=5, other_weight=1, allow_empty=True):
+def score_room(staffers, room_night_weight=100, roommate_weight=5, other_weight=1, allow_empty=True):
     staffers = set(staffers)
     nights = set().union(*[x.room_nights for x in staffers])
     filled_slots = sum([len(x.room_nights) for x in staffers])
@@ -261,7 +261,7 @@ def match_block(staffers):
     print(f"Combined {start_len} rooms into {len(all_rooms)}")
     return all_rooms
 
-for block in hotel_blocks[:-1]:
+for block in hotel_blocks[:1]:
     print(f"Matching {block['name']}")
     stats['block_counts'][block['name']] = 0
     block_staffers = []

@@ -4,63 +4,85 @@
     <h3>Room Assignments</h3>
     <Toolbar class="mb-1">
         <template #left>
-            <Button class="p-button-success mr-2"><u>C</u>reate Room</Button>
-            <Button class="p-button-info mr-2"><u>R</u>ematch All</Button>
-            <Dropdown :options="blocks" v-model="block" />
+            <Button class="p-button-success mr-2" @click="createRoom"><u>C</u>reate Room</Button>
+            <Button class="p-button-info mr-2" @click="rematchAll"><u>R</u>ematch All</Button>
         </template>
 
         <template #right>
-            <span class="p-input-icon-left">
-                <i class="pi pi-search" />
-                <InputText type="text" placeholder="Search" />
-            </span>
+            <label for="blockselect" class="mr-2">Room Block</label>
+            <Dropdown id="blockselect" :options="blocks" v-model="block" optionLabel="name" optionValue="id" />
         </template>
     </Toolbar>
+
     <div class="grid">
       <div class="col">
-        <DataTable class="p-datatable-sm" sortField="public_name" :sortOrder="1" selectionMode="multiple" :value="formattedRequests" :paginator="true" :rows="25" dataKey="id" v-model:filters="requestFilters" filterDisplay="row"
-          :loading="loading" :globalFilterFields="['public_name']" v-model:selection="selectedRequests">
-          <Column header="Name" field="public_name" filterField="public_name" style="width: 8rem" :sortable="true">
-          </Column>
-          <Column header="Nights" field="room_nights" filterField="room_nights" style="width: 13rem" :sortable="true">
+        <DataTable class="p-datatable-sm" ref="dt" :lazy="true" selectionMode="multiple" :value="filteredRequests" :paginator="true" :rows="10" dataKey="id"
+         v-model:filters="requestFilters" filterDisplay="menu" :globalFilterFields="['public_name']" v-model:selection="selectedRequests"
+         :totalRecords="totalRequests" :loading="loading" @page="onPage($event)" @sort="onSort($event)" @filter="onFilter($event)">
+          <Column header="Name" field="first_name" filterField="first_name" style="width: 8rem" :sortable="true">
             <template #body="slotProps">
-              <Tag v-for="night in slotProps.data.room_nights" :key="night.id" :value="night.name.slice(0,2)" :severity="night.assigned ? 'primary': 'danger'" class="mr-1" />
+              {{ badgeLookup[slotProps.data.badge].public_name }}
+            </template>
+            <template #filter="{filterModel,filterCallback}">
+                <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter" :placeholder="`Search by name - `" v-tooltip.top.focus="'Hit enter key to filter'"/>
             </template>
           </Column>
-          <Column header="Notes" field="notes" filterField="notes">
+          <Column style="width: 2rem" v-for="night in roomNights" :key="night.id">
+            <template #body="slotProps">
+              <Tag :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': 'danger'" class="mr-1" style="width: 27px" />
+            </template>
+          </Column>
+          <Column header="Notes" field="notes" filterField="notes" :sortable="true">
           </Column>
         </DataTable>
       </div>
+
       <div class="col">
-        <div class="field-checkbox">
-          <Checkbox id="hidecomplete" v-model="hidecompleted" :binary="true" />
-          <label for="hidecomplete">Hide Completed</label>
+        <div class="flex justify-content-between">
+          <span class="field-checkbox pt-2">
+            <Checkbox id="hidecomplete" v-model="hidecompleted" :binary="true" />
+            <label for="hidecomplete">Hide Completed</label>
+          </span>
+          <span class="p-input-icon-left pt-1">
+              <i class="pi pi-search" />
+              <InputText type="text" v-model="roomSearchText" placeholder="Search" @change="roomSearch" />
+          </span>
         </div>
         <Card v-for="room in filteredRooms" :key="room.id" class="mb-2">
             <template #title>
               <div class="flex justify-content-between">
-                <InputText v-if="room.edit" v-model="room.name" @blur="room.edit=false" />
-                <span v-else @click="room.edit=true">
-                  {{ room.name ? room.name : "Room " + room.id}}
+                <span>
+                  <Button v-if="room.completed" class="p-button-success mr-2" icon="pi pi-check-circle" @click="completeRoom(room, false)" />
+                  <Button v-else class="p-button-warning mr-2" icon="pi pi-circle-off" @click="completeRoom(room, true)" />
+                  <InputText v-if="room.edit" v-model="room.name" @blur="saveRoom(room)" />
+                  <span v-else @click="room.edit=true">
+                    {{ room.name ? room.name : "Room " + room.id}}
+                  </span>
                 </span>
                 <span>
-                  <Button v-if="room.completed" class="p-button-info mr-2" icon="pi pi-check" @click="room.completed=false" />
-                  <Button v-else class="p-button-success mr-2" icon="pi pi-check" @click="room.completed=true" />
-                  <Button class="p-button-danger">Remove</Button>
+                  <Button class="p-button-info mr-2" icon="pi pi-info-circle" @click="roomInfo(room)" />
+                  <Button class="p-button-danger" @click="removeRoom(room)">Remove</Button>
                 </span>
               </div>
             </template>
             <template #content>
               <div class="grid">
                 <div class="col">
-                  <div><Button class="p-button-danger minibutton" icon="pi pi-times" iconPos="right" />Mark Murnane</div>
-                  <div><Button class="p-button-danger minibutton" icon="pi pi-times" iconPos="right" />Mark Murnane</div>
-                  <div><Button class="p-button-danger minibutton" icon="pi pi-times" iconPos="right" />Mark Murnane</div>
-                  <div><Button class="p-button-danger minibutton" icon="pi pi-times" iconPos="right" />Mark Murnane</div>
-                  <div><Button class="p-button-success minibutton" icon="pi pi-plus" iconPos="rigth" /></div>
+                  <div v-for="roommate in room.roommates" :key="room.id + '_' + roommate">
+                    <Button class="p-button-danger minibutton" icon="pi pi-times" iconPos="right" @click="removeRoommate(room, roommate)" />
+                    {{ badgeLookup[roommate].public_name }}
+                  </div>
+                  <div>
+                    <Button class="p-button-success minibutton" icon="pi pi-plus" iconPos="right" @click="addRoommates(room)" />
+                  </div>
                 </div>
                 <div class="col">
-                  <Textarea v-model="room.notes" rows="5" />
+                  Messages
+                  <Textarea v-model="room.messages" rows="5" @change="saveRoom(room)" />
+                </div>
+                <div class="col">
+                  Internal Notes
+                  <Textarea v-model="room.notes" rows="5" @change="saveRoom(room)" />
                 </div>
               </div>
             </template>
@@ -86,7 +108,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get } from '@/lib/rest'
+import { get, post, patch, del } from '@/lib/rest'
 import { FilterMatchMode } from 'primevue/api'
 import { ModelActionTypes } from '@/store/modules/models/actions'
 
@@ -98,10 +120,8 @@ export default {
   components: {
   },
   data: () => ({
-    blocks: [
-      'General Staff',
-      'Consoles'
-    ],
+    roomSearchText: '',
+    blocks: [],
     block: '',
     loading: false,
     hidecompleted: true,
@@ -109,46 +129,26 @@ export default {
     rooms: [],
     requestFilters: {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      public_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      nights: { value: null, matchMode: FilterMatchMode.EQUALS }
+      first_name: { value: null, matchMode: FilterMatchMode.CONTAINS }
     },
     roomFilters: {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
       name: { value: null, matchMode: FilterMatchMode.CONTAINS }
     },
     selectedRequests: [],
-    selectedRooms: []
+    selectedRooms: [],
+    roomNights: [],
+    assignedNights: {},
+    lazyParams: {},
+    totalRequests: 0,
+    filteredRequests: []
   }),
   computed: {
     ...mapGetters([
       'event',
-      'badgeLookup'
+      'badgeLookup',
+      'departments'
     ]),
-    formattedRequests () {
-      const formatted = []
-      for (const req of this.requests) {
-        if (Object.prototype.hasOwnProperty.call(this.badgeLookup, req.badge)) {
-          let publicName = this.badgeLookup[req.badge].public_name
-          if (!publicName) {
-            publicName = this.badgeLookup[req.badge].first_name + ' ' + this.badgeLookup[req.badge].last_name
-          }
-          formatted.push({
-            id: req.id,
-            public_name: publicName,
-            room_nights: [
-              { id: 1, name: 'Tuesday', assigned: true },
-              { id: 2, name: 'Wednesday', assigned: false },
-              { id: 3, name: 'Thursday', assigned: true },
-              { id: 4, name: 'Friday', assigned: true },
-              { id: 5, name: 'Saturday', assigned: true },
-              { id: 6, name: 'Sunday', assigned: false }
-            ],
-            notes: req.notes
-          })
-        }
-      }
-      return formatted
-    },
     filteredRooms () {
       const filtered = []
       for (const room of this.rooms) {
@@ -161,27 +161,203 @@ export default {
         }
       }
       return filtered.slice(0, 10)
+    },
+    roomNightLookup () {
+      const lookup = {}
+      for (const night of this.roomNights) {
+        lookup[night.id] = night
+      }
+      return lookup
     }
   },
   mounted () {
-    this.load()
+    this.lazyParams = {
+      first: 0,
+      rows: this.$refs.dt.rows,
+      sortField: 'first_name',
+      sortOrder: 1,
+      filters: this.requestFilters
+    }
+    this.load().then(() => {
+      this.getblocks()
+    })
   },
   methods: {
+    async getblocks () {
+      this.blocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
+      if (this.blocks) {
+        this.block = this.blocks[0].id
+      }
+    },
     async load () {
       this.loading = true
       await this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
+      await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
+      try {
+        this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night')
+        this.roomNights.sort((a, b) => {
+          if (a.date > b.date) {
+            return 1
+          }
+          return -1
+        })
+      } catch (error) {
+        this.roomNights = []
+      }
       try {
         this.requests = await get('/api/event/' + this.event.id + '/hotel_room_request')
-        this.rooms = await get('/api/event/' + this.event.id + '/hotel_room')
       } catch (error) {
-
+        this.requests = []
       }
       this.loading = false
+    },
+    async fetchRooms () {
+      this.loading = true
+      try {
+        if (this.roomSearchText) {
+          this.rooms = await get('/api/event/' + this.event.id + '/hotel/room_search', { search: this.roomSearchText })
+        } else {
+          this.rooms = await get('/api/event/' + this.event.id + '/hotel_room', { full: true, limit: 25, hotel_block: this.block })
+        }
+      } catch (error) {
+        this.rooms = []
+      }
+      this.loading = false
+    },
+    async fetchRequests () {
+      this.loading = true
+      let requests = []
+      if (this.lazyParams.filters.first_name.value) {
+        const searchRes = await get('/api/event/' + this.event.id + '/hotel/' + this.block + '/request_search', {
+          approved: true,
+          assigned: false,
+          search_term: this.lazyParams.filters.first_name.value,
+          full: true,
+          deep: true,
+          offset: this.lazyParams.first,
+          limit: this.lazyParams.rows,
+          sort: this.lazyParams.sortField,
+          order: this.lazyParams.sortOrder > 0 ? 'asc' : 'desc'
+        })
+        requests = searchRes.requests
+        this.totalRequests = searchRes.count
+      } else {
+        this.totalRequests = await get('/api/event/' + this.event.id + '/hotel_room_request', { approved: true, assigned: false, count: true, hotel_block: this.block })
+        requests = await get('/api/event/' + this.event.id + '/hotel_room_request', {
+          offset: this.lazyParams.first,
+          limit: this.lazyParams.rows,
+          full: true,
+          deep: true,
+          approved: true,
+          assigned: false,
+          hotel_block: this.block,
+          sort: this.lazyParams.sortField,
+          order: this.lazyParams.sortOrder > 0 ? 'asc' : 'desc'
+        })
+      }
+      const filtered = []
+      for (const req of requests) {
+        req.room_nights = []
+        req.nights = {}
+        for (const rn of this.roomNights) {
+          const night = {
+            name: rn.name,
+            id: rn.id
+          }
+          let requested = false
+          for (const nightreq of req.room_night_requests) {
+            if (nightreq.room_night === rn.id && nightreq.requested) {
+              requested = true
+              break
+            }
+          }
+          if (rn.restricted) {
+            for (const nightapp of req.room_night_approvals) {
+              if (nightapp.room_night === rn.id && nightapp.approved) {
+                night.approved = true
+                break
+              }
+            }
+          } else {
+            night.approved = requested
+          }
+          req.nights[rn.id] = requested
+          req.room_nights.push(night)
+        }
+        filtered.push(req)
+      }
+      this.filteredRequests = filtered
+      this.loading = false
+    },
+    onPage (event) {
+      this.lazyParams = event
+      this.fetchRequests()
+    },
+    onSort (event) {
+      this.lazyParams = event
+      this.fetchRequests()
+    },
+    onFilter () {
+      this.lazyParams.filters = this.requestFilters
+      this.fetchRequests()
+    },
+    async createRoom () {
+      const room = await post('/api/event/' + this.event.id + '/hotel_room', { hotel_block: this.block })
+      return this.addRoommates(room)
+    },
+    async rematchAll () {
+      await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/rematch_all', { weights: {} })
+      this.fetchRooms()
+      this.fetchRequests()
+    },
+    async removeRoom (room) {
+      await del('/api/event/' + this.event.id + '/hotel_room/' + room.id)
+      this.fetchRooms()
+      this.fetchRequests()
+    },
+    roomInfo (room) {
+      console.log('Getting info', room)
+    },
+    async removeRoommate (room, roommate) {
+      console.log('Removing', roommate, 'from', room)
+      await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/room/' + room.id + '/remove_roommates', { roommates: [roommate] })
+      this.fetchRooms()
+      this.fetchRequests()
+    },
+    async addRoommates (room) {
+      console.log('Adding roommates to', room)
+      const roommates = []
+      for (const roommate of this.selectedRequests) {
+        roommates.push(roommate.badge)
+      }
+      await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/room/' + room.id + '/add_roommates', { roommates: roommates })
+      this.fetchRooms()
+      this.fetchRequests()
+    },
+    async roomSearch () {
+      console.log('Searching for room')
+      this.fetchRooms()
+    },
+    async saveRoom (room) {
+      room.edit = false
+      console.log('Saving', room)
+      await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id, { id: room.id, completed: room.completed, notes: room.notes, name: room.name, messages: room.messages })
+      this.fetchRooms()
+    },
+    completeRoom (room, completed) {
+      room.completed = completed
+      this.saveRoom(room)
     }
   },
   watch: {
     event () {
-      this.load()
+      this.load().then(() => {
+        this.getblocks()
+      })
+    },
+    block () {
+      this.fetchRequests()
+      this.fetchRooms()
     }
   }
 }

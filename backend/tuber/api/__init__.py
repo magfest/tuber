@@ -1,5 +1,6 @@
 from functools import partial
 from flask import request, jsonify, g
+from sqlalchemy.orm import joinedload
 from tuber.models import *
 from tuber.permissions import *
 from tuber.errors import *
@@ -14,10 +15,14 @@ WRITE_PERMS = {"write", "*"}
 def crud_group(model, event=None, department=None):
     start = time.time()
     if request.method == "GET":
+        count = request.args.get("count", False, type=lambda x: x.lower()=='true')
+        sort = request.args.get("sort", "")
+        order = request.args.get("order", "asc")
         limit = request.args.get("limit", 0, type=int)
         offset = request.args.get("offset", 0, type=int)
         page = request.args.get("page", 0, type=int)
         full = request.args.get("full", False, type=lambda x: x.lower()=='true')
+        deep = request.args.get("deep", False, type=lambda x: x.lower()=='true')
         if page:
             offset = page*10
             if limit:
@@ -37,6 +42,17 @@ def crud_group(model, event=None, department=None):
             if hasattr(model, key):
                 filters.append(getattr(model, key) == val)
         rows = db.query(model).filter(*filters)
+        if full:
+            columns, relationships = model.get_fields()
+            for relation in relationships:
+                rows = rows.options(joinedload(relation.key))
+        if count:
+            return json.dumps(rows.count()), 200
+        if hasattr(model, sort):
+            if order == "asc":
+                rows = rows.order_by(getattr(model, sort))
+            else:
+                rows = rows.order_by(getattr(model, sort).desc())
         if limit:
             rows = rows.offset(offset).limit(limit)
         elif offset:
@@ -44,7 +60,7 @@ def crud_group(model, event=None, department=None):
         rows = rows.all()
         now = time.time()
         print(f"{request.path} Load time {now - start}s")
-        data = model.serialize(rows, serialize_relationships=full)
+        data = model.serialize(rows, serialize_relationships=full, deep=deep)
         print(f"{request.path} Serialize time {time.time() - now}s")
         if not data:
             return "[]", 404
@@ -89,11 +105,14 @@ def crud_single(model, event=None, department=None, id=None):
             instance = db.query(model).filter(model.id == id).one_or_none()
             if not instance:
                 return "", 404
+            instance_data = None
+            if hasattr(instance, 'onchange_cb'):
+                instance_data = model.serialize(instance, serialize_relationships=True)
             db.delete(instance)
             if hasattr(instance, 'onchange_cb'):
                 db.flush()
                 for cb in instance.onchange_cb:
-                    cb(db, instance)
+                    cb(db, instance, deleted=instance_data)
             db.commit()
             return "null"
         raise PermissionDenied()
