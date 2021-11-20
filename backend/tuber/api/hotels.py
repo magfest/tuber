@@ -277,7 +277,7 @@ def hotel_room_assignments(event):
 
 @app.route("/api/event/<int:event>/hotel/request/<int:request_id>", methods=["GET", "PATCH"])
 def hotel_request_single_api(event, request_id):
-    if not check_permission("rooming.*.manage", event=event):
+    if not check_permission("rooming.*.manage", event=event) and not check_permission(f"hotel_room_request.{request_id}.write", event=event):
         return "", 403
     if request.method == "GET":
         hotel_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.id == request_id).one_or_none()
