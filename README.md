@@ -3,7 +3,6 @@
 [![Copr build status](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bitbyt3r/Tuber/package/tuber/)
 [![Heroku CI Status](https://tuber-ci-badge.herokuapp.com/last.svg)](https://dashboard.heroku.com/pipelines/6ebd065d-db02-419d-80bd-6406f271d992/tests)
 [![codecov](https://codecov.io/gh/magfest/tuber/branch/master/graph/badge.svg)](https://codecov.io/gh/magfest/tuber)
-[![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/magfest/tuber)](https://hub.docker.com/repository/docker/magfest/tuber)
 [![Read the Docs](https://img.shields.io/readthedocs/magfest-tuber)](https://magfest-tuber.readthedocs.io/en/latest/)
 
 Table of Contents
@@ -99,46 +98,39 @@ Make sure to add both npm and python to your PATH during installation.
 Once the dependencies are installed you can start up the backend and frontend development servers:
 
 ### Backend
-Copy contrib/tuber.json.devel to tuber.json:
 ```bash
 # Linux/MacOS
-cp contrib/tuber.json.devel tuber.json
-#Windows
-copy contrib\tuber.json.devel tuber.json
-```
-
-```bash
 python -m venv venv
-
-# Linux/MacOS
-source venv/bin/activate 
-
-# Windows 
-venv\Scripts\activate.bat
-
+source venv/bin/activate
 cd backend
 python setup.py develop
+tuber
 
-# Linux/MacOS
-../venv/bin/tuber
-
-# Windows
- ..\venv\Scripts\tuber.exe
+# Windows 
+python -m venv venv
+venv\Scripts\activate.bat
+cd backend
+python setup.py develop
+..\venv\Scripts\tuber.exe
 ```
 
-The server should now start up and begin listening on port 8081.
+The server should now start up and begin listening on port 8080 for API requests.
 
 ### Frontend
 
 In a separate terminal from the backend, install and serve the vue frontend:
 
 ```bash
+npm install --global yarn # Yarn is recommended for the frontend
+
 cd frontend
-npm install
-npm serve
+yarn install
+yarn run serve
 ```
 
-This will start the frontend on port 8081, however you should connect your browser to localhost:8080, as the backend proxies the frontend to provide a single endpoint to the browser so that the CORS environment of the development environment matches the production deployment.
+This will start the frontend on port 8081. You can connect your browser to http://localhost:8081 and complete the initial setup page to begin using tuber.
+
+Both the frontend and backend will hot-reload as you change code.
 
 ### Database Migrations
 
@@ -149,14 +141,14 @@ First, create the table definition in tuber/models/<name>.py, and make sure it i
 Next, use alembic to create the migration file:
 
 ```bash
-venv/bin/alembic revision --autogenerate -m "Added widget column to the whatsit table"
+venv/bin/alembic -c backend/tuber/alembic.ini revision --autogenerate -m "Added widget column to the whatsit table"
 ```
 
 This should create a migration file in migrations/versions. Read through it and adjust the steps as necessary. The next time you restart your dev instance it will run the migration.
 
 You can also trigger the database update manually:
 ```bash
-venv/bin/alembic upgrade head
+venv/bin/alembic -c backend/tuber/alembic.ini upgrade head
 ```
 
 Make sure to commit the migration along with the code that uses it!
@@ -164,9 +156,9 @@ Make sure to commit the migration along with the code that uses it!
 ### Troubleshooting
 #### Mac developer setup
 
-If you receive the following ambiguous error message: `ld: library not found for -lssl`
+If you receive the following ambiguous error message while running `python setup.py develop`: `ld: library not found for -lssl`
 
-The fix for this: `export LDFLAGS="-L/usr/local/opt/openssl/lib"`
+Try setting the link path for openssl and running it again: `export LDFLAGS="-L/usr/local/opt/openssl/lib"`
 
 #### Alembic with multiple heads
 
