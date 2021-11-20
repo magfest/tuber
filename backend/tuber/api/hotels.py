@@ -325,8 +325,8 @@ def hotel_request_single_api(event, request_id):
             "smoke_sensitive": hotel_request.smoke_sensitive,
             "sleep_time": hotel_request.sleep_time or "",
             "room_night_justification": hotel_request.room_night_justification or "",
-            "requested_roommates": hotel_request.roommate_requests,
-            "antirequested_roommates": hotel_request.roommate_anti_requests,
+            "requested_roommates": [x.id for x in hotel_request.roommate_requests],
+            "antirequested_roommates": [x.id for x in hotel_request.roommate_anti_requests],
             "room_nights": room_nights
         })
     elif request.method == "PATCH":
