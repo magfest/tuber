@@ -5,3 +5,5 @@ database.db
 test.db
 tuber.egg-info/
 venv/
+*.sh
+scripts/cache/
