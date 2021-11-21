@@ -90,7 +90,7 @@ class HotelRoom(Base):
     messages = Column(String(), nullable=True)
     hotel_block = Column(Integer, ForeignKey('hotel_room_block.id'))
     hotel_location = Column(Integer, ForeignKey('hotel_location.id'))
-    completed = Column(Boolean)
+    completed = Column(Boolean, default=False)
     room_night_assignments = relationship('RoomNightAssignment', cascade="all, delete", passive_deletes=True)
     roommates = relationship("Badge", secondary="room_night_assignment", primaryjoin=id==RoomNightAssignment.hotel_room, viewonly=True)
 

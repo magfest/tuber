@@ -7,6 +7,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import joinedload
 import os
 from tuber.api import *
+from .room_matcher import rematch_hotel_block
 
 def update_room_request_props(db, reqs, assigned=None, requested=None, approved=None):
     if not reqs:
@@ -77,7 +78,11 @@ def add_roommates(event, hotel_block, room_id):
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/rematch_all", methods=["POST"])
 def rematch_block(event, hotel_block):
-    return "", 200
+    if not check_permission(f"hotel_block.{hotel_block}.write", event=event):
+        return "", 403
+    if rematch_hotel_block(db, event, hotel_block):
+        return "[]", 200
+    return "", 500
 
 @app.route("/api/event/<int:event>/hotel/room_search", methods=["GET"])
 def room_search(event):

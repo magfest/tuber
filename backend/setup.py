@@ -27,7 +27,6 @@ setup(
         'passlib',
         'flask>=1.0',
         'gunicorn',
-        'flask-talisman',
         'redis',
         'lupa',
         'boto3',
