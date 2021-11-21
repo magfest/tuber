@@ -3,8 +3,8 @@ import App from './App.vue'
 import router from './router'
 import { VueCookieNext } from 'vue-cookie-next'
 
-import * as Sentry from "@sentry/vue";
-import { Integrations } from "@sentry/tracing";
+import * as Sentry from '@sentry/vue'
+import { Integrations } from '@sentry/tracing'
 
 import { store } from './store'
 
@@ -103,21 +103,21 @@ app.use(VueCookieNext)
 app.use(store)
 app.use(router)
 
-if('SENTRY_DSN' in process.env) {
-    Sentry.init({
-        app,
-        dsn: process.env.SENTRY_DSN,
-        integrations: [
-            new Integrations.BrowserTracing({
-            routingInstrumentation: Sentry.vueRouterInstrumentation(router),
-            tracingOrigins: ["localhost", "tuber.magfest.org", /^\//],
-            }),
-        ],
-        // Set tracesSampleRate to 1.0 to capture 100%
-        // of transactions for performance monitoring.
-        // We recommend adjusting this value in production
-        tracesSampleRate: 1.0,
-    });
+if ('SENTRY_DSN' in process.env) {
+  Sentry.init({
+    app,
+    dsn: process.env.SENTRY_DSN,
+    integrations: [
+      new Integrations.BrowserTracing({
+        routingInstrumentation: Sentry.vueRouterInstrumentation(router),
+        tracingOrigins: ['localhost', 'tuber.magfest.org', /^\//]
+      })
+    ],
+    // Set tracesSampleRate to 1.0 to capture 100%
+    // of transactions for performance monitoring.
+    // We recommend adjusting this value in production
+    tracesSampleRate: 1.0
+  })
 }
 
 app.config.globalProperties.$appState = reactive({ theme: 'arya-blue' })
@@ -195,8 +195,8 @@ app.component('Sidebar', Sidebar)
 // app.component('SplitterPanel', SplitterPanel)
 // app.component('Steps', Steps)
 // app.component('TabMenu', TabMenu)
-// app.component('TabView', TabView)
-// app.component('TabPanel', TabPanel)
+app.component('TabView', TabView)
+app.component('TabPanel', TabPanel)
 app.component('Tag', Tag)
 app.component('Textarea', Textarea)
 // app.component('TieredMenu', TieredMenu)
