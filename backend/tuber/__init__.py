@@ -1,6 +1,6 @@
 """The base module for Tuber"""
 
-from os import environ
+import os
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from flask import Flask
