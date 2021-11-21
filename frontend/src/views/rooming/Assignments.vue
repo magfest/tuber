@@ -217,7 +217,11 @@ export default {
         if (this.roomSearchText) {
           this.rooms = await get('/api/event/' + this.event.id + '/hotel/room_search', { search: this.roomSearchText })
         } else {
-          this.rooms = await get('/api/event/' + this.event.id + '/hotel_room', { full: true, limit: 25, hotel_block: this.block })
+          if (this.hidecompleted) {
+            this.rooms = await get('/api/event/' + this.event.id + '/hotel_room', { full: true, limit: 25, hotel_block: this.block, completed: false })
+          } else {
+            this.rooms = await get('/api/event/' + this.event.id + '/hotel_room', { full: true, limit: 25, hotel_block: this.block })
+          }
         }
       } catch (error) {
         this.rooms = []
@@ -306,9 +310,11 @@ export default {
       return this.addRoommates(room)
     },
     async rematchAll () {
+      this.loading = true
       await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/rematch_all', { weights: {} })
       this.fetchRooms()
       this.fetchRequests()
+      this.loading = false
     },
     async removeRoom (room) {
       await del('/api/event/' + this.event.id + '/hotel_room/' + room.id)
@@ -353,6 +359,9 @@ export default {
     },
     block () {
       this.fetchRequests()
+      this.fetchRooms()
+    },
+    hidecompleted () {
       this.fetchRooms()
     }
   }
