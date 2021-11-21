@@ -35,9 +35,8 @@ Tuber is an event management system.
 cd backend
 %py3_build
 cd ../frontend
-npm install yarn
-yarn install
-yarn run build
+npm install --legacy-peer-deps
+npm run build
 
 %install
 cd backend
