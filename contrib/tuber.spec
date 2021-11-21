@@ -37,7 +37,7 @@ cd backend
 cd ../frontend
 cp ../contrib/package-lock.json .
 npm install --legacy-peer-deps
-NODE_OPTIONS=--openssl-legacy-provider npm run build
+npm run build
 
 %install
 cd backend
