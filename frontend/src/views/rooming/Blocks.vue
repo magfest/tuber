@@ -92,7 +92,6 @@ export default {
       this.loading = false
     },
     save (hotelRoomRequest, roomBlock) {
-      console.log('saving', hotelRoomRequest, roomBlock)
       patch('/api/event/' + this.event.id + '/hotel_room_request/' + hotelRoomRequest, { hotel_block: roomBlock }).then(() => {
         this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
       }).catch(() => {

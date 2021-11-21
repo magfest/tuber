@@ -92,7 +92,6 @@ export default {
       })
     },
     edit (data) {
-      console.log('Editing ' + data.id)
       this.edited = data.id
       this.editing = true
     },

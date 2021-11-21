@@ -63,9 +63,15 @@ export const actions: ActionTree<State, RootState> & Actions = {
   },
   async [AppActionTypes.GET_EVENTS] ({ commit }) {
     return get('/api/event').then((events: Event[]) => {
+      events.sort((a, b) => {
+        if (a.id > b.id) {
+          return 1
+        }
+        return -1
+      })
       commit(AppMutationTypes.SET_EVENTS, events)
       if (events.length > 0) {
-        commit(AppMutationTypes.SET_EVENT, events[1])
+        commit(AppMutationTypes.SET_EVENT, events[0])
       } else {
         commit(AppMutationTypes.SET_EVENT, null)
       }
