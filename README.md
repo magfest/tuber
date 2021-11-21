@@ -9,7 +9,7 @@
 [![Read the Docs](https://img.shields.io/readthedocs/magfest-tuber)](https://magfest-tuber.readthedocs.io/en/latest/)
 
 [![ci-backend](https://github.com/magfest/tuber/actions/workflows/ci-backend.yaml/badge.svg)](https://github.com/magfest/tuber/tree/main/.github/workflows/ci-backend.yaml)
-[![ci-frontend](https://github.com/magfest/tuber/actions/workflows/ci-frontend.yaml/badge.svg)](https://github.com/magfest/tuber/tree/main/.github/workflows/i-frontend.yaml)
+[![ci-frontend](https://github.com/magfest/tuber/actions/workflows/ci-frontend.yaml/badge.svg)](https://github.com/magfest/tuber/tree/main/.github/workflows/ci-frontend.yaml)
 
 </div>
 
