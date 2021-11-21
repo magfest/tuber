@@ -32,7 +32,8 @@ setup(
         'lupa',
         'boto3',
         'jinja2',
-        'psycopg2-binary'
+        'psycopg2-binary',
+        'sentry-sdk[flask]'
     ],
     include_package_data=True,
     package_data={

@@ -3,6 +3,9 @@ import App from './App.vue'
 import router from './router'
 import { VueCookieNext } from 'vue-cookie-next'
 
+import * as Sentry from "@sentry/vue";
+import { Integrations } from "@sentry/tracing";
+
 import { store } from './store'
 
 import 'primevue/resources/primevue.min.css'
@@ -99,6 +102,23 @@ const app = createApp(App)
 app.use(VueCookieNext)
 app.use(store)
 app.use(router)
+
+if('SENTRY_DSN' in process.env) {
+    Sentry.init({
+        app,
+        dsn: process.env.SENTRY_DSN,
+        integrations: [
+            new Integrations.BrowserTracing({
+            routingInstrumentation: Sentry.vueRouterInstrumentation(router),
+            tracingOrigins: ["localhost", "tuber.magfest.org", /^\//],
+            }),
+        ],
+        // Set tracesSampleRate to 1.0 to capture 100%
+        // of transactions for performance monitoring.
+        // We recommend adjusting this value in production
+        tracesSampleRate: 1.0,
+    });
+}
 
 app.config.globalProperties.$appState = reactive({ theme: 'arya-blue' })
 
