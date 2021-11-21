@@ -55,3 +55,8 @@ def internal_error(error):
     print("Rolling back transaction")
     db.rollback()
     return "Error", 500
+
+@app.after_request
+def cleanup_db(response):
+    db.remove()
+    return response
