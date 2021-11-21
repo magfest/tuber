@@ -91,6 +91,9 @@ type LayoutMode = 'static' | 'overlay'
                 label: 'Assignments', icon: 'pi pi-fw pi-home', to: '/rooming/assignments'
               },
               {
+                label: 'Rooms', icon: 'pi pi-fw pi-home', to: '/rooming/rooms'
+              },
+              {
                 label: 'Blocks', icon: 'pi pi-fw pi-home', to: '/rooming/blocks'
               },
               {

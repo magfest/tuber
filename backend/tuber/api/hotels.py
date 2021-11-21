@@ -84,6 +84,57 @@ def rematch_block(event, hotel_block):
         return "[]", 200
     return "", 500
 
+@app.route("/api/event/<int:event>/hotel/room_details", methods=["GET"])
+def room_details(event):
+    if not check_permission("hotel_block.*.read"):
+        return "", 403
+    rooms = [int(x) for x in g.data['rooms'].split(",")]
+
+    rnas = db.query(RoomNightAssignment).filter(RoomNightAssignment.hotel_room.in_(rooms)).all()
+
+    details = {}
+    for rna in rnas:
+        if not rna.hotel_room in details:
+            details[rna.hotel_room] = {
+                "room_nights": [],
+                "roommates": {},
+                "empty_slots": 0
+            }
+        if not rna.room_night in details[rna.hotel_room]['room_nights']:
+            details[rna.hotel_room]['room_nights'].append(rna.room_night)
+
+        if not rna.badge in details[rna.hotel_room]['roommates']:
+            details[rna.hotel_room]['roommates'][rna.badge] = {
+                "nights_match": True,
+                "requests_met": True,
+                "antirequests_met": True
+            }
+
+    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
+    room_nights = {x.id: x for x in room_nights}
+    hotel_rooms = db.query(HotelRoom, HotelRoomRequest).join(RoomNightAssignment, HotelRoom.id == RoomNightAssignment.hotel_room).join(HotelRoomRequest, HotelRoomRequest.badge == RoomNightAssignment.badge).filter(HotelRoom.id.in_(rooms)).options(joinedload(HotelRoomRequest.room_night_approvals)).options(joinedload(HotelRoomRequest.room_night_requests)).all()
+    for hotel_room, request in hotel_rooms:
+        for roommate_request in request.roommate_requests:
+            if not roommate_request in hotel_room.roommates:
+                details[hotel_room.id]['roommates'][request.badge]['requests_met'] = False
+        for antiroommate_request in request.roommate_anti_requests:
+            if antiroommate_request in hotel_room.roommates:
+                details[hotel_room.id]['roommates'][request.badge]['antirequests_met'] = False
+        nights = set()
+        for night_request in request.room_night_requests:
+            if night_request.requested:
+                if room_nights[night_request.room_night].restricted:
+                    for approval in request.room_night_approvals:
+                        if approval.room_night == night_request.room_night and approval.approved:
+                            nights.add(night_request.room_night)
+                else:
+                    nights.add(night_request.room_night)
+        if nights.symmetric_difference(set(details[hotel_room.id]['room_nights'])):
+            details[hotel_room.id]['roommates'][request.badge]['nights_match'] = False
+        details[hotel_room.id]['empty_slots'] += len(set(details[hotel_room.id]['room_nights']).difference(nights))
+    return jsonify(details)
+
+
 @app.route("/api/event/<int:event>/hotel/room_search", methods=["GET"])
 def room_search(event):
     if not check_permission("hotel_block.*.read"):
