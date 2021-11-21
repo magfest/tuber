@@ -34,8 +34,8 @@ Tuber is an event management system.
 %build
 cd backend
 %py3_build
-cp contrib/package-lock.json frontend/
 cd ../frontend
+cp ../contrib/package-lock.json .
 npm install --legacy-peer-deps
 NODE_OPTIONS=--openssl-legacy-provider npm run build
 
