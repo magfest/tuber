@@ -13,13 +13,13 @@ services:
 
   frontend:
     build: ./frontend
-    image: ghcr.io/claughinghouse/tuber-frontend:latest
+    image: ghcr.io/magfest/tuber-frontend:latest
     networks:
       - tuber
 
   backend:
     build: ./backend
-    image: ghcr.io/claughinghouse/tuber-backend:latest
+    image: ghcr.io/magfest/tuber-backend:latest
     depends_on:
       - postgres
       - redis

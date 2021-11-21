@@ -7,6 +7,7 @@ URL: https://tuber.hackafe.net/
 VCS: {{{ git_dir_vcs }}}
 Source: {{{ git_pack }}}
 BuildRequires: python3-devel
+BuildRequires: python3-setuptools
 BuildRequires: python3-pip
 BuildRequires: npm
 BuildRequires: git
@@ -14,8 +15,12 @@ Requires: python3-passlib
 Requires: python3-flask
 Requires: python3-requests
 Requires: python3-gunicorn
-Requires: python3-flask-sqlalchemy
-Requires: python3-flask-migrate
+Requires: python3-alembic
+Requires: python3-redis
+Requires: python3-lupa
+Requires: python3-boto3
+Requires: python3-jinja2
+Requires: python3-psycopg2
 
 %define  debug_package %{nil}
 %{?python_enable_dependency_generator}
