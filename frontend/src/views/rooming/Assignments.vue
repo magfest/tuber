@@ -17,14 +17,11 @@
     <div class="grid">
       <div class="col">
         <DataTable class="p-datatable-sm" ref="dt" :lazy="true" selectionMode="multiple" :value="filteredRequests" :paginator="true" :rows="10" dataKey="id"
-         v-model:filters="requestFilters" filterDisplay="menu" :globalFilterFields="['public_name']" v-model:selection="selectedRequests"
+         v-model:filters="requestFilters" filterDisplay="row" :globalFilterFields="['public_name']" v-model:selection="selectedRequests"
          :totalRecords="totalRequests" :loading="loading" @page="onPage($event)" @sort="onSort($event)" @filter="onFilter($event)">
           <Column header="Name" field="first_name" filterField="first_name" style="width: 8rem" :sortable="true">
             <template #body="slotProps">
-              {{ badgeLookup[slotProps.data.badge].public_name }}
-            </template>
-            <template #filter="{filterModel,filterCallback}">
-                <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter" :placeholder="`Search by name - `" v-tooltip.top.focus="'Hit enter key to filter'"/>
+              {{ badgeLookup[slotProps.data.badge] != undefined ? badgeLookup[slotProps.data.badge].public_name : "loading" }}
             </template>
           </Column>
           <Column style="width: 2rem" v-for="night in roomNights" :key="night.id">
@@ -33,6 +30,9 @@
             </template>
           </Column>
           <Column header="Notes" field="notes" filterField="notes" :sortable="true">
+            <template #filter="{filterModel,filterCallback}">
+                <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter" :placeholder="`Search Requests by Name`" v-tooltip.top.focus="'Hit enter key to filter'"/>
+            </template>
           </Column>
         </DataTable>
       </div>
@@ -45,7 +45,7 @@
           </span>
           <span class="p-input-icon-left pt-1">
               <i class="pi pi-search" />
-              <InputText type="text" v-model="roomSearchText" placeholder="Search" @change="roomSearch" />
+              <InputText type="text" v-model="roomSearchText" placeholder="Search Rooms" @change="roomSearch" />
           </span>
         </div>
         <Card v-for="room in filteredRooms" :key="room.id" class="mb-2">
@@ -129,7 +129,7 @@ export default {
     rooms: [],
     requestFilters: {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      first_name: { value: null, matchMode: FilterMatchMode.CONTAINS }
+      notes: { value: null, matchMode: FilterMatchMode.CONTAINS }
     },
     roomFilters: {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -227,11 +227,11 @@ export default {
     async fetchRequests () {
       this.loading = true
       let requests = []
-      if (this.lazyParams.filters.first_name.value) {
+      if (this.lazyParams.filters.notes.value) {
         const searchRes = await get('/api/event/' + this.event.id + '/hotel/' + this.block + '/request_search', {
           approved: true,
           assigned: false,
-          search_term: this.lazyParams.filters.first_name.value,
+          search_term: this.lazyParams.filters.notes.value,
           full: true,
           deep: true,
           offset: this.lazyParams.first,
@@ -319,13 +319,11 @@ export default {
       console.log('Getting info', room)
     },
     async removeRoommate (room, roommate) {
-      console.log('Removing', roommate, 'from', room)
       await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/room/' + room.id + '/remove_roommates', { roommates: [roommate] })
       this.fetchRooms()
       this.fetchRequests()
     },
     async addRoommates (room) {
-      console.log('Adding roommates to', room)
       const roommates = []
       for (const roommate of this.selectedRequests) {
         roommates.push(roommate.badge)
@@ -335,12 +333,10 @@ export default {
       this.fetchRequests()
     },
     async roomSearch () {
-      console.log('Searching for room')
       this.fetchRooms()
     },
     async saveRoom (room) {
       room.edit = false
-      console.log('Saving', room)
       await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id, { id: room.id, completed: room.completed, notes: room.notes, name: room.name, messages: room.messages })
       this.fetchRooms()
     },

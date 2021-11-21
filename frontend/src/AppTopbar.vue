@@ -15,7 +15,7 @@
         </button>
         <ul class="layout-topbar-menu hidden lg:flex origin-top">
             <li>
-              <Dropdown class="mt-2" v-if="loggedIn & events.length > 0" :modelValue="event" :options="events" optionLabel="name" @change="updateEvent" placeHolder="Select an Event" />
+              <Dropdown class="mt-2" v-if="loggedIn & events.length > 0" :modelValue="activeEvent" :options="events" optionValue="id" optionLabel="name" @change="updateEvent" placeHolder="Select an Event" />
             </li>
             <li>
                 <button class="p-link layout-topbar-button" @click="toggleUserMenu">
@@ -54,7 +54,11 @@ import { AppActionTypes } from './store/modules/app/actions'
       this.$emit('topbar-menu-toggle', event)
     },
     updateEvent (e: {value: {}}) {
-      this.$store.dispatch(AppActionTypes.SET_EVENT, e.value)
+      for (const evt of this.events) {
+        if (evt.id === e.value) {
+          this.$store.dispatch(AppActionTypes.SET_EVENT, evt)
+        }
+      }
     },
     toggleUserMenu (e: Event) {
       this.$refs.userMenu.toggle(e)
@@ -81,6 +85,13 @@ import { AppActionTypes } from './store/modules/app/actions'
   watch: {
     loggedIn () {
       this.refreshTopBar()
+    },
+    event () {
+      if (this.event) {
+        this.activeEvent = this.event.id
+      } else {
+        this.activeEvent = null
+      }
     }
   },
   mounted () {
