@@ -11,6 +11,9 @@ import RequestForm from './requests/RequestForm.vue'
 import RequestTable from './requests/RequestTable.vue'
 import RoommateField from './requests/RoommateField.vue'
 
+import RoomTable from './rooms/RoomTable.vue'
+import RoomDetails from './rooms/RoomDetails.vue'
+
 export {
   RoomBlockForm,
   RoomBlockTable,
@@ -20,5 +23,7 @@ export {
   RoomNightTable,
   RequestForm,
   RequestTable,
-  RoommateField
+  RoommateField,
+  RoomTable,
+  RoomDetails
 }

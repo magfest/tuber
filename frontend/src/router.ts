@@ -9,6 +9,7 @@ import RoomAssignments from './views/rooming/Assignments.vue'
 import RoomRequests from './views/rooming/Requests.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
+import RoomList from './views/rooming/Rooms.vue'
 
 import UserSettings from './views/settings/Users.vue'
 import Badges from './views/event/Badges.vue'
@@ -30,6 +31,11 @@ const routes = [
     path: '/rooming/request',
     name: 'roomrequest',
     component: RoomRequest
+  },
+  {
+    path: '/rooming/rooms',
+    name: 'roomlist',
+    component: RoomList
   },
   {
     path: '/hotels/request',
