@@ -230,67 +230,72 @@ export default {
     },
     async fetchRequests () {
       this.loading = true
-      let requests = []
-      if (this.lazyParams.filters.notes.value) {
-        const searchRes = await get('/api/event/' + this.event.id + '/hotel/' + this.block + '/request_search', {
-          approved: true,
-          assigned: false,
-          search_term: this.lazyParams.filters.notes.value,
-          full: true,
-          deep: true,
-          offset: this.lazyParams.first,
-          limit: this.lazyParams.rows,
-          sort: this.lazyParams.sortField,
-          order: this.lazyParams.sortOrder > 0 ? 'asc' : 'desc'
-        })
-        requests = searchRes.requests
-        this.totalRequests = searchRes.count
-      } else {
-        this.totalRequests = await get('/api/event/' + this.event.id + '/hotel_room_request', { approved: true, assigned: false, count: true, hotel_block: this.block })
-        requests = await get('/api/event/' + this.event.id + '/hotel_room_request', {
-          offset: this.lazyParams.first,
-          limit: this.lazyParams.rows,
-          full: true,
-          deep: true,
-          approved: true,
-          assigned: false,
-          hotel_block: this.block,
-          sort: this.lazyParams.sortField,
-          order: this.lazyParams.sortOrder > 0 ? 'asc' : 'desc'
-        })
-      }
-      const filtered = []
-      for (const req of requests) {
-        req.room_nights = []
-        req.nights = {}
-        for (const rn of this.roomNights) {
-          const night = {
-            name: rn.name,
-            id: rn.id
-          }
-          let requested = false
-          for (const nightreq of req.room_night_requests) {
-            if (nightreq.room_night === rn.id && nightreq.requested) {
-              requested = true
-              break
+      try {
+        let requests = []
+        if (this.lazyParams.filters.notes.value) {
+          const searchRes = await get('/api/event/' + this.event.id + '/hotel/' + this.block + '/request_search', {
+            approved: true,
+            assigned: false,
+            search_term: this.lazyParams.filters.notes.value,
+            full: true,
+            deep: true,
+            offset: this.lazyParams.first,
+            limit: this.lazyParams.rows,
+            sort: this.lazyParams.sortField,
+            order: this.lazyParams.sortOrder > 0 ? 'asc' : 'desc'
+          })
+          requests = searchRes.requests
+          this.totalRequests = searchRes.count
+        } else {
+          this.totalRequests = await get('/api/event/' + this.event.id + '/hotel_room_request', { approved: true, assigned: false, count: true, hotel_block: this.block })
+          requests = await get('/api/event/' + this.event.id + '/hotel_room_request', {
+            offset: this.lazyParams.first,
+            limit: this.lazyParams.rows,
+            full: true,
+            deep: true,
+            approved: true,
+            assigned: false,
+            hotel_block: this.block,
+            sort: this.lazyParams.sortField,
+            order: this.lazyParams.sortOrder > 0 ? 'asc' : 'desc'
+          })
+        }
+        const filtered = []
+        for (const req of requests) {
+          req.room_nights = []
+          req.nights = {}
+          for (const rn of this.roomNights) {
+            const night = {
+              name: rn.name,
+              id: rn.id
             }
-          }
-          if (rn.restricted) {
-            for (const nightapp of req.room_night_approvals) {
-              if (nightapp.room_night === rn.id && nightapp.approved) {
-                night.approved = true
+            let requested = false
+            for (const nightreq of req.room_night_requests) {
+              if (nightreq.room_night === rn.id && nightreq.requested) {
+                requested = true
                 break
               }
             }
-          } else {
-            night.approved = requested
+            if (rn.restricted) {
+              for (const nightapp of req.room_night_approvals) {
+                if (nightapp.room_night === rn.id && nightapp.approved) {
+                  night.approved = true
+                  break
+                }
+              }
+            } else {
+              night.approved = requested
+            }
+            req.nights[rn.id] = requested
+            req.room_nights.push(night)
           }
-          req.nights[rn.id] = requested
-          req.room_nights.push(night)
+          filtered.push(req)
         }
-        filtered.push(req)
+        this.filteredRequests = filtered
+      } catch (error) {
+        this.filteredRequests = []
+        this.totalRequests = 0
       }
-      this.filteredRequests = filtered
       this.loading = false
     },
     onPage (event) {
