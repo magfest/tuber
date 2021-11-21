@@ -1,7 +1,8 @@
 {
   "addons": [
     "heroku-postgresql",
-    "heroku-redis"
+    "heroku-redis",
+    "papertrail:choklad"
   ],
   "buildpacks": [
     {
