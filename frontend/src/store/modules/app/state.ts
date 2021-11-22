@@ -1,8 +1,8 @@
 import { User, Event, Badge } from '../../../lib/interfaces'
 
 export type State = {
-  initialSetup: boolean,
-  loggedIn: boolean,
+  initialSetup: boolean | null,
+  loggedIn: boolean | null,
   user: User | null,
   badge: Badge | null,
   event: Event | null,
@@ -12,8 +12,8 @@ export type State = {
 }
 
 export const state: State = {
-  initialSetup: false,
-  loggedIn: false,
+  initialSetup: null,
+  loggedIn: null,
   user: null,
   badge: null,
   event: null,

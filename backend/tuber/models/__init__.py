@@ -164,11 +164,12 @@ class Model_Base(object):
                 elif type(column.type) is JSON:
                     instance[key] = json.dumps(val)
         for relation in relations:
-            new = []
+        #     new = []
             if relation.key in instance:
-                for model in instance[relation.key]:
-                    new.append(cls.modelclasses[relation.target.name].deserialize(model))
-                instance[relation.key] = new
+                del instance[relation.key]
+        #         for model in instance[relation.key]:
+        #             new.append(cls.modelclasses[relation.target.name].deserialize(model))
+        #         instance[relation.key] = new
         return instance
 
     @classmethod

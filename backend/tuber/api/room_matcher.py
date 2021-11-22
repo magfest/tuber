@@ -86,7 +86,7 @@ def match_perfect(staffers, matched, n):
 
         best = None
         best_score = 0
-        for perm in itertools.permutations(roommates, n):
+        for perm in itertools.combinations(roommates, n):
             try:
                 score = sum(score_room(perm))
             except AntiRequestException:
@@ -122,7 +122,7 @@ def combine_rooms(rooms):
     while rooms:
         best = None
         best_score = 0
-        for perm in itertools.permutations(rooms, 2):
+        for perm in itertools.combinations(rooms, 2):
             try:
                 a, b = perm
                 if len(a) + len(b) > 4:

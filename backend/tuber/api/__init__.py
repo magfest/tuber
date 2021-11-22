@@ -1,6 +1,7 @@
 from functools import partial
 from flask import request, jsonify, g
 from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 from tuber.models import *
 from tuber.permissions import *
 from tuber.errors import *
@@ -21,6 +22,9 @@ def crud_group(model, event=None, department=None):
         limit = request.args.get("limit", 0, type=int)
         offset = request.args.get("offset", 0, type=int)
         page = request.args.get("page", 0, type=int)
+        search = request.args.get("search", "", type=str)
+        search_field = request.args.get("search_field", "", type=str)
+        search_mode = request.args.get("search_mode", "contains", type=str)
         full = request.args.get("full", False, type=lambda x: x.lower()=='true')
         deep = request.args.get("deep", False, type=lambda x: x.lower()=='true')
         if page:
@@ -38,6 +42,18 @@ def crud_group(model, event=None, department=None):
             filters.append(model.event == event)
         if department:
             filters.append(model.department == department)
+        if search_field:
+            if hasattr(model, search_field):
+                if search_mode == "contains":
+                    filters.append(func.lower(getattr(model, search_field)).contains(search.lower(), autoescape=True))
+                elif search_mode == "startswith":
+                    filters.append(func.lower(getattr(model, search_field)).startswith(search.lower(), autoescape=True))
+                elif search_mode == "endswith":
+                    filters.append(func.lower(getattr(model, search_field)).endswith(search.lower(), autoescape=True))
+                elif search_mode == "equals":
+                    filters.append(getattr(model, search_field) == search)
+                elif search_mode == "notEquals":
+                    filters.append(getattr(model, search_field) != search)
         for key, val in request.args.items():
             if hasattr(model, key):
                 filters.append(getattr(model, key) == val)
@@ -62,8 +78,6 @@ def crud_group(model, event=None, department=None):
         print(f"{request.path} Load time {now - start}s")
         data = model.serialize(rows, serialize_relationships=full, deep=deep)
         print(f"{request.path} Serialize time {time.time() - now}s")
-        if not data:
-            return "[]", 404
         return jsonify(data)
     elif request.method == "POST":
         if event:
@@ -91,6 +105,7 @@ def crud_single(model, event=None, department=None, id=None):
     elif request.method == "PATCH":
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):
             g.data['id'] = id
+            g.data = {k: v for k, v in g.data.items() if hasattr(model, k)}
             instance = model.deserialize(g.data)
             db.add(instance)
             if hasattr(instance, 'onchange_cb'):
