@@ -56,6 +56,8 @@ def create_attendee(uber_model, event, hotel_eligible=True):
 
 @app.route("/api/uber_department_sync", methods=["POST"])
 def department_sync():
+    if not check_permission("department.*.sync"):
+        return "", 403
     event = config.uber_event
     req = {"method": "hotel.eligible_attendees"}
     eligible = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
@@ -154,7 +156,7 @@ def staffer_auth():
         if not uber_id in eligible:
             return "You are not eligible", 403
     if not badge:
-        staff_badge_type = db.query(BadgeType).filter(BadgeType.name == "Staff").one_or_none()
+        staff_badge_type = db.query(BadgeType).filter(BadgeType.event == event, BadgeType.name == "Staff").one_or_none()
         if not staff_badge_type:
             staff_badge_type = BadgeType(name="Staff", description="Experienced Volunteers")
             db.flush()
