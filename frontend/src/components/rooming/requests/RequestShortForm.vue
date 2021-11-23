@@ -20,7 +20,7 @@
         </div>
         <div class="field">
             <label for="notes">Notes</label><br>
-            <Textarea id="notes" v-model="data.notes" />
+            <Textarea id="notes" :rows="8" :cols="50" v-model="data.notes" />
         </div>
         <div class="field">
             <label for="requested">Roommate Requests</label><br>
