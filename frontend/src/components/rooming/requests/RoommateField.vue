@@ -47,6 +47,10 @@ import { Badge } from '../../../lib/interfaces'
     }
   },
   mounted () {
+    this.roommates = []
+    this.modelValue.forEach((val: number) => {
+      this.roommates.push(this.badgeLookup[val])
+    })
   },
   methods: {
     updated () {

@@ -6,7 +6,7 @@ import RoomApprovals from './views/rooming/Approvals.vue'
 import RoomSettings from './views/rooming/Settings.vue'
 import RoomBlocks from './views/rooming/Blocks.vue'
 import RoomAssignments from './views/rooming/Assignments.vue'
-import RoomRequests from './views/rooming/Requests.vue'
+import RequestTable from './components/rooming/requests/RequestTable.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
 import RoomTable from './components/rooming/rooms/RoomTable.vue'
@@ -71,7 +71,7 @@ const routes = [
   {
     path: '/rooming/requests',
     name: 'roomrequests',
-    component: RoomRequests
+    component: RequestTable
   },
   {
     path: '/hotels/approvals',

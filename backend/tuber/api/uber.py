@@ -156,7 +156,7 @@ def staffer_auth():
     if not badge:
         staff_badge_type = db.query(BadgeType).filter(BadgeType.name == "Staff").one_or_none()
         if not staff_badge_type:
-            staff_badge_type = BadgeType(name="Staff", description="Experienced Volunteers")
+            staff_badge_type = BadgeType(name="Staff", description="Experienced Volunteers", event=event)
             db.flush()
         badge = Badge(
             event=event,

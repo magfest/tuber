@@ -28,7 +28,6 @@ def update_room_request_props(db, reqs, assigned=None, requested=None, approved=
                             if rna.room_night == rnr.room_night and rna.approved:
                                 req.approved = True
 
-        print(req.room_night_assignments)
         req.assigned = bool(req.room_night_assignments)
         if not assigned is None:
             req.assigned = assigned
@@ -36,7 +35,6 @@ def update_room_request_props(db, reqs, assigned=None, requested=None, approved=
             req.requested = requested
         if not approved is None:
             req.approved = approved
-        db.add(req)
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/room/<int:room_id>/remove_roommates", methods=["POST"])
 def remove_roommates(event, hotel_block, room_id):
@@ -45,6 +43,8 @@ def remove_roommates(event, hotel_block, room_id):
     db.query(RoomNightAssignment).filter(RoomNightAssignment.event==event, RoomNightAssignment.hotel_room==room_id, RoomNightAssignment.badge.in_(g.data['roommates'])).delete()
     reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event==event, HotelRoomRequest.badge.in_(g.data['roommates'])).all()
     update_room_request_props(db, reqs, assigned=False)
+    for req in reqs:
+        db.add(req)
     db.commit()
     return "null", 200
 
@@ -73,6 +73,8 @@ def add_roommates(event, hotel_block, room_id):
             if assign:
                 db.add(RoomNightAssignment(event=event, badge=req.badge, room_night=night.room_night, hotel_room=room_id))
     update_room_request_props(db, reqs, assigned=True)
+    for req in reqs:
+        db.add(req)
     db.commit()
     return "null", 200 
 
@@ -257,6 +259,8 @@ def hotel_approve(event, department):
             approval.approved = request.json['approved']
             approval.room_night = request.json['room_night']
             db.add(approval)
+        update_room_request_props(db, [room_night_request,])
+        db.add(room_night_request)
         db.commit()
         return "null", 200
     return "", 403
@@ -479,3 +483,6 @@ def update_room_request(db, instance, deleted=None):
     elif type(instance) is HotelRoomNight:
         reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == instance.event).options(joinedload('room_night_requests')).options(joinedload('room_night_approvals')).options(joinedload('room_night_assignments')).all()
     update_room_request_props(db, reqs)
+    if not type(instance) is HotelRoomRequest:
+        for req in reqs:
+            db.add(req)

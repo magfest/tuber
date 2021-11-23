@@ -1,19 +1,20 @@
 <template>
     <div>
         <Toast />
+        <ConfirmPopup></ConfirmPopup>
         <h3>{{ tableTitle }}</h3>
         <slot name="controls"></slot>
         <DataTable :value="formattedInstances" :loading="loading" dataKey="id" class="p-datatable-sm" ref="dt"
             :paginator="true" :rows="rows"
             :lazy="true" :totalRecords="totalRecords" @page="onPage($event)" @sort="onSort($event)"
-            filterDisplay="row" @filter="onFilter($event)" :filters="filters"
+            :filterDisplay="filterDisplay" @filter="onFilter($event)" :filters="filters"
         >
             <slot name="columns"></slot>
             <slot name="actions" :edit="edit" :remove="remove">
-                <Column header="Actions" style="width: 5rem">
+                <Column header="Actions" style="width: 10rem">
                     <template #body="slotProps">
-                        <Button @click="edit(slotProps.data)" icon="pi pi-cog" class="p-button-rounded" />
-                        <Button @click="remove(slotProps.data)" icon="pi pi-times" class="p-button-rounded" />
+                        <Button @click="edit(slotProps.data)" icon="pi pi-cog" class="p-button-info" />
+                        <Button @click="remove($event, slotProps.data)" icon="pi pi-times" class="p-button-danger ml-2" />
                     </template>
                 </Column>
             </slot>
@@ -27,7 +28,7 @@
             <slot name="form" :modelValue="edited" @update:modelValue="edited=event.target.value" @save="save(edited)" @cancel="cancel"></slot>
 
             <template #footer>
-                <slot name="formActions">
+                <slot name="formActions" :edited="edited" :save="save" :cancel="cancel">
                     <Button label="Cancel" @click="cancel" icon="pi pi-times" class="p-button-text"/>
                     <Button label="Save" @click="save(edited)" icon="pi pi-check" autofocus />
                 </slot>
@@ -81,6 +82,12 @@ export default {
     },
     filters: {
       type: Object
+    },
+    filterDisplay: {
+      type: String,
+      default () {
+        return 'row'
+      }
     }
   },
   components: {
@@ -141,7 +148,6 @@ export default {
       this.totalRecords = await get(this.fullUrl, paginationParams)
     },
     edit (instance) {
-      console.log('Editing', instance)
       this.edited = instance
       this.editing = true
     },
@@ -150,20 +156,27 @@ export default {
       this.edited = null
     },
     async save (data) {
-      console.log(data)
       await patch(this.fullUrl + '/' + data.id, data)
       this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 1000 })
       this.editing = false
       this.edited = null
       this.load()
     },
-    async remove (data) {
-      console.log(data)
-      await del(this.fullUrl + '/' + data.id)
-      this.$toast.add({ severity: 'success', summary: 'Deleted Successfully', life: 1000 })
-      this.editing = false
-      this.edited = null
-      this.load()
+    async remove (event, data) {
+      this.$confirm.require({
+        target: event.currentTarget,
+        message: 'Are you sure you want to delete this?',
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+          await del(this.fullUrl + '/' + data.id)
+          this.$toast.add({ severity: 'success', summary: 'Deleted Successfully', life: 1000 })
+          this.editing = false
+          this.edited = null
+          this.load()
+        },
+        reject: () => {
+        }
+      })
     },
     onPage (event) {
       this.lazyParams = event

@@ -27,12 +27,15 @@
                     </template>
                 </Column>
                 <Column field="empty_slots" header="Empty Slots" style="width: 5rem"></Column>
-                <Column field="roommates" header="Roommates">
+                <Column field="roommates" header="Roommates" :showFilterMatchModes="false">
                     <template #body="slotProps">
                         <div v-for="roommate in slotProps.data.roommates" :key="slotProps.data.id + '_' + roommate.id">
                             {{ roommate.name }}
                             <Chip v-for="error in roommate.errors" :key="roommate.id + error" :label="error" />
                         </div>
+                    </template>
+                    <template #filter="{filterModel,filterCallback}">
+                        <InputText type="text" v-model="badgeSearch" @keydown.enter="loadBadges(filterModel, filterCallback)" class="p-column-filter" :placeholder="`Search by name`" v-tooltip.top.focus="'Hit enter key to filter'"/>
                     </template>
                 </Column>
                 <Column field="notes" header="Internal Notes" :sortable="true"></Column>
@@ -44,7 +47,7 @@
                         <Button v-if="slotProps.data.completed" class="p-button-success" icon="pi pi-check-circle" @click="complete(slotProps.data, false)" />
                         <Button v-else class="p-button-warning" icon="pi pi-circle-off" @click="complete(slotProps.data, true)" />
                         <Button @click="tableProps.edit(slotProps.data)" icon="pi pi-cog" class="p-button-info ml-2" />
-                        <Button @click="tableProps.remove(slotProps.data)" icon="pi pi-times" class="p-button-danger ml-2" />
+                        <Button @click="tableProps.remove($event, slotProps.data)" icon="pi pi-times" class="p-button-danger ml-2" />
                     </template>
                 </Column>
             </template>
@@ -78,8 +81,10 @@ export default {
       hotelBlocks: [],
       hotelBlock: null,
       filters: {
-        name: { value: null, matchMode: FilterMatchMode.CONTAINS }
-      }
+        name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+        roommates: { value: null, matchMode: FilterMatchMode.CONTAINS }
+      },
+      badgeSearch: ''
     }
   },
   components: {
@@ -112,6 +117,20 @@ export default {
       if (this.hotelBlocks && !this.hotelBlocks.includes(this.hotelBlock)) {
         this.hotelBlock = this.hotelBlocks[0].id
       }
+    },
+    async loadBadges (filterModel, filterCallback) {
+      if (this.badgeSearch) {
+        const badges = await get('/api/event/' + this.event.id + '/badge', { search: this.badgeSearch, search_field: 'public_name' })
+        const badgeIDs = []
+        for (const badge of badges) {
+          badgeIDs.push(badge.id)
+        }
+        filterModel.value = badgeIDs
+      } else {
+        filterModel.value = null
+      }
+
+      filterCallback()
     },
     async format (rooms) {
       const roomIDs = []
