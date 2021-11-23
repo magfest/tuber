@@ -30,6 +30,7 @@
                 <Column field="roommates" header="Roommates" :showFilterMatchModes="false">
                     <template #body="slotProps">
                         <div v-for="roommate in slotProps.data.roommates" :key="slotProps.data.id + '_' + roommate.id">
+                            <Button class="p-button-info minibutton" icon="pi pi-plus" iconPos="right" @click="viewRequest(roommate.id)" />
                             {{ roommate.name }}
                             <Chip v-for="error in roommate.errors" :key="roommate.id + error" :label="error" />
                         </div>
@@ -58,6 +59,19 @@
                 <room-details :modelValue="props.modelValue" />
             </template>
         </tuber-table>
+
+        <Dialog v-model:visible="requestFormActive">
+            <template #header>
+                <h3>Room Request</h3>
+            </template>
+
+            <request-short-form :modelValue="roomRequest" />
+
+            <template #footer>
+                <Button label="Cancel" @click="cancel" icon="pi pi-times" class="p-button-text"/>
+                <Button label="Save" @click="saveRequest(edited)" icon="pi pi-check" autofocus />
+            </template>
+        </Dialog>
     </div>
 </template>
 
@@ -66,14 +80,23 @@
     height: 15px;
     font-size: x-small;
 }
+.p-button.p-button-icon-only.minibutton {
+  padding-top: 0;
+  padding-bottom: 0;
+  width: 19px;
+  margin-bottom: 2px;
+  margin-right: 2px;
+}
 </style>
 
 <script>
 import RoomDetails from './RoomDetails.vue'
 import TuberTable from '../../TuberTable.vue'
 import { mapGetters } from 'vuex'
-import { get } from '@/lib/rest'
+import { get, patch } from '@/lib/rest'
 import { FilterMatchMode } from 'primevue/api'
+import RequestShortForm from '../requests/RequestShortForm.vue'
+import { ModelActionTypes } from '@/store/modules/models/actions'
 
 export default {
   name: 'RoomTable',
@@ -86,12 +109,16 @@ export default {
         name: { value: null, matchMode: FilterMatchMode.CONTAINS },
         roommates: { value: null, matchMode: FilterMatchMode.CONTAINS }
       },
-      badgeSearch: ''
+      badgeSearch: '',
+      roomRequest: {},
+      requestFormActive: false,
+      roomNights: []
     }
   },
   components: {
     RoomDetails,
-    TuberTable
+    TuberTable,
+    RequestShortForm
   },
   computed: {
     ...mapGetters([
@@ -115,6 +142,7 @@ export default {
   },
   methods: {
     async load () {
+      this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
       this.hotelBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
       if (this.hotelBlocks && !this.hotelBlocks.includes(this.hotelBlock)) {
         this.hotelBlock = this.hotelBlocks[0].id
@@ -158,6 +186,62 @@ export default {
     },
     lockRoom (data, locked) {
       this.$refs.table.save({ id: data.id, locked: locked })
+    },
+    async viewRequest (requestID) {
+      let request = await get('/api/event/' + this.event.id + '/hotel_room_request', { badge: requestID, full: true, deep: true })
+      request = request[0]
+      this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night')
+      request.room_nights = []
+      request.nights = {}
+      for (const rn of this.roomNights) {
+        const night = {
+          name: rn.name,
+          id: rn.id
+        }
+        let requested = false
+        for (const nightreq of request.room_night_requests) {
+          if (nightreq.room_night === rn.id && nightreq.requested) {
+            requested = true
+            break
+          }
+        }
+        if (rn.restricted) {
+          for (const nightapp of request.room_night_approvals) {
+            if (nightapp.room_night === rn.id && nightapp.approved) {
+              night.approved = true
+              break
+            }
+          }
+        } else {
+          night.approved = requested
+        }
+        night.requested = requested
+        request.nights[rn.id] = requested
+        request.room_nights.push(night)
+      }
+      this.roomRequest = request
+      this.requestFormActive = true
+    },
+    cancel () {
+      this.requestFormActive = false
+      this.roomRequest = {}
+    },
+    async saveRequest () {
+      try {
+        this.roomRequest.requested_roommates = []
+        for (const roommate of this.roomRequest.roommate_requests) {
+          this.roomRequest.requested_roommates.push(roommate.id)
+        }
+        this.roomRequest.antirequested_roommates = []
+        for (const roommate of this.roomRequest.roommate_anti_requests) {
+          this.roomRequest.antirequested_roommates.push(roommate.id)
+        }
+        await patch('/api/event/' + this.event.id + '/hotel/request/' + this.roomRequest.id, this.roomRequest)
+        this.cancel()
+        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: 'Your request has been saved. You may continue editing it until the deadline.', life: 3000 })
+      } catch (error) {
+        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
+      }
     }
   },
   watch: {
