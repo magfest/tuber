@@ -1,11 +1,12 @@
 <template>
   <div class="card">
     <Toast />
+    <ConfirmPopup></ConfirmPopup>
     <h3>Room Assignments</h3>
     <Toolbar class="mb-1">
         <template #left>
             <Button class="p-button-success mr-2" @click="createRoom"><u>C</u>reate Room</Button>
-            <Button class="p-button-info mr-2" @click="rematchAll"><u>R</u>ematch All</Button>
+            <Button class="p-button-info mr-2" @click="rematchAll($event)"><u>R</u>ematch All</Button>
         </template>
 
         <template #right>
@@ -54,6 +55,8 @@
                 <span>
                   <Button v-if="room.completed" class="p-button-success mr-2" icon="pi pi-check-circle" @click="completeRoom(room, false)" />
                   <Button v-else class="p-button-warning mr-2" icon="pi pi-circle-off" @click="completeRoom(room, true)" />
+                  <Button v-if="room.locked" class="p-button-success mr-2" icon="pi pi-lock" @click="lockRoom(room, false)" />
+                  <Button v-else class="p-button-warning mr-2" icon="pi pi-unlock" @click="lockRoom(room, true)" />
                   <InputText v-if="room.edit" v-model="room.name" @blur="saveRoom(room)" />
                   <span v-else @click="room.edit=true">
                     {{ room.name ? room.name : "Room " + room.id}}
@@ -314,12 +317,22 @@ export default {
       const room = await post('/api/event/' + this.event.id + '/hotel_room', { hotel_block: this.block })
       return this.addRoommates(room)
     },
-    async rematchAll () {
-      this.loading = true
-      await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/rematch_all', { weights: {} })
-      this.fetchRooms()
-      this.fetchRequests()
-      this.loading = false
+    async rematchAll (event) {
+      this.$confirm.require({
+        target: event.currentTarget,
+        message: 'This will delete unlocked rooms. Are you sure?',
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+          this.loading = true
+          await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/rematch_all', { weights: {} })
+          this.fetchRooms()
+          this.fetchRequests()
+          this.loading = false
+        },
+        reject: () => {
+
+        }
+      })
     },
     async removeRoom (room) {
       await del('/api/event/' + this.event.id + '/hotel_room/' + room.id)
@@ -348,11 +361,15 @@ export default {
     },
     async saveRoom (room) {
       room.edit = false
-      await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id, { id: room.id, completed: room.completed, notes: room.notes, name: room.name, messages: room.messages })
+      await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id, { id: room.id, completed: room.completed, locked: room.locked, notes: room.notes, name: room.name, messages: room.messages })
       this.fetchRooms()
     },
     completeRoom (room, completed) {
       room.completed = completed
+      this.saveRoom(room)
+    },
+    lockRoom (room, locked) {
+      room.locked = locked
       this.saveRoom(room)
     }
   },

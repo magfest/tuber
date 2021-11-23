@@ -1,43 +1,63 @@
 <template>
     <div>
-    <DataTable ref="dt" :value="formattedRooms" :loading="loading" :paginator="true" :rows="25" class="p-datatable-sm"
-    :lazy="true" :totalRecords="totalRooms" @page="onPage($event)" @sort="onSort($event)">
-        <Column field="name" header="Name" :sortable="true">
-            <template #body="slotProps">
-                {{ slotProps.data.name ? slotProps.data.name : "Room " + slotProps.data.id }}
-            </template>
-        </Column>
-        <Column field="empty_slots" header="Empty Slots" style="width: 5rem"></Column>
-        <Column field="roommates" header="Roommates">
-            <template #body="slotProps">
-                <div v-for="roommate in slotProps.data.roommates" :key="slotProps.data.id + '_' + roommate.id">
-                    {{ badgeLookup[roommate.id].public_name }}
-                    <Chip v-for="error in roommate.errors" :key="roommate.id + error" :label="errorMessages[error]" />
+        <tuber-table tableTitle="Hotel Rooms" formTitle="Hotel Room" url="/api/event/<event>/hotel_room"
+            :parameters="parameters" :autoload="false" :format="format" ref="table" :filters="filters">
+
+            <template #controls>
+                <div class="grid">
+                    <div class="col">
+                        <Dropdown :options="hotelBlocks" optionLabel="name" optionValue="id" v-model="hotelBlock" />
+                    </div>
+                    <div class="col">
+                        <span class="field-checkbox">
+                            <Checkbox id="hideCompleted" v-model="hideCompleted" :binary="true" />
+                            <label for="hideCompleted">Hide Completed</label>
+                        </span>
+                    </div>
                 </div>
             </template>
-        </Column>
-        <Column field="notes" header="Internal Notes" :sortable="true"></Column>
-        <Column header="Actions" style="width: 10rem">
-            <template #body="slotProps">
-                <Button v-if="slotProps.data.completed" class="p-button-success mr-2" icon="pi pi-check-circle" @click="complete(slotProps.data, false)" />
-                  <Button v-else class="p-button-warning mr-2" icon="pi pi-circle-off" @click="complete(slotProps.data, true)" />
-                <Button @click="edit(slotProps.data)" icon="pi pi-cog" class="p-button-info ml-2" />
-            </template>
-        </Column>
-        </DataTable>
 
-        <Dialog v-model:visible="editing">
-            <template #header>
-                <h3>Hotel Room</h3>
+            <template #columns>
+                <Column field="name" header="Name" filterField="name" style="width: 10rem" :sortable="true">
+                    <template #body="slotProps">
+                        {{ slotProps.data.name ? slotProps.data.name : "Room " + slotProps.data.id }}
+                    </template>
+                    <template #filter="{filterModel,filterCallback}">
+                        <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter" :placeholder="`Search by name`" v-tooltip.top.focus="'Hit enter key to filter'"/>
+                    </template>
+                </Column>
+                <Column field="empty_slots" header="Empty Slots" style="width: 5rem"></Column>
+                <Column field="roommates" header="Roommates" :showFilterMatchModes="false">
+                    <template #body="slotProps">
+                        <div v-for="roommate in slotProps.data.roommates" :key="slotProps.data.id + '_' + roommate.id">
+                            {{ roommate.name }}
+                            <Chip v-for="error in roommate.errors" :key="roommate.id + error" :label="error" />
+                        </div>
+                    </template>
+                    <template #filter="{filterModel,filterCallback}">
+                        <InputText type="text" v-model="badgeSearch" @keydown.enter="loadBadges(filterModel, filterCallback)" class="p-column-filter" :placeholder="`Search by name`" v-tooltip.top.focus="'Hit enter key to filter'"/>
+                    </template>
+                </Column>
+                <Column field="notes" header="Internal Notes" :sortable="true"></Column>
             </template>
 
-            <room-details :id="edited" ref="form" />
-
-            <template #footer>
-                <Button label="Cancel" @click="cancel" icon="pi pi-times" class="p-button-text"/>
-                <Button label="Save" @click="save" icon="pi pi-check" autofocus />
+            <template #actions="tableProps">
+                <Column header="Actions" style="width: 15rem">
+                    <template #body="slotProps">
+                        <Button v-if="slotProps.data.completed" class="p-button-success" icon="pi pi-check-circle" @click="complete(slotProps.data, false)" />
+                        <Button v-else class="p-button-warning" icon="pi pi-circle-off" @click="complete(slotProps.data, true)" />
+                        <Button v-if="slotProps.data.locked" class="p-button-success ml-2" icon="pi pi-lock" @click="lockRoom(slotProps.data, false)" />
+                        <Button v-else class="p-button-warning ml-2" icon="pi pi-unlock" @click="lockRoom(slotProps.data, true)" />
+                        <Button @click="tableProps.edit(slotProps.data)" icon="pi pi-cog" class="p-button-info ml-2" />
+                        <Button @click="tableProps.remove($event, slotProps.data)" icon="pi pi-times" class="p-button-danger ml-2" />
+                    </template>
+                </Column>
             </template>
-        </Dialog>
+
+            <template #form="props">
+                <room-details :modelValue="props.modelValue" />
+            </template>
+        </tuber-table>
     </div>
 </template>
 
@@ -49,163 +69,99 @@
 </style>
 
 <script>
-import { mapGetters } from 'vuex'
-import { get, patch } from '@/lib/rest'
 import RoomDetails from './RoomDetails.vue'
-import { ModelActionTypes } from '@/store/modules/models/actions'
+import TuberTable from '../../TuberTable.vue'
+import { mapGetters } from 'vuex'
+import { get } from '@/lib/rest'
+import { FilterMatchMode } from 'primevue/api'
 
 export default {
   name: 'RoomTable',
-  props: [
-    'hotelBlock',
-    'hideCompleted'
-  ],
-  components: {
-    RoomDetails
+  data () {
+    return {
+      hideCompleted: false,
+      hotelBlocks: [],
+      hotelBlock: null,
+      filters: {
+        name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+        roommates: { value: null, matchMode: FilterMatchMode.CONTAINS }
+      },
+      badgeSearch: ''
+    }
   },
-  data: () => ({
-    hotelRooms: [],
-    hotelRoomLookup: {},
-    editing: false,
-    edited: null,
-    loading: false,
-    roomDetails: {},
-    errorMessages: {
-      requests_met: 'Missed Roommate',
-      nights_match: "Nights Don't Match",
-      antirequests_met: 'Roomed with Antirequest'
-    },
-    lazyParams: {
-      first: 0,
-      rows: 0,
-      sortField: 'name',
-      sortOrder: 1,
-      filters: {}
-    },
-    totalRooms: 0
-  }),
+  components: {
+    RoomDetails,
+    TuberTable
+  },
   computed: {
     ...mapGetters([
-      'event',
-      'badgeLookup'
+      'event'
     ]),
-    formattedRooms () {
-      const rooms = []
-      for (const hotelRoom of this.hotelRooms) {
-        const room = {
-          id: hotelRoom.id,
-          name: hotelRoom.name ? hotelRoom.name : 'Room ' + hotelRoom.id,
-          messages: hotelRoom.messages,
-          notes: hotelRoom.notes,
-          completed: hotelRoom.completed,
-          empty_slots: 0,
-          roommates: []
-        }
-        if (Object.prototype.hasOwnProperty.call(this.roomDetails, hotelRoom.id.toString())) {
-          room.empty_slots = this.roomDetails[hotelRoom.id.toString()].empty_slots
-          for (const roommate of hotelRoom.roommates) {
-            const roommateDetail = {
-              id: roommate,
-              name: this.badgeLookup[roommate].public_name,
-              errors: []
-            }
-            for (const [key, value] of Object.entries(this.roomDetails[hotelRoom.id.toString()].roommates[roommate.toString()])) {
-              if (!value) {
-                roommateDetail.errors.push(key)
-              }
-            }
-            room.roommates.push(roommateDetail)
-          }
-        }
-        rooms.push(room)
+    parameters () {
+      const params = {
+        full: true
       }
-      return rooms
+      if (this.hotelBlock) {
+        params.hotel_block = this.hotelBlock
+      }
+      if (this.hideCompleted) {
+        params.completed = false
+      }
+      return params
     }
   },
   mounted () {
-    this.lazyParams.rows = this.$refs.dt.rows
+    this.load()
   },
   methods: {
     async load () {
-      this.loading = true
-      await this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
-      if (this.hotelBlock) {
-        if (this.hideCompleted) {
-          this.hotelRooms = await get('/api/event/' + this.event.id + '/hotel_room', {
-            full: true,
-            hotel_block: this.hotelBlock,
-            completed: true,
-            offset: this.lazyParams.first,
-            limit: this.lazyParams.rows,
-            sort: this.lazyParams.sortField,
-            order: this.lazyParams.sortOrder > 0 ? 'asc' : 'desc'
-          })
-          this.totalRooms = await get('/api/event/' + this.event.id + '/hotel_room', { count: true, completed: true, hotel_block: this.hotelBlock })
-        } else {
-          this.hotelRooms = await get('/api/event/' + this.event.id + '/hotel_room', {
-            full: true,
-            hotel_block: this.hotelBlock,
-            offset: this.lazyParams.first,
-            limit: this.lazyParams.rows,
-            sort: this.lazyParams.sortField,
-            order: this.lazyParams.sortOrder > 0 ? 'asc' : 'desc'
-          })
-          this.totalRooms = await get('/api/event/' + this.event.id + '/hotel_room', { count: true, hotel_block: this.hotelBlock })
-        }
-        this.hotelRoomLookup = {}
-        for (const room of this.hotelRooms) {
-          this.hotelRoomLookup[room.id] = room
-        }
+      this.hotelBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
+      if (this.hotelBlocks && !this.hotelBlocks.includes(this.hotelBlock)) {
+        this.hotelBlock = this.hotelBlocks[0].id
       }
+    },
+    async loadBadges (filterModel, filterCallback) {
+      if (this.badgeSearch) {
+        const badges = await get('/api/event/' + this.event.id + '/badge', { search: this.badgeSearch, search_field: 'public_name' })
+        const badgeIDs = []
+        for (const badge of badges) {
+          badgeIDs.push(badge.id)
+        }
+        filterModel.value = badgeIDs
+      } else {
+        filterModel.value = null
+      }
+
+      filterCallback()
+    },
+    async format (rooms) {
       const roomIDs = []
-      for (const room of this.hotelRooms) {
+      let roomDetails = {}
+      for (const room of rooms) {
         roomIDs.push(room.id)
       }
-      if (roomIDs) {
-        this.roomDetails = await get('/api/event/' + this.event.id + '/hotel/room_details', { rooms: roomIDs })
+      roomDetails = await get('/api/event/' + this.event.id + '/hotel/room_details', { rooms: roomIDs })
+      for (const room of rooms) {
+        room.empty_slots = 0
+        room.roommates = []
+        room.name = room.name ? room.name : 'Room ' + room.id
+        const ID = room.id.toString()
+        if (Object.prototype.hasOwnProperty.call(roomDetails, ID)) {
+          room.empty_slots = roomDetails[ID].empty_slots
+          room.roommates = roomDetails[ID].roommates
+        }
       }
-      this.loading = false
-    },
-    edit (data) {
-      this.edited = data.id
-      this.editing = true
-    },
-    cancel () {
-      this.editing = false
-      this.edited = null
-    },
-    save () {
-      this.$refs.form.save().then(() => {
-        this.editing = false
-        this.edited = null
-        this.load()
-      })
+      return rooms
     },
     complete (data, completed) {
-      this.hotelRoomLookup[data.id].completed = completed
-      patch('/api/event/' + this.event.id + '/hotel_room/' + data.id, { completed: completed }).then(() => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
-      }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })
-      })
+      this.$refs.table.save({ id: data.id, completed: completed })
     },
-    onPage (event) {
-      this.lazyParams = event
-      this.load()
-    },
-    onSort (event) {
-      this.lazyParams = event
-      this.load()
+    lockRoom (data, locked) {
+      this.$refs.table.save({ id: data.id, locked: locked })
     }
   },
   watch: {
     event () {
-      this.load()
-    },
-    hotelBlock () {
-      this.load()
-    },
-    hideCompleted () {
       this.load()
     }
   }

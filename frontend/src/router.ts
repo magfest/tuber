@@ -6,10 +6,10 @@ import RoomApprovals from './views/rooming/Approvals.vue'
 import RoomSettings from './views/rooming/Settings.vue'
 import RoomBlocks from './views/rooming/Blocks.vue'
 import RoomAssignments from './views/rooming/Assignments.vue'
-import RoomRequests from './views/rooming/Requests.vue'
+import RequestTable from './components/rooming/requests/RequestTable.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
-import RoomList from './views/rooming/Rooms.vue'
+import RoomTable from './components/rooming/rooms/RoomTable.vue'
 
 import UserSettings from './views/settings/Users.vue'
 import Badges from './views/event/Badges.vue'
@@ -35,7 +35,7 @@ const routes = [
   {
     path: '/rooming/rooms',
     name: 'roomlist',
-    component: RoomList
+    component: RoomTable
   },
   {
     path: '/hotels/request',
@@ -71,7 +71,7 @@ const routes = [
   {
     path: '/rooming/requests',
     name: 'roomrequests',
-    component: RoomRequests
+    component: RequestTable
   },
   {
     path: '/hotels/approvals',

@@ -7,8 +7,10 @@
 
         <div class="layout-main-container">
             <div class="layout-main">
-              <login v-if="!loggedIn & !initialSetup & !($route.name === 'uberlogin') & !($route.name === 'uberdepartmentlogin')" />
-              <router-view v-else />
+              <div class="card">
+                <login v-if="(loggedIn === false) & (initialSetup === false) & !($route.name === 'uberlogin') & !($route.name === 'uberdepartmentlogin')" />
+                <router-view v-else-if="event" />
+              </div>
             </div>
             <AppFooter />
         </div>

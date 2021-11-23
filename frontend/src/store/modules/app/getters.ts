@@ -7,8 +7,8 @@ import { User, Event, Badge } from '@/lib/interfaces'
 import { State } from './state'
 
 export type Getters = {
-    loggedIn(state: State): boolean;
-    initialSetup(state: State): boolean;
+    loggedIn(state: State): boolean | null;
+    initialSetup(state: State): boolean | null;
     user(state: State): User | null;
     badge(state: State): Badge | null;
     event(state: State): Event | null;

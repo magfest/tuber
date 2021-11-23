@@ -28,7 +28,6 @@ def update_room_request_props(db, reqs, assigned=None, requested=None, approved=
                             if rna.room_night == rnr.room_night and rna.approved:
                                 req.approved = True
 
-        print(req.room_night_assignments)
         req.assigned = bool(req.room_night_assignments)
         if not assigned is None:
             req.assigned = assigned
@@ -36,7 +35,6 @@ def update_room_request_props(db, reqs, assigned=None, requested=None, approved=
             req.requested = requested
         if not approved is None:
             req.approved = approved
-        db.add(req)
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/room/<int:room_id>/remove_roommates", methods=["POST"])
 def remove_roommates(event, hotel_block, room_id):
@@ -45,6 +43,8 @@ def remove_roommates(event, hotel_block, room_id):
     db.query(RoomNightAssignment).filter(RoomNightAssignment.event==event, RoomNightAssignment.hotel_room==room_id, RoomNightAssignment.badge.in_(g.data['roommates'])).delete()
     reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event==event, HotelRoomRequest.badge.in_(g.data['roommates'])).all()
     update_room_request_props(db, reqs, assigned=False)
+    for req in reqs:
+        db.add(req)
     db.commit()
     return "null", 200
 
@@ -73,6 +73,8 @@ def add_roommates(event, hotel_block, room_id):
             if assign:
                 db.add(RoomNightAssignment(event=event, badge=req.badge, room_night=night.room_night, hotel_room=room_id))
     update_room_request_props(db, reqs, assigned=True)
+    for req in reqs:
+        db.add(req)
     db.commit()
     return "null", 200 
 
@@ -90,10 +92,10 @@ def room_details(event):
         return "", 403
     rooms = [int(x) for x in g.data['rooms'].split(",")]
 
-    rnas = db.query(RoomNightAssignment).filter(RoomNightAssignment.hotel_room.in_(rooms)).all()
+    rnas = db.query(RoomNightAssignment, Badge.public_name).join(Badge, Badge.id == RoomNightAssignment.badge).filter(RoomNightAssignment.hotel_room.in_(rooms)).all()
 
     details = {}
-    for rna in rnas:
+    for rna, public_name in rnas:
         if not rna.hotel_room in details:
             details[rna.hotel_room] = {
                 "room_nights": [],
@@ -105,21 +107,27 @@ def room_details(event):
 
         if not rna.badge in details[rna.hotel_room]['roommates']:
             details[rna.hotel_room]['roommates'][rna.badge] = {
-                "nights_match": True,
-                "requests_met": True,
-                "antirequests_met": True
+                "id": rna.badge,
+                "name": public_name,
+                "errors": set()
             }
+
+    gender_prefs = {}
 
     room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
     room_nights = {x.id: x for x in room_nights}
     hotel_rooms = db.query(HotelRoom, HotelRoomRequest).join(RoomNightAssignment, HotelRoom.id == RoomNightAssignment.hotel_room).join(HotelRoomRequest, HotelRoomRequest.badge == RoomNightAssignment.badge).filter(HotelRoom.id.in_(rooms)).options(joinedload(HotelRoomRequest.room_night_approvals)).options(joinedload(HotelRoomRequest.room_night_requests)).all()
     for hotel_room, request in hotel_rooms:
+        if not hotel_room.id in gender_prefs:
+            gender_prefs[hotel_room.id] = set()
+        gender_prefs[hotel_room.id].add(config.gender_map.get(request.preferred_gender, "Unknown"))
+    for hotel_room, request in hotel_rooms:
         for roommate_request in request.roommate_requests:
             if not roommate_request in hotel_room.roommates:
-                details[hotel_room.id]['roommates'][request.badge]['requests_met'] = False
+                details[hotel_room.id]['roommates'][request.badge]['errors'].add('Missing Roommate')
         for antiroommate_request in request.roommate_anti_requests:
             if antiroommate_request in hotel_room.roommates:
-                details[hotel_room.id]['roommates'][request.badge]['antirequests_met'] = False
+                details[hotel_room.id]['roommates'][request.badge]['errors'].add('Anti-requested Roommate')
         nights = set()
         for night_request in request.room_night_requests:
             if night_request.requested:
@@ -129,8 +137,12 @@ def room_details(event):
                             nights.add(night_request.room_night)
                 else:
                     nights.add(night_request.room_night)
-        if nights.symmetric_difference(set(details[hotel_room.id]['room_nights'])):
-            details[hotel_room.id]['roommates'][request.badge]['nights_match'] = False
+        extra_nights = nights.symmetric_difference(set(details[hotel_room.id]['room_nights']))
+        if extra_nights:
+            details[hotel_room.id]['roommates'][request.badge]['errors'].add(f'Extra Room Night ({len(extra_nights)})')
+        if request.prefer_single_gender and len(gender_prefs[hotel_room.id]) > 1:
+            details[hotel_room.id]['roommates'][request.badge]['errors'].add(f'Gender Mismatch ({request.preferred_gender}) ({", ".join(gender_prefs[hotel_room.id])})')
+        details[hotel_room.id]['roommates'][request.badge]['errors'] = list(details[hotel_room.id]['roommates'][request.badge]['errors'])
         details[hotel_room.id]['empty_slots'] += len(set(details[hotel_room.id]['room_nights']).difference(nights))
     return jsonify(details)
 
@@ -255,6 +267,8 @@ def hotel_approve(event, department):
             approval.approved = request.json['approved']
             approval.room_night = request.json['room_night']
             db.add(approval)
+        update_room_request_props(db, [room_night_request,])
+        db.add(room_night_request)
         db.commit()
         return "null", 200
     return "", 403
@@ -477,3 +491,6 @@ def update_room_request(db, instance, deleted=None):
     elif type(instance) is HotelRoomNight:
         reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == instance.event).options(joinedload('room_night_requests')).options(joinedload('room_night_approvals')).options(joinedload('room_night_assignments')).all()
     update_room_request_props(db, reqs)
+    if not type(instance) is HotelRoomRequest:
+        for req in reqs:
+            db.add(req)

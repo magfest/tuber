@@ -17,7 +17,8 @@ conf = {
     "circuitbreaker_timeout": 1,
     "circuitbreaker_threads": 10,
     "redis_url": "",
-    "static_path": os.path.join(tuber.__path__[0], "static")
+    "static_path": os.path.join(tuber.__path__[0], "static"),
+    "gender_map": "{}"
 }
 
 environment = {}
@@ -40,6 +41,10 @@ for i in ["session_duration", "circuitbreaker_threads", "uber_event"]:
 for i in ["circuitbreaker_timeout"]:
     if isinstance(conf[i], str):
         conf[i] = float(conf[i])
+
+for i in ["gender_map"]:
+    if isinstance(conf[i], str):
+        conf[i] = json.loads(conf[i])
 
 for i in conf:
     vars()[i] = conf[i]
