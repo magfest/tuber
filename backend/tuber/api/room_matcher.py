@@ -1,4 +1,5 @@
 from tuber.models import *
+import tuber.config
 from types import SimpleNamespace
 import multiprocessing
 import itertools
@@ -18,8 +19,8 @@ class HashNS(SimpleNamespace):
 
     def __lt__(self, other):
         return self.id < other.id
-
-def score_room(staffers, room_night_weight=100, roommate_weight=5, other_weight=1, allow_empty=True):
+unmapped = set()
+def score_room(staffers, room_night_weight=100, roommate_weight=5, department_weight=1, other_weight=1, allow_empty=True):
     staffers = set(staffers)
     nights = set().union(*[x.room_nights for x in staffers])
     filled_slots = sum([len(x.room_nights) for x in staffers])
@@ -54,16 +55,41 @@ def score_room(staffers, room_night_weight=100, roommate_weight=5, other_weight=
                 if staffer.preferred_dept in roommate.departments:
                     filled_dept_req += 1
     if total_dept_req:
-        dept_score = other_weight * (filled_dept_req / total_dept_req)
+        dept_score = department_weight * (filled_dept_req / total_dept_req)
     else:
-        dept_score = other_weight
+        dept_score = department_weight
+
+    genders = set()
+    for staffer in staffers:
+        if staffer.preferred_gender:
+            gender = staffer.preferred_gender.lower().strip()
+            if not gender in tuber.config.gender_map:
+                print(f"WARNING: Unmapped gender preference: {gender}")
+                unmapped.add(gender)
+                genders.add(None)
+            else:
+                genders.add(tuber.config.gender_map[gender])
+        else:
+            gender = None
+    filled_prefs = 0
+    total_prefs = 0
+    for staffer in staffers:
+        if staffer.prefer_single_gender:
+            total_prefs += 1
+            if len(genders) <= 1:
+                filled_prefs += 1
+    if total_prefs:
+        other_score = other_weight * (filled_prefs / total_prefs)
+    else:
+        other_score = other_weight
+
 
     for staffer in staffers:
         if staffer.antiroommates.intersection(staffers):
             raise AntiRequestException(f"{str(staffer)} anti-requested {', '.join([str(x) for x in staffer.antiroommates.intersection(staffers)])}")
 
     #print(f"Scores: {room_night_score} {roommate_score} {dept_score} {filled_dept_req} {total_dept_req} {', '.join([x.name for x in staffers])}")
-    return room_night_score, roommate_score, dept_score
+    return room_night_score, roommate_score, dept_score, other_score
 
 def get_roommates(staffer, matched, visited=None):
     if not visited:
@@ -192,6 +218,8 @@ def load_staffers(db, event, hotel_block):
             staffer.preferred_dept = request.preferred_department or (badge.departments[0] if badge.departments else None)
             staffer.hotel_block = request.hotel_block
             staffer.name = badge.public_name
+            staffer.preferred_gender = request.preferred_gender
+            staffer.prefer_single_gender = request.prefer_single_gender
             staffers.append(staffer)
 
     stafferlookup = {x.id: x for x in staffers}
@@ -209,7 +237,7 @@ def load_staffers(db, event, hotel_block):
     return staffers
 
 def rematch_hotel_block(db, event, hotel_block):
-    rooms = db.query(HotelRoom).filter(HotelRoom.hotel_block == hotel_block, HotelRoom.completed == False).all()
+    rooms = db.query(HotelRoom).filter(HotelRoom.hotel_block == hotel_block, HotelRoom.completed == False, HotelRoom.locked == False).all()
     roommates = []
     for room in rooms:
         roommates.extend(room.roommates)
@@ -272,4 +300,5 @@ def rematch_hotel_block(db, event, hotel_block):
             roommate.request.assigned = True
             db.add(roommate.request)
     db.commit()
+    print(unmapped)
     return True
