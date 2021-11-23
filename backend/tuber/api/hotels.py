@@ -112,9 +112,15 @@ def room_details(event):
                 "errors": set()
             }
 
+    gender_prefs = {}
+
     room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
     room_nights = {x.id: x for x in room_nights}
     hotel_rooms = db.query(HotelRoom, HotelRoomRequest).join(RoomNightAssignment, HotelRoom.id == RoomNightAssignment.hotel_room).join(HotelRoomRequest, HotelRoomRequest.badge == RoomNightAssignment.badge).filter(HotelRoom.id.in_(rooms)).options(joinedload(HotelRoomRequest.room_night_approvals)).options(joinedload(HotelRoomRequest.room_night_requests)).all()
+    for hotel_room, request in hotel_rooms:
+        if not hotel_room.id in gender_prefs:
+            gender_prefs[hotel_room.id] = set()
+        gender_prefs[hotel_room.id].add(config.gender_map.get(request.preferred_gender, "Unknown"))
     for hotel_room, request in hotel_rooms:
         for roommate_request in request.roommate_requests:
             if not roommate_request in hotel_room.roommates:
@@ -134,6 +140,8 @@ def room_details(event):
         extra_nights = nights.symmetric_difference(set(details[hotel_room.id]['room_nights']))
         if extra_nights:
             details[hotel_room.id]['roommates'][request.badge]['errors'].add(f'Extra Room Night ({len(extra_nights)})')
+        if request.prefer_single_gender and len(gender_prefs[hotel_room.id]) > 1:
+            details[hotel_room.id]['roommates'][request.badge]['errors'].add(f'Gender Mismatch ({request.preferred_gender}) ({", ".join(gender_prefs[hotel_room.id])})')
         details[hotel_room.id]['roommates'][request.badge]['errors'] = list(details[hotel_room.id]['roommates'][request.badge]['errors'])
         details[hotel_room.id]['empty_slots'] += len(set(details[hotel_room.id]['room_nights']).difference(nights))
     return jsonify(details)

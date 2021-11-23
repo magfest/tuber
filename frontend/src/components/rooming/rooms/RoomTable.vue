@@ -18,7 +18,7 @@
             </template>
 
             <template #columns>
-                <Column field="name" header="Name" filterField="name" :sortable="true">
+                <Column field="name" header="Name" filterField="name" style="width: 10rem" :sortable="true">
                     <template #body="slotProps">
                         {{ slotProps.data.name ? slotProps.data.name : "Room " + slotProps.data.id }}
                     </template>
@@ -42,10 +42,12 @@
             </template>
 
             <template #actions="tableProps">
-                <Column header="Actions" style="width: 10rem">
+                <Column header="Actions" style="width: 15rem">
                     <template #body="slotProps">
                         <Button v-if="slotProps.data.completed" class="p-button-success" icon="pi pi-check-circle" @click="complete(slotProps.data, false)" />
                         <Button v-else class="p-button-warning" icon="pi pi-circle-off" @click="complete(slotProps.data, true)" />
+                        <Button v-if="slotProps.data.locked" class="p-button-success ml-2" icon="pi pi-lock" @click="lockRoom(slotProps.data, false)" />
+                        <Button v-else class="p-button-warning ml-2" icon="pi pi-unlock" @click="lockRoom(slotProps.data, true)" />
                         <Button @click="tableProps.edit(slotProps.data)" icon="pi pi-cog" class="p-button-info ml-2" />
                         <Button @click="tableProps.remove($event, slotProps.data)" icon="pi pi-times" class="p-button-danger ml-2" />
                     </template>
@@ -153,6 +155,9 @@ export default {
     },
     complete (data, completed) {
       this.$refs.table.save({ id: data.id, completed: completed })
+    },
+    lockRoom (data, locked) {
+      this.$refs.table.save({ id: data.id, locked: locked })
     }
   },
   watch: {
