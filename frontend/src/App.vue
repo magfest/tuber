@@ -9,7 +9,7 @@
             <div class="layout-main">
               <div class="card">
                 <login v-if="(loggedIn === false) & (initialSetup === false) & !($route.name === 'uberlogin') & !($route.name === 'uberdepartmentlogin')" />
-                <router-view v-else-if="event" />
+                <router-view v-else />
               </div>
             </div>
             <AppFooter />
@@ -126,7 +126,7 @@ type LayoutMode = 'static' | 'overlay'
             label: 'Schedule', icon: 'pi pi-fw pi-home', to: '/', visible: false
           },
           {
-            label: 'Emails', icon: 'pi pi-fw pi-home', to: '/', visible: false
+            label: 'Emails', icon: 'pi pi-fw pi-home', to: '/email'
           },
           {
             label: 'Settings', icon: 'pi pi-fw pi-home', to: '/', visible: false
