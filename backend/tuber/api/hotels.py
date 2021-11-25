@@ -230,6 +230,7 @@ def block_assignments(event):
 @app.route("/api/event/<int:event>/hotel/requests/<int:department>", methods=["GET"])
 def hotel_requests(event, department):
     requests = db.query(Badge, HotelRoomRequest).join(BadgeToDepartment, BadgeToDepartment.badge == Badge.id).filter(BadgeToDepartment.department == department).join(HotelRoomRequest, HotelRoomRequest.badge == BadgeToDepartment.badge).all()
+    print(requests)
     res = []
     for req in requests:
         badge, roomrequest = req
@@ -267,7 +268,8 @@ def hotel_approve(event, department):
             approval.approved = request.json['approved']
             approval.room_night = request.json['room_night']
             db.add(approval)
-        update_room_request_props(db, [room_night_request,])
+        hotel_room_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.badge == room_night_request.badge).one()
+        update_room_request_props(db, [hotel_room_request,])
         db.add(room_night_request)
         db.commit()
         return "null", 200

@@ -10,8 +10,8 @@
         Non-restricted nights are approved by default.
     </p><br>
     <DataTable :value="requests">
-        <Column headerStyle="width: 10em" field="name" header="Name"></Column>
-        <Column headerStyle="width: 3em; transform: rotate(-45deg)" v-for="roomNight of roomNights" :key="'room_night'+roomNight.id" field="room_nights" :header="roomNight.name">
+        <Column headerStyle="width: 10em" field="name" header="Name" key="name"></Column>
+        <Column headerStyle="width: 3em; transform: rotate(-45deg)" v-for="roomNight of roomNights" :key="roomNight.id" field="room_nights" :header="roomNight.name">
             <template v-if="roomNight.restricted" #body="slotProps">
                 <TriStateCheckbox @change="approve(slotProps.data, roomNight.id)" v-if="Object.prototype.hasOwnProperty.call(slotProps.data.room_nights, String(roomNight.id)) && slotProps.data.room_nights[roomNight.id].requested" v-model="slotProps.data.room_nights[String(roomNight.id)].approved" />
             </template>
@@ -19,13 +19,13 @@
                 <i class="pi pi-check" v-if="Object.prototype.hasOwnProperty.call(slotProps.data.room_nights, String(roomNight.id)) && slotProps.data.room_nights[roomNight.id].requested" />
             </template>
         </Column>
-        <Column headerStyle="width: 8em" header="All Nights">
+        <Column headerStyle="width: 8em" header="All Nights" key="allnights">
             <template #body="slotProps">
                 <Button @click="approveAll(slotProps.data)" icon="pi pi-check" class="p-button-rounded" />
                 <Button @click="rejectAll(slotProps.data)" icon="pi pi-times" class="p-button-rounded p-button-danger" />
             </template>
         </Column>
-        <Column field="justification" header="Justification"></Column>
+        <Column field="justification" header="Justification" key="justification"></Column>
     </DataTable>
   </div>
 </template>
@@ -55,7 +55,9 @@ export default {
     ])
   },
   mounted () {
-    this.load()
+    if (this.event) {
+      this.load()
+    }
   },
   methods: {
     load () {
@@ -114,7 +116,7 @@ export default {
     }
   },
   watch: {
-    $route () {
+    event () {
       this.load()
     }
   }
