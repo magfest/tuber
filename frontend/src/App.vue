@@ -87,7 +87,7 @@ type LayoutMode = 'static' | 'overlay'
                 label: 'Requests', icon: 'pi pi-fw pi-home', to: '/rooming/requests'
               },
               {
-                label: 'Approvals', icon: 'pi pi-fw pi-home', to: '/rooming/approvals', visible: false
+                label: 'Approvals', icon: 'pi pi-fw pi-home', to: '/rooming/approvals'
               },
               {
                 label: 'Assignments', icon: 'pi pi-fw pi-home', to: '/rooming/assignments'
