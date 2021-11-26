@@ -1,5 +1,5 @@
 <template>
-  <div class="card">
+  <div>
     <Toast />
     <h3>Room Night Approvals for {{ department.name }}</h3>
     <p>
@@ -40,7 +40,7 @@ import { get, post } from '@/lib/rest'
 export default {
   name: 'RoomApproval',
   props: [
-    ''
+    'departmentID'
   ],
   components: {
   },
@@ -61,18 +61,18 @@ export default {
   },
   methods: {
     load () {
-      get('/api/event/' + this.event.id + '/department', { id: this.$route.params.departmentID }).then((department) => {
+      get('/api/event/' + this.event.id + '/department', { id: this.departmentID }).then((department) => {
         this.department = department[0]
       })
       get('/api/event/' + this.event.id + '/hotel_room_night').then((roomNights) => {
         this.roomNights = roomNights
-        get('/api/event/' + this.event.id + '/hotel/requests/' + this.$route.params.departmentID).then((requests) => {
+        get('/api/event/' + this.event.id + '/hotel/requests/' + this.departmentID).then((requests) => {
           this.requests = requests
         })
       })
     },
     approve (request, roomNight) {
-      post('/api/event/' + this.event.id + '/hotel/approve/' + this.$route.params.departmentID, {
+      post('/api/event/' + this.event.id + '/hotel/approve/' + this.departmentID, {
         room_night: roomNight,
         badge: request.id,
         approved: request.room_nights[roomNight].approved
@@ -86,7 +86,7 @@ export default {
       const requests = []
       for (const [roomNight] of Object.entries(request.room_nights)) {
         request.room_nights[roomNight].approved = true
-        requests.push(post('/api/event/' + this.event.id + '/hotel/approve/' + this.$route.params.departmentID, {
+        requests.push(post('/api/event/' + this.event.id + '/hotel/approve/' + this.departmentID, {
           room_night: roomNight,
           badge: request.id,
           approved: true
@@ -102,7 +102,7 @@ export default {
       const requests = []
       for (const [roomNight] of Object.entries(request.room_nights)) {
         request.room_nights[roomNight].approved = false
-        requests.push(post('/api/event/' + this.event.id + '/hotel/approve/' + this.$route.params.departmentID, {
+        requests.push(post('/api/event/' + this.event.id + '/hotel/approve/' + this.departmentID, {
           room_night: roomNight,
           badge: request.id,
           approved: false
@@ -117,6 +117,9 @@ export default {
   },
   watch: {
     event () {
+      this.load()
+    },
+    departmentID () {
       this.load()
     }
   }
