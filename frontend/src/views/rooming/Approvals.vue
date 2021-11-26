@@ -28,6 +28,7 @@ export default {
     ])
   },
   mounted () {
+    this.load()
   },
   methods: {
     async load () {
