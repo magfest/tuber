@@ -1,7 +1,7 @@
 <template>
-  <div class="card">
-    <Toast />
-    <h3>Room Night Approvals</h3>
+  <div>
+      <Dropdown v-model="departmentID" :options="departments" optionLabel="name" optionValue="id" />
+      <approval v-if="departmentID" :departmentID="departmentID" />
   </div>
 </template>
 
@@ -10,19 +10,17 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, post } from '@/lib/rest'
+import { get } from '@/lib/rest'
+import Approval from './Approval.vue'
 
 export default {
   name: 'RoomApprovals',
-  props: [
-    ''
-  ],
   components: {
+    Approval
   },
   data: () => ({
-    department: {},
-    requests: [],
-    roomNights: []
+    departmentID: null,
+    departments: []
   }),
   computed: {
     ...mapGetters([
@@ -30,66 +28,18 @@ export default {
     ])
   },
   mounted () {
-    this.load()
   },
   methods: {
-    load () {
-      get('/api/event/' + this.event.id + '/department', { id: this.$route.params.departmentID }).then((department) => {
-        this.department = department[0]
-      })
-      get('/api/event/' + this.event.id + '/hotel_room_night').then((roomNights) => {
-        this.roomNights = roomNights
-        get('/api/event/' + this.event.id + '/hotel/requests/' + this.$route.params.departmentID).then((requests) => {
-          this.requests = requests
-        })
-      })
-    },
-    approve (request, roomNight) {
-      post('/api/event/' + this.event.id + '/hotel/approve/' + this.$route.params.departmentID, {
-        room_night: roomNight,
-        badge: request.id,
-        approved: request.room_nights[roomNight].approved
-      }).then(() => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: request.name, life: 300 })
-      }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: request.name })
-      })
-    },
-    approveAll (request) {
-      const requests = []
-      for (const [roomNight] of Object.entries(request.room_nights)) {
-        request.room_nights[roomNight].approved = true
-        requests.push(post('/api/event/' + this.event.id + '/hotel/approve/' + this.$route.params.departmentID, {
-          room_night: roomNight,
-          badge: request.id,
-          approved: true
-        }))
+    async load () {
+      const depts = await get('/api/event/' + this.event.id + '/department')
+      if (depts) {
+        this.departments = depts
+        this.departmentID = this.departments[0].id
       }
-      Promise.all(requests).then(() => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: request.name, life: 300 })
-      }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: request.name })
-      })
-    },
-    rejectAll (request) {
-      const requests = []
-      for (const [roomNight] of Object.entries(request.room_nights)) {
-        request.room_nights[roomNight].approved = false
-        requests.push(post('/api/event/' + this.event.id + '/hotel/approve/' + this.$route.params.departmentID, {
-          room_night: roomNight,
-          badge: request.id,
-          approved: false
-        }))
-      }
-      Promise.all(requests).then(() => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: request.name, life: 300 })
-      }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: request.name })
-      })
     }
   },
   watch: {
-    $route () {
+    event () {
       this.load()
     }
   }

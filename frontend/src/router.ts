@@ -6,10 +6,11 @@ import RoomApprovals from './views/rooming/Approvals.vue'
 import RoomSettings from './views/rooming/Settings.vue'
 import RoomBlocks from './views/rooming/Blocks.vue'
 import RoomAssignments from './views/rooming/Assignments.vue'
-import RequestTable from './components/rooming/requests/RequestTable.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
-import RoomTable from './components/rooming/rooms/RoomTable.vue'
+
+import { RoomTable, RequestTable } from './components/rooming'
+import { EmailTable } from './components/email'
 
 import UserSettings from './views/settings/Users.vue'
 import Badges from './views/event/Badges.vue'
@@ -77,6 +78,11 @@ const routes = [
     path: '/hotels/approvals',
     name: 'uberdepartmentlogin',
     component: UberDepartmentLogin
+  },
+  {
+    path: '/email',
+    name: 'emailtable',
+    component: EmailTable
   },
   {
     path: '/login',

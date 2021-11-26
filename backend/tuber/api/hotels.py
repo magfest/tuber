@@ -230,7 +230,6 @@ def block_assignments(event):
 @app.route("/api/event/<int:event>/hotel/requests/<int:department>", methods=["GET"])
 def hotel_requests(event, department):
     requests = db.query(Badge, HotelRoomRequest).join(BadgeToDepartment, BadgeToDepartment.badge == Badge.id).filter(BadgeToDepartment.department == department).join(HotelRoomRequest, HotelRoomRequest.badge == BadgeToDepartment.badge).all()
-    print(requests)
     res = []
     for req in requests:
         badge, roomrequest = req

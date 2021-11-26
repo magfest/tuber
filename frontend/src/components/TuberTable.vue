@@ -2,8 +2,12 @@
     <div>
         <Toast />
         <ConfirmPopup></ConfirmPopup>
-        <h3>{{ tableTitle }}</h3>
-        <slot name="controls"></slot>
+        <div class="flex justify-content-between">
+            <h3>{{ tableTitle }}</h3>
+            <slot name="controls" :add="add">
+                    <Button @click="add">Add</Button>
+            </slot>
+        </div>
         <DataTable :value="formattedInstances" :loading="loading" dataKey="id" class="p-datatable-sm" ref="dt"
             :paginator="true" :rows="rows"
             :lazy="true" :totalRecords="totalRecords" @page="onPage($event)" @sort="onSort($event)"
@@ -39,7 +43,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, patch, del } from '@/lib/rest'
+import { get, patch, del, post } from '@/lib/rest'
 
 export default {
   name: 'TuberTable',
@@ -149,6 +153,11 @@ export default {
     },
     edit (instance) {
       this.edited = instance
+      this.editing = true
+    },
+    async add () {
+      const newmodel = await post(this.fullUrl)
+      this.edited = newmodel
       this.editing = true
     },
     cancel () {
