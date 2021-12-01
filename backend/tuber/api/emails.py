@@ -54,6 +54,8 @@ def get_email_context(badge, tables):
     return {
         "badge": badge,
         "event": event,
+        "roommate_requests": [x.public_name for x in request.roommate_requests],
+        "roommate_anti_requests": [x.public_name for x in request.roommate_anti_requests],
         "requested_nights": requested_nights,
         "assigned_nights": assigned_nights,
         "approved_nights": approved_nights,
