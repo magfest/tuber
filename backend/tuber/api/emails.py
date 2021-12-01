@@ -118,12 +118,9 @@ def email_csv(event, email):
 
 @app.route('/api/event/<int:event>/email/<int:email>/trigger', methods=['POST'])
 def api_email_trigger(event, email):
-    if not check_permission('email.*.send', event=request.json['event']):
+    if not check_permission('email.*.send', event=event):
         return "Permission Denied", 403
-    event = db.query(Event).filter(Event.id == request.json['event']).one()
-    if not 'email' in request.json:
-        return "email is a required parameter", 400
-    email = db.query(Email).filter(Email.id == request.json['email']).one_or_none()
+    email = db.query(Email).filter(Email.id == email).one_or_none()
     if not email:
         return "Could not find requested email {}".format(escape(request.json['email'])), 404
     if not email.active:
@@ -134,43 +131,42 @@ def api_email_trigger(event, email):
     if not source.active:
         return "The email source for this email is inactive.", 400
 
-    return "", 200
     def stream_emails():
         client = boto3.client('ses', region_name=source.region, aws_access_key_id=source.ses_access_key, aws_secret_access_key=source.ses_secret_key)
         yield '{'
-        for compiled in generate_emails(email):
+        for badge_id, badge_email, source_address, subject, body in generate_emails(email):
             if email.send_once:
-                receipts = db.query(EmailReceipt).filter(EmailReceipt.email == email.id, EmailReceipt.badge == compiled[0]).all()
+                receipts = db.query(EmailReceipt).filter(EmailReceipt.event == event, EmailReceipt.email == email.id, EmailReceipt.badge == badge_id).all()
                 if receipts:
                     continue
             try:
                 client.send_email(
                     Destination={
                         'ToAddresses': [
-                            compiled[1],
+                            badge_email,
                         ],
                     },
                     Message={
                         'Body': {
                             'Text': {
                                 'Charset': 'UTF-8',
-                                'Data': compiled[4],
+                                'Data': body,
                             },
                         },
                         'Subject': {
                             'Charset': 'UTF-8',
-                            'Data': compiled[3],
+                            'Data': subject,
                         },
                     },
-                    Source=source.address,
+                    Source=source_address,
                 )
             except ClientError as e:
                 print(e.response['Error']['Message'])
             else:
-                receipt = EmailReceipt(email=email.id, badge=compiled[0], source=source.id, to_address=compiled[1], from_address=source.address, subject=compiled[3], body=compiled[4], timestamp=datetime.datetime.now())
+                receipt = EmailReceipt(event=event, email=email.id, badge=badge_id, source=source.id, to_address=badge_email, from_address=source.address, subject=subject, body=body, timestamp=datetime.datetime.now())
                 db.add(receipt)
                 db.commit()
-            yield '"{}": true,'.format(compiled[0])
+            yield '"{}": true,'.format(badge_id)
         yield '}'
     headers = {
         "Content-Type": "application/json",
