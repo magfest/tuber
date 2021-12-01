@@ -380,6 +380,7 @@ def hotel_request_single_api(event, request_id):
             else:
                 requested_night = RoomNightRequest(event=event, badge=hotel_request.badge, requested=room_night_request['requested'], room_night=room_night_request['id'])
                 db.add(requested_night)
+        update_room_request_props(db, [hotel_request,])
         db.commit()
         return "null", 200
 
