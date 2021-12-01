@@ -6,7 +6,7 @@ class Email(Base):
     __tablename__ = "email"
     __url__ = "/api/event/<int:event>/email"
     id = Column(Integer, primary_key=True)
-    name = Column(String(), unique=True)
+    name = Column(String())
     description = Column(String())
     event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     code = Column(String(), nullable=True)
@@ -31,7 +31,7 @@ class EmailSource(Base):
     __url__ = "/api/event/<int:event>/email_source"
     id = Column(Integer, primary_key=True)
     event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
-    name = Column(String(), unique=True)
+    name = Column(String())
     description = Column(String(), nullable=True)
     address = Column(String())
     region = Column(String())

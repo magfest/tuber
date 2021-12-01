@@ -10,7 +10,7 @@ import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
 
 import { RoomTable, RequestTable } from './components/rooming'
-import { EmailTable } from './components/email'
+import EmailSettings from './views/event/EmailSettings.vue'
 
 import UserSettings from './views/settings/Users.vue'
 import Badges from './views/event/Badges.vue'
@@ -81,8 +81,8 @@ const routes = [
   },
   {
     path: '/email',
-    name: 'emailtable',
-    component: EmailTable
+    name: 'emailsettings',
+    component: EmailSettings
   },
   {
     path: '/login',

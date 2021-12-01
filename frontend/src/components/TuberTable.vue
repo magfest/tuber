@@ -124,7 +124,7 @@ export default {
       sortOrder: 1,
       filters: this.filters
     }
-    if (this.autoload) {
+    if (this.autoload && this.event) {
       this.load()
     }
   },

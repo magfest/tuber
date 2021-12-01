@@ -1,6 +1,6 @@
 <template>
     <div>
-      <tuber-table tableTitle="Emails" formTitle="Email" url="/api/event/<event>/email"
+      <tuber-table formTitle="Email" url="/api/event/<event>/email"
         :parameters="parameters" :filters="filters">
 
         <template #columns>
