@@ -289,7 +289,7 @@ export default {
             } else {
               night.approved = requested
             }
-            req.nights[rn.id] = requested
+            req.nights[rn.id] = night.approved
             req.room_nights.push(night)
           }
           filtered.push(req)
