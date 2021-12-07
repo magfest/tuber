@@ -20,7 +20,7 @@
           </Column>
           <Column header="Room Nights">
             <template #body="slotProps">
-              <Tag v-for="night in roomNights" :key="slotProps.data.id + '_' + night.id" :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': 'danger'" class="mr-1" style="width: 27px" />
+              <Tag v-for="night in roomNights" :key="slotProps.data.id + '_' + night.id" :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': (slotProps.data.nights_requested[night.id] ? 'warning' : 'danger')" class="mr-1" style="width: 27px" />
             </template>
           </Column>
           <Column field="notes" filterField="notes" header="Notes" :sortable="true"></Column>
@@ -77,7 +77,9 @@ export default {
     }
   },
   mounted () {
-    this.load()
+    if (this.event) {
+      this.load()
+    }
   },
   methods: {
     async load () {
@@ -114,6 +116,7 @@ export default {
         Object.assign(item, req)
         item.room_nights = []
         item.nights = {}
+        item.nights_requested = {}
         for (const rn of this.roomNights) {
           const night = {
             name: rn.name,
@@ -127,6 +130,7 @@ export default {
             }
           }
           if (rn.restricted) {
+            night.approved = false
             for (const nightapp of item.room_night_approvals) {
               if (nightapp.room_night === rn.id && nightapp.approved) {
                 night.approved = true
@@ -137,7 +141,8 @@ export default {
             night.approved = requested
           }
           night.requested = requested
-          item.nights[rn.id] = requested
+          item.nights[rn.id] = night.approved
+          item.nights_requested[rn.id] = night.requested
           item.room_nights.push(night)
         }
         filtered.push(item)

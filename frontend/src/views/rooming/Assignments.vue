@@ -27,7 +27,7 @@
           </Column>
           <Column style="width: 2rem" v-for="night in roomNights" :key="night.id">
             <template #body="slotProps">
-              <Tag :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': 'danger'" class="mr-1" style="width: 27px" />
+              <Tag :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': (slotProps.data.nights_requested[night.id] ? 'warning' : 'danger')" class="mr-1" style="width: 27px" />
             </template>
           </Column>
           <Column header="Notes" field="notes" filterField="notes" :sortable="true">
@@ -267,6 +267,7 @@ export default {
         for (const req of requests) {
           req.room_nights = []
           req.nights = {}
+          req.nights_requested = {}
           for (const rn of this.roomNights) {
             const night = {
               name: rn.name,
@@ -290,6 +291,7 @@ export default {
               night.approved = requested
             }
             req.nights[rn.id] = night.approved
+            req.nights_requested[rn.id] = requested
             req.room_nights.push(night)
           }
           filtered.push(req)
