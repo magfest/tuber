@@ -1,4 +1,3 @@
-
 <div align="center">
 
 # Tuber 🥔
@@ -13,22 +12,21 @@
 
 </div>
 
-Table of Contents
-=================
+# Table of Contents
 
-* [Deployment](#deployment)
-  * [Using Packages](#using-packages)
-  * [Using Heroku](#using-heroku)
-  * [Using Docker](#using-docker)
+- [Deployment](#deployment)
 
-* [Development](#development)
-  * [Backend](#backend)
-  * [Frontend](#frontend)
-  * [Database Migrations](#database-migrations)
-  * [Troubleshooting](#troubleshooting)
-    * [Mac Developer Setup](#mac-developer-setup)
-    * [Alembic with Multiple Heads](#alembic-with-multiple-heads)
+  - [Using Packages](#using-packages)
+  - [Using Heroku](#using-heroku)
+  - [Using Docker](#using-docker)
 
+- [Development](#development)
+  - [Backend](#backend)
+  - [Frontend](#frontend)
+  - [Database Migrations](#database-migrations)
+  - [Troubleshooting](#troubleshooting)
+    - [Mac Developer Setup](#mac-developer-setup)
+    - [Alembic with Multiple Heads](#alembic-with-multiple-heads)
 
 ## Deployment
 
@@ -51,6 +49,10 @@ docker-compose up
 This will set up a small production-style stack of containers, using postgres for the database, nginx as a reverse proxy, and redis as the session and job store. Once it finishes starting you should be able to access your instance at [http://localhost:8081](http://localhost:8081)
 
 Note: The sample docker-compose file does not currently configure SSL. You should either set up a reverse proxy to handle SSL, or edit `contrib/nginx.conf` to use your certificates and edit `docker-compose.yml` to allow access to port 443.
+
+#### Developing with Docker
+
+Any changes made locally in the development environment can be tested in docker by building the image locally and running with `docker-compose -f docker-compose.dev.yml up --build`. This will rebuild the image each time the command is run.
 
 ### Using Packages
 
@@ -78,7 +80,7 @@ tuber
 
 Configuration is in environment variables with some defaults preset. The main configuration required is for a database. The default database is sqlite, so for production deploys you should probably set up mariadb/mysql/postgres or any other database supported by SQLAlchemy.
 
-To set up the database, you will have to create a database and a user with all privileges on that database. Tuber will automatically create all necessary tables and handle future migrations at server startup. The database type, username, password, hostname, and database name all get combined as a database URI [as documented by SQLAlchemy](https://docs.sqlalchemy.org/en/13/core/engines.html). 
+To set up the database, you will have to create a database and a user with all privileges on that database. Tuber will automatically create all necessary tables and handle future migrations at server startup. The database type, username, password, hostname, and database name all get combined as a database URI [as documented by SQLAlchemy](https://docs.sqlalchemy.org/en/13/core/engines.html).
 
 ### Using Heroku
 
@@ -126,7 +128,7 @@ cd backend
 python setup.py develop
 tuber
 
-# Windows 
+# Windows
 python -m venv venv
 venv\Scripts\activate.bat
 cd backend
@@ -156,7 +158,7 @@ Both the frontend and backend will hot-reload as you change code.
 
 If you want to create a new table or modify an existing one you will need to create an alembic migration. Most of the time, you can do this by autogenerating it.
 
-First, create the table definition in tuber/models/<name>.py, and make sure it is imported in tuber/models/__init__.py.
+First, create the table definition in `tuber/models/<name>.py`, and make sure it is imported in `tuber/models/__init__.py`.
 
 Next, use alembic to create the migration file:
 
@@ -167,6 +169,7 @@ venv/bin/alembic -c backend/tuber/alembic.ini revision --autogenerate -m "Added 
 This should create a migration file in migrations/versions. Read through it and adjust the steps as necessary. The next time you restart your dev instance it will run the migration.
 
 You can also trigger the database update manually:
+
 ```bash
 venv/bin/alembic -c backend/tuber/alembic.ini upgrade head
 ```
@@ -174,6 +177,7 @@ venv/bin/alembic -c backend/tuber/alembic.ini upgrade head
 Make sure to commit the migration along with the code that uses it!
 
 ### Troubleshooting
+
 #### Mac developer setup
 
 If you receive the following ambiguous error message while running `python setup.py develop`: `ld: library not found for -lssl`

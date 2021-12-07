@@ -16,7 +16,7 @@ services:
       DATABASE_URL: postgresql://tuber:tuber@postgres/tuber
       REDIS_URL: redis://redis:6379/0
       VERBOSE: "true"
-      FLASK_ENV: production
+      FLASK_ENV: development
       WORKERS: 4
       CIRCUITBREAKER_THREADS: 4
     depends_on:
