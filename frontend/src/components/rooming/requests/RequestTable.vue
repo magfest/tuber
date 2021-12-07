@@ -123,26 +123,26 @@ export default {
             id: rn.id
           }
           let requested = false
+          let approved = false
           for (const nightreq of item.room_night_requests) {
             if (nightreq.room_night === rn.id && nightreq.requested) {
               requested = true
               break
             }
           }
-          if (rn.restricted) {
-            night.approved = false
+          if (rn.restricted && requested) {
             for (const nightapp of item.room_night_approvals) {
               if (nightapp.room_night === rn.id && nightapp.approved) {
-                night.approved = true
+                approved = true
                 break
               }
             }
           } else {
-            night.approved = requested
+            approved = requested
           }
           night.requested = requested
-          item.nights[rn.id] = night.approved
-          item.nights_requested[rn.id] = night.requested
+          item.nights[rn.id] = approved
+          item.nights_requested[rn.id] = requested
           item.room_nights.push(night)
         }
         filtered.push(item)
