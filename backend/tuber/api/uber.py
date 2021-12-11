@@ -84,13 +84,21 @@ def department_sync():
             ]
         }
         uber_model = requests.post(config.uber_api_url, headers=headers, json=req).json()['result'][0]
+        if attendee in badgelookup:
+            badge = badgelookup[attendee]
+            if uber_model['full_name'] != badge.public_name:
+                print(f"Updating public name from {badge.public_name} to {uber_model['full_name']}")
+                badge.first_name = uber_model['first_name']
+                badge.last_name = uber_model['last_name']
+                badge.public_name = uber_model['full_name']
+                db.add(badge)
         if uber_model['badge_status_label'] == "Deferred":
             if attendee in badgelookup:
                 print(f"Deleting deferred attendee {attendee} ({badgelookup[attendee].public_name})")
                 rnrs = badgelookup[attendee].room_night_requests
                 if any([x.requested for x in rnrs]):
                     print("WARNING: ATTENDEE REQUESTED ROOM NIGHTS")
-                db.delete(badgelookup[attendee])
+                #db.delete(badgelookup[attendee])
         else:
             if not attendee in badgelookup:
                 print(f"Missing attendee: {attendee}")
