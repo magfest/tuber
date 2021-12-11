@@ -25,6 +25,10 @@ def get_email_context(badge, tables):
         assignments.sort(key=lambda x: tables['HotelRoomNight'][x.room_night].date)
         start_night = assignments[0].room_night
         end_night = assignments[-1].room_night
+        checkout_day = HotelRoomNight(
+            name=(tables['HotelRoomNight'][end_night].date + datetime.timedelta(days=1)).strftime("%A"),
+            date=tables['HotelRoomNight'][end_night].date + datetime.timedelta(days=1)
+        )
         roommates = {x.id: {"badge": tables['Badge'][x.id], "nights": []} for x in room.roommates}
         for i in assignments:
             roommates[i.badge]['nights'].append(i.room_night)
@@ -36,6 +40,7 @@ def get_email_context(badge, tables):
             "completed": room.completed,
             "start_night": start_night,
             "end_night": end_night,
+            "checkout_day": checkout_day,
         })
 
     approved_nights = []
