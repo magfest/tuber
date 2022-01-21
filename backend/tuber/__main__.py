@@ -11,4 +11,4 @@ def main():
         app = AsyncMiddleware(tuber.app)
     else:
         app = tuber.app
-    run_simple('0.0.0.0', 8080, app, use_reloader=True, use_debugger=True, use_evalex=True, threaded=True)
+    run_simple('localhost', 8080, app, use_reloader=True, use_debugger=True, use_evalex=True, threaded=True)
