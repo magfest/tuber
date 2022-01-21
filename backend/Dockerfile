@@ -7,15 +7,15 @@ RUN apk update && \
     pip3 install flask && \
     rm -rf /var/lib/apt/lists/*
 
-COPY . .
-
 ENV DATABASE_URL=sqlite:///database.db
 ENV FLASK_ENV=production
 ENV REDIS_URL=
 ENV WORKERS=2
 ENV CIRCUITBREAKER_THREADS=2
 ENV CIRCUITBREAKER_TIMEOUT=5
-ENV ENABLE_CIRCUITBREAKER=true
+ENV ENABLE_CIRCUITBREAKER=false
+
+COPY . .
 
 RUN python setup.py install
 
