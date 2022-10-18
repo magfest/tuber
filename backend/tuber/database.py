@@ -6,7 +6,7 @@ import redis
 import tuber
 from tuber import config, app
 from tuber.errors import *
-from flask import _app_ctx_stack
+import greenlet
 import os
 import re
 
@@ -25,7 +25,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 engine = sqlalchemy.create_engine(config.database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-db = scoped_session(SessionLocal, scopefunc=_app_ctx_stack.__ident_func__)
+db = scoped_session(SessionLocal, scopefunc=greenlet.getcurrent)
             
 def create_tables():
     from tuber.models import Base
