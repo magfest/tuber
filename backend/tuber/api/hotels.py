@@ -322,14 +322,15 @@ def hotel_request_single_api(event, request_id):
                 if existing['id'] == room_night.id:
                     break
             else:
-                room_nights.append({
-                    "id": room_night.id,
-                    "requested": False,
-                    "date": room_night.date,
-                    "name": room_night.name,
-                    "restricted": room_night.restricted,
-                    "restriction_type": room_night.restriction_type
-                })
+                if not room_night.hidden:
+                    room_nights.append({
+                        "id": room_night.id,
+                        "requested": False,
+                        "date": room_night.date,
+                        "name": room_night.name,
+                        "restricted": room_night.restricted,
+                        "restriction_type": room_night.restriction_type
+                    })
         room_nights.sort(key=lambda x: x['date'])
         return jsonify({
             "event": hotel_request.event,
