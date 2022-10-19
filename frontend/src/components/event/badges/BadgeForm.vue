@@ -47,7 +47,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, patch } from '@/lib/rest'
+import { get, patch, post } from '@/lib/rest'
 
 export default {
   name: 'BadgeForm',
@@ -90,7 +90,11 @@ export default {
     },
     async save () {
       try {
-        await patch(this.url, this.badge)
+        if (this.id) {
+          await patch(this.url, this.badge)
+        } else {
+          await post(this.url, this.badge)
+        }
         this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
       } catch (error) {
         this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })

@@ -1,0 +1,65 @@
+---
+version: "3.7"
+
+services:
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "8081:80"
+    volumes:
+      - ./contrib/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - tuber
+
+  frontend:
+    build: ./frontend
+    image: ghcr.io/magfest/tuber-frontend:latest
+    networks:
+      - tuber
+
+  backend:
+    build: ./backend
+    command: ["sh", "-c", "pip install debugpy -t /tmp && tuber migrate && python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 /usr/local/bin/gunicorn --workers 1 -b 0.0.0.0:8080 tuber.wsgi:app"]
+    ports:
+      - 8080:8080
+      - 5678:5678
+    image: ghcr.io/magfest/tuber-backend:latest
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://tuber:tuber@postgres/tuber
+      REDIS_URL: redis://redis:6379/0
+      VERBOSE: "true"
+      FLASK_ENV: production
+      WORKERS: 4
+      CIRCUITBREAKER_THREADS: 4
+    # scale: 1
+    networks:
+      - tuber
+
+  postgres:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_PASSWORD=tuber
+      - POSTGRES_USER=tuber
+      - POSTGRES_DB=tuber
+    ports:
+      - "5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - tuber
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379"
+    networks:
+      - tuber
+
+networks:
+  tuber:
+
+volumes:
+  db-data:

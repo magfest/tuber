@@ -1,4 +1,4 @@
-from tuber import app
+from tuber import app, aws
 from flask import request, Response, stream_with_context, escape
 from tuber.models import *
 from tuber.database import db
@@ -7,7 +7,6 @@ from botocore.exceptions import ClientError
 from sqlalchemy.orm import joinedload
 import datetime
 import jinja2
-import boto3
 import lupa
 from tuber.api import *
 from tuber.models import *
@@ -137,7 +136,6 @@ def api_email_trigger(event, email):
         return "The email source for this email is inactive.", 400
 
     def stream_emails():
-        client = boto3.client('ses', region_name=source.region, aws_access_key_id=source.ses_access_key, aws_secret_access_key=source.ses_secret_key)
         yield '{'
         for badge_id, badge_email, source_address, subject, body in generate_emails(email):
             if email.send_once:
@@ -145,27 +143,8 @@ def api_email_trigger(event, email):
                 if receipts:
                     continue
             try:
-                client.send_email(
-                    Destination={
-                        'ToAddresses': [
-                            badge_email,
-                        ],
-                    },
-                    Message={
-                        'Body': {
-                            'Text': {
-                                'Charset': 'UTF-8',
-                                'Data': body,
-                            },
-                        },
-                        'Subject': {
-                            'Charset': 'UTF-8',
-                            'Data': subject,
-                        },
-                    },
-                    Source=source_address,
-                )
-            except ClientError as e:
+                aws.send_email(badge_email, body, subject, source_address, source.region, source.ses_access_key, source.ses_secret_key)
+            except RuntimeError as e:
                 print(e.response['Error']['Message'])
             else:
                 receipt = EmailReceipt(event=event, email=email.id, badge=badge_id, source=source.id, to_address=badge_email, from_address=source.address, subject=subject, body=body, timestamp=datetime.datetime.now())

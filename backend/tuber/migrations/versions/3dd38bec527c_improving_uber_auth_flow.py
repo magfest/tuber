@@ -26,9 +26,6 @@ def upgrade():
     with op.batch_alter_table('hotel_location', schema=None) as batch_op:
         batch_op.create_foreign_key(None, 'event', ['event'], ['id'])
 
-    with op.batch_alter_table('room_night_approval', schema=None) as batch_op:
-        batch_op.drop_constraint('room_night_approval_room_night_request_fkey', type_='foreignkey')
-
     with op.batch_alter_table('session', schema=None) as batch_op:
         batch_op.add_column(sa.Column('badge', sa.Integer(), nullable=True))
         batch_op.create_foreign_key(None, 'badge', ['badge'], ['id'])
