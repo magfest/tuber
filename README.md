@@ -17,8 +17,6 @@ Table of Contents
 =================
 
 * [Deployment](#deployment)
-  * [Using Packages](#using-packages)
-  * [Using Heroku](#using-heroku)
   * [Using Docker](#using-docker)
 
 * [Development](#development)
@@ -51,44 +49,6 @@ docker-compose up
 This will set up a small production-style stack of containers, using postgres for the database, nginx as a reverse proxy, and redis as the session and job store. Once it finishes starting you should be able to access your instance at [http://localhost:8081](http://localhost:8081)
 
 Note: The sample docker-compose file does not currently configure SSL. You should either set up a reverse proxy to handle SSL, or edit `contrib/nginx.conf` to use your certificates and edit `docker-compose.yml` to allow access to port 443.
-
-### Using Packages
-
-We provide a packaged version which will install Gunicorn and includes a basic nginx config file. All sessions and other state are stored in the database, so it is possible to scale horizontally by running multiple tuber servers in front of the same database.
-
-This software is currently only packaged for RHEL/Fedora. Builds are available on COPR:
-
-```bash
-dnf copr enable bitbyt3r/Tuber
-dnf install tuber
-systemctl start tuber
-systemctl enable tuber
-cp /usr/share/tuber/nginx.conf /etc/nginx/conf.d/tuber.conf
-systemctl start nginx
-systemctl enable nginx
-```
-
-You can also run tuber directly on the command line to use the built in webserver, but this is not recommended for production deploys:
-
-```bash
-dnf copr enable bitbyt3r/Tuber
-dnf install copr
-tuber
-```
-
-Configuration is in environment variables with some defaults preset. The main configuration required is for a database. The default database is sqlite, so for production deploys you should probably set up mariadb/mysql/postgres or any other database supported by SQLAlchemy.
-
-To set up the database, you will have to create a database and a user with all privileges on that database. Tuber will automatically create all necessary tables and handle future migrations at server startup. The database type, username, password, hostname, and database name all get combined as a database URI [as documented by SQLAlchemy](https://docs.sqlalchemy.org/en/13/core/engines.html). 
-
-### Using Heroku
-
-Heroku configuration is in a combination of app.json and Procfile.
-
-Opening a PR against magfest/tuber will automatically deploy a testing environment for your PR. Merging to master moves that code to staging.
-
-If you would like to deploy your own instance:
-
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
 ## Development
 
