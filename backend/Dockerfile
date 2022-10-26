@@ -25,7 +25,8 @@ ENV CIRCUITBREAKER_TIMEOUT=5
 ENV ENABLE_CIRCUITBREAKER=false
 
 COPY --from=build /usr/local/lib/python3.10/site-packages/ /usr/local/lib/python3.10/site-packages/
-
+COPY --from=build /usr/local/bin/tuber /usr/local/bin/tuber
+COPY --from=build /usr/local/bin/gunicorn /usr/local/bin/gunicorn
 COPY entrypoint.sh entrypoint.sh
 
 EXPOSE 8080

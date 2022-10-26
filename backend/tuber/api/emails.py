@@ -3,7 +3,6 @@ from flask import request, Response, stream_with_context, escape
 from tuber.models import *
 from tuber.database import db
 from tuber.permissions import *
-from botocore.exceptions import ClientError
 from sqlalchemy.orm import joinedload
 import datetime
 import jinja2

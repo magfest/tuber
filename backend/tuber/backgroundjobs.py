@@ -12,6 +12,7 @@ class AsyncMiddleware(object):
 
     def __init__(self, application):
         self.application = application
+        print(f"Activating circuitbreaker with {config.circuitbreaker_threads} threads")
         self.pool = multiprocessing.pool.ThreadPool(processes=config.circuitbreaker_threads)
         self.lock = threading.Lock()
         self.context = dict()
@@ -44,8 +45,8 @@ class AsyncMiddleware(object):
         self.pool.terminate()
 
     def __call__(self, environ, start_response):
-        if environ['REQUEST_URI'].startswith("/api/job/"):
-            job_id = environ['REQUEST_URI'].split("/api/job/")[1]
+        if environ['PATH_INFO'].startswith("/api/job/"):
+            job_id = environ['PATH_INFO'].split("/api/job/")[1]
             if r:
                 progress = json.loads(r.get(f"{job_id}/progress"))
                 if not progress:
