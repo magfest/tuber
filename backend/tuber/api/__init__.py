@@ -76,7 +76,7 @@ def crud_group(model, event=None, department=None):
         if full:
             columns, relationships = model.get_fields()
             for relation in relationships:
-                rows = rows.options(joinedload(relation.key))
+                rows = rows.options(joinedload(getattr(model, relation.key)))
         if count:
             return json.dumps(rows.count()), 200
         if hasattr(model, sort):
