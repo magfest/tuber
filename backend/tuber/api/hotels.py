@@ -201,7 +201,7 @@ def block_assignments(event):
         if not check_permission("hotel_block.*.read", event=event):
             return "", 403
         subquery = db.query(RoomNightRequest.badge).filter(RoomNightRequest.event == event, RoomNightRequest.requested == True).distinct().subquery().select()
-        rows = db.query(Badge, HotelRoomRequest.declined, HotelRoomRequest.hotel_block, HotelRoomRequest.id, HotelRoomRequest.notes).options(joinedload('departments')).filter(HotelRoomRequest.event == event, HotelRoomRequest.badge.in_(subquery)).join(HotelRoomRequest, HotelRoomRequest.badge == Badge.id).all()
+        rows = db.query(Badge, HotelRoomRequest.declined, HotelRoomRequest.hotel_block, HotelRoomRequest.id, HotelRoomRequest.notes).options(joinedload(Badge.departments)).filter(HotelRoomRequest.event == event, HotelRoomRequest.badge.in_(subquery)).join(HotelRoomRequest, HotelRoomRequest.badge == Badge.id).all()
         badge_dicts = []
         for badge, declined, block, hrr, notes in rows:
             if not declined:
@@ -416,7 +416,7 @@ def update_requests(event):
     room_night_lookup = {x.id: x for x in room_nights}
     block = db.query(HotelRoomBlock).filter(HotelRoomBlock.event == event).first()
 
-    reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == event).options(joinedload('room_night_requests')).all()
+    reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == event).options(joinedload(HotelRoomRequest.room_night_requests)).all()
     for req in reqs:
         req.requested = False
         req.approved = False
@@ -492,7 +492,7 @@ def update_room_request(db, instance, deleted=None):
     elif type(instance) is HotelRoomRequest:
         reqs = [instance]
     elif type(instance) is HotelRoomNight:
-        reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == instance.event).options(joinedload('room_night_requests')).options(joinedload('room_night_approvals')).options(joinedload('room_night_assignments')).all()
+        reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == instance.event).options(joinedload(HotelRoomRequest.room_night_requests)).options(joinedload(HotelRoomRequest.room_night_approvals)).options(joinedload(HotelRoomRequest.room_night_assignments)).all()
     update_room_request_props(db, reqs)
     if not type(instance) is HotelRoomRequest:
         for req in reqs:

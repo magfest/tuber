@@ -72,7 +72,7 @@ def department_sync():
     for dept in departments:
         dept_names[dept.name] = dept
 
-    badges = db.query(Badge).filter(Badge.event == event).options(joinedload('departments')).all()
+    badges = db.query(Badge).filter(Badge.event == event).options(joinedload(Badge.departments)).all()
     badgelookup = {badge.uber_id: badge for badge in badges}
 
     for attendee in eligible:
