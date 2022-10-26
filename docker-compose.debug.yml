@@ -19,8 +19,10 @@ services:
 
   backend:
     build: ./backend
+    command: ["sh", "-c", "pip install debugpy -t /tmp && python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 /usr/local/bin/gunicorn --workers 1 -b 0.0.0.0:8080 tuber.wsgi:app"]
     ports:
       - 8080:8080
+      - 5678:5678
     image: ghcr.io/magfest/tuber-backend:latest
     depends_on:
       - postgres
@@ -29,7 +31,7 @@ services:
       DATABASE_URL: postgresql://tuber:tuber@postgres/tuber
       REDIS_URL: redis://redis:6379/0
       VERBOSE: "true"
-      FLASK_DEBUG: 0
+      FLASK_DEBUG: 1
       WORKERS: 4
       CIRCUITBREAKER_THREADS: 4
       ENABLE_CIRCUITBREAKER: true
