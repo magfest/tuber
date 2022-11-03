@@ -9,7 +9,7 @@ on:
     - '.github/workflows/run-tests.yaml'
 
 jobs:
-  build-backend:
+  test-backend:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
