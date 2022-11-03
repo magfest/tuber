@@ -1,11 +1,9 @@
 ---
-name: Backend - Build Image
+name: Backend - Run Tests
 
 on:
   workflow_dispatch:
   push:
-    branches:
-    - main
     paths:
     - 'backend/**'
     - '.github/workflows/ci-backend.yaml'
@@ -41,5 +39,8 @@ jobs:
         with:
           context: "./backend"
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/${{ github.repository }}-backend:latest
+          tags: ghcr.io/${{ github.repository }}-backend:testing
           labels: ${{ steps.meta.outputs.labels }}
+
+- name: Run Tests
+        run: docker compose run backend pytest
