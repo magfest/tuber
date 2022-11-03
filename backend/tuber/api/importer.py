@@ -27,27 +27,19 @@ def csv_import():
         response.headers.set('Content-Disposition', 'attachment; filename={}.csv'.format(export_type))
         return response
     elif request.method == "POST":
-        print("CSV Import")
-        #if not check_permission("import.*.csv"):
-        #    return "Permission Denied", 403
+        if not check_permission("import.*.csv"):
+            return "Permission Denied", 403
         import_type = request.form['csv_type']
-        print(import_type)
         model = globals()[import_type]
-        print(model)
         raw_import = request.form['raw_import'].lower().strip() == "true"
         full_import = request.form['full_import'].lower().strip() == "true"
-        print(raw_import, full_import)
         file = request.files['files']
-        print(file)
         data = file.read().decode('UTF-8').replace("\r\n", "\n")
-        print(data)
         if full_import:
-            print("Deleting existing...")
             db.query(model).delete()
         rows = data.split("\n")
         cols = rows[0].split(",")
         rows = rows[1:]
-        print(cols, rows)
         def convert(key, val):
             col = model.__table__.columns[key]
             if col.nullable:
@@ -66,17 +58,13 @@ def csv_import():
             
         count = 0
         for row in rows:
-            print(f"Importing {row}")
             if not row.strip():
                 continue
             row = row.split(",")
             new = model(**{key: convert(key, val) for key,val in zip(cols, row)})
-            print(new)
             db.add(new)
             count += 1
-        print("Commiting")
         db.commit()
-        print("Committed")
         return str(count), 200
 
 def get_uber_csv(session, model, url):
@@ -365,7 +353,6 @@ def import_mock():
                     smoke_sensitive=random.choice([True, False]),
                     sleep_time=random.choice(['2am-4am', '4am-6am', '6am-8am', '8am-10am']),
                 )
-                print("Adding hotel room request", event.id)
                 db.add(hotel_request)
 
         print("Requesting Roommates...")

@@ -25,35 +25,35 @@ class AsyncMiddleware(object):
 
         @application.route("/api/slow", methods=["GET"])
         def slow_call():
-            #if check_permission("circuitbreaker.*.test"):
+            if check_permission("circuitbreaker.*.test"):
                 for i in range(10):
                     time.sleep(1)
                     g.progress(i*0.1, f"Doing a thing (part {i} / 10)")
                 events = db.query(Event).all()
                 return jsonify(Event.serialize(events, g)), 200
-            #return "Permission Denied", 403
+            return "Permission Denied", 403
 
         @application.route("/api/fast", methods=["GET"])
         def fast_call():
-            #if check_permission("circuitbreaker.*.test"):
+            if check_permission("circuitbreaker.*.test"):
                 time.sleep(0.1)
                 events = db.query(Event).all()
                 return jsonify(Event.serialize(events, g)), 200
-            #return "Permission Denied", 403
+            return "Permission Denied", 403
 
         @application.route("/api/fastfail", methods=["GET"])
         def fast_fail_call():
-            #if check_permission("circuitbreaker.*.test"):
+            if check_permission("circuitbreaker.*.test"):
                 time.sleep(0.1)
                 raise ValueError("This is an intentional exception.")
-            #return "Permission Denied", 403
+            return "Permission Denied", 403
 
         @application.route("/api/slowfail", methods=["GET"])
         def slow_fail_call():
-            #if check_permission("circuitbreaker.*.test"):
+            if check_permission("circuitbreaker.*.test"):
                 time.sleep(10)
                 raise ValueError("This is an intentional exception.")
-            #return "Permission Denied", 403
+            return "Permission Denied", 403
 
     def __del__(self):
         self.pool.close()
