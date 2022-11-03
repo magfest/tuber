@@ -1,9 +1,9 @@
-FROM python:alpine
+FROM python:alpine as build
 
 WORKDIR /app
 
 RUN apk update && \
-    apk add --no-cache postgresql-dev gcc python3-dev musl-dev linux-headers postgresql g++ && \
+    apk add --no-cache postgresql-dev gcc python3-dev musl-dev g++ && \
     pip3 install flask && \
     rm -rf /var/lib/apt/lists/*
 
@@ -19,13 +19,6 @@ RUN pip3 install -r requirements.txt
 COPY tuber tuber
 RUN python setup.py install
 
-COPY requirements-test.txt requirements-test.txt
-RUN pip3 install -r requirements-test.txt
-COPY tests tests
-
-RUN rm -rf /usr/local/lib/python3.11/site-packages/pip \
-    rm -rf /usr/local/lib/python3.11/site-packages/setuptools
-
 ENV DATABASE_URL=sqlite:///database.db
 ENV FLASK_DEBUG=false
 ENV REDIS_URL=
@@ -38,6 +31,19 @@ EXPOSE 8080
 
 COPY entrypoint.sh entrypoint.sh
 CMD /bin/sh entrypoint.sh
+
+FROM build as test
+RUN apk update && \
+    apk add --no-cache linux-headers postgresql && \
+    rm -rf /var/lib/apt/lists/*
+COPY requirements-test.txt requirements-test.txt
+RUN pip3 install -r requirements-test.txt
+COPY tests tests
+
+FROM build as release
+
+RUN rm -rf /usr/local/lib/python3.11/site-packages/pip \
+    rm -rf /usr/local/lib/python3.11/site-packages/setuptools
 
 RUN adduser -D tuber
 USER tuber
