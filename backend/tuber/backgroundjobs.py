@@ -1,5 +1,6 @@
 import multiprocessing.pool
 import threading
+import traceback
 import json
 import uuid
 import time
@@ -24,21 +25,35 @@ class AsyncMiddleware(object):
 
         @application.route("/api/slow", methods=["GET"])
         def slow_call():
-            if check_permission("circuitbreaker.*.test"):
+            #if check_permission("circuitbreaker.*.test"):
                 for i in range(10):
                     time.sleep(1)
                     g.progress(i*0.1, f"Doing a thing (part {i} / 10)")
                 events = db.query(Event).all()
                 return jsonify(Event.serialize(events, g)), 200
-            return "Permission Denied", 403
+            #return "Permission Denied", 403
 
         @application.route("/api/fast", methods=["GET"])
         def fast_call():
-            if check_permission("circuitbreaker.*.test"):
+            #if check_permission("circuitbreaker.*.test"):
                 time.sleep(0.1)
                 events = db.query(Event).all()
                 return jsonify(Event.serialize(events, g)), 200
-            return "Permission Denied", 403
+            #return "Permission Denied", 403
+
+        @application.route("/api/fastfail", methods=["GET"])
+        def fast_fail_call():
+            #if check_permission("circuitbreaker.*.test"):
+                time.sleep(0.1)
+                raise ValueError("This is an intentional exception.")
+            #return "Permission Denied", 403
+
+        @application.route("/api/slowfail", methods=["GET"])
+        def slow_fail_call():
+            #if check_permission("circuitbreaker.*.test"):
+                time.sleep(10)
+                raise ValueError("This is an intentional exception.")
+            #return "Permission Denied", 403
 
     def __del__(self):
         self.pool.close()
@@ -56,7 +71,8 @@ class AsyncMiddleware(object):
                     start_response("202 Accepted", [("Content-Type", "application/json")])
                     return [json.dumps(progress).encode()]
                 data = r.get(f"{job_id}/data")
-                start_response("200 Ok", [("Content-Type", "application/json")])
+                context = json.loads(r.get(f"{job_id}/context"))
+                start_response(context['status'], context['response_headers'])
                 return [data]
             else:
                 job = db.query(BackgroundJob).filter(BackgroundJob.uuid == job_id).one_or_none()
@@ -66,12 +82,12 @@ class AsyncMiddleware(object):
                 else:
                     progress = json.loads(job.progress)
                     if progress['complete']:
-                        start_response("200 Ok", [("Content-Type", "application/json")])
+                        context = json.loads(job.context)
+                        start_response(context['status'], context['response_headers'])
                         return [job.result]
                     start_response("202 Accepted", [("Content-Type", "application/json")])
                     return [job.progress.encode()]
         job_id = str(uuid.uuid4())
-        environ['TUBER_JOB_ID'] = job_id
         request_context = {
             "state": "pending",
             "status": "202 Accepted",
@@ -86,7 +102,8 @@ class AsyncMiddleware(object):
         thread = self.pool.apply_async(
             self.application,
             (environ, lambda *args, **kwargs: self._start_response(job_id, *args, **kwargs)),
-            callback=lambda *args, **kwargs: self._store_response(job_id, *args, **kwargs)
+            callback=lambda *args, **kwargs: self._store_response(job_id, *args, **kwargs),
+            error_callback=lambda *args, **kwargs: self._store_response(job_id, *args, **kwargs)
         )
         thread.wait(timeout=config.circuitbreaker_timeout)
 
@@ -94,7 +111,11 @@ class AsyncMiddleware(object):
             start_response(request_context['status'], request_context['response_headers'])
             if request_context['state'] == "immediate":
                 del self.context[job_id]
-                return thread.get()
+                try:
+                    return thread.get()
+                except:
+                    traceback.print_exc()
+                    return ["Backend error".encode('UTF-8')]
             request_context['state'] = "deferred"
             progress = json.dumps({"complete": False, "amount": 0, "messages": "", "status": ""})
             if r:
@@ -103,6 +124,7 @@ class AsyncMiddleware(object):
                 job = BackgroundJob(uuid=job_id, progress=progress)
                 db.add(job)
                 db.commit()
+            environ['TUBER_JOB_ID'] = job_id
         return [bytes()]
 
     def _start_response(self, job_id, status, response_headers, *args, **kwargs):
@@ -114,6 +136,9 @@ class AsyncMiddleware(object):
         return _write
 
     def _store_response(self, job_id, iterable):
+        if isinstance(iterable, Exception):
+            iterable = traceback.format_exception(None, iterable, iterable.__traceback__)
+            self.context[job_id]['status'] = "500 INTERNAL SERVER ERROR"
         with self.lock:
             if self.context[job_id]['state'] == "pending":
                 self.context[job_id]['state'] = "immediate"
@@ -137,9 +162,13 @@ class AsyncMiddleware(object):
         else:
             data = bytes()
             for chunk in iterable:
+                if isinstance(chunk, str):
+                    chunk = chunk.encode('UTF-8')
                 data = data + chunk
             with self.lock:
-                job = db.query(BackgroundJob).filter(BackgroundJob.uuid == job_id).one()
+                job = db.query(BackgroundJob).filter(BackgroundJob.uuid == job_id).one_or_none()
+                if not job:
+                    return
                 job.progress = progress
                 job.result = data
                 job.context = request_context
@@ -159,7 +188,7 @@ class AsyncMiddleware(object):
                     progress['messages'] += status + "\n"
                 r.set(f"{job_id}/progress", json.dumps(progress))
             else:
-                job = db.query(BackgroundJob).filter(BackgroundJob.uuid == job_id).one()
+                job = db.query(BackgroundJob).filter(BackgroundJob.uuid == job_id).one_or_none()
                 progress = json.loads(job.progress)
                 progress['amount'] = amount
                 if status:

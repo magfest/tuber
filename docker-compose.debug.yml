@@ -35,7 +35,7 @@ services:
       WORKERS: 4
       CIRCUITBREAKER_THREADS: 4
       ENABLE_CIRCUITBREAKER: true
-      CIRCUITBREAKER_TIMEOUT: 0.1
+      CIRCUITBREAKER_TIMEOUT: 1
     # scale: 1
     networks:
       - tuber

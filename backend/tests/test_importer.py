@@ -17,12 +17,14 @@ def test_csv_export(client):
     assert(badge_dict['legal_name'] == "Test User")
 
 def test_csv_import(client):
-    client.post("/api/importer/csv", content_type="multipart/form-data", data={
+    new_badge = client.post("/api/importer/csv", content_type="multipart/form-data", data={
         "csv_type": "Badge",
-        "raw_import": False,
-        "full_import": False,
+        "raw_import": "false",
+        "full_import": "false",
         "files": (io.BytesIO(b"legal_name,event\nTest User 1,1"), 'badge.csv')
     })
+    assert new_badge.status_code == 200
+
     badges = client.get("/api/event/1/badge").json
     assert(len(badges) == 1)
 

@@ -2,3 +2,7 @@ venv/
 tuber.egg-info/
 .eggs/
 database.db
+test.db
+Dockerfile
+.gitignore
+.dockerignore

@@ -1,7 +1,9 @@
 from werkzeug.test import Client
 import importlib
 import fakeredis
+import tempfile
 import pytest
+import time
 import sys
 import os
 
@@ -11,19 +13,18 @@ def csrf(client):
             return cookie.value
     return ""
 
-@pytest.fixture(params=[True, False])
-def tuber(redis=False):
-    os.environ['FORCE_HTTPS'] = "false"
-    os.environ['FLASK_ENV'] = "development"
+@pytest.fixture(params=[False, True])
+def tuber(postgresql, redis=False):
+    os.environ['FLASK_DEBUG'] = "true"
     os.environ['REDIS_URL'] = ""
-    os.environ['DATABASE_URL'] = "sqlite:///test.db"
+    os.environ['DATABASE_URL'] = f"postgresql://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
     os.environ['CIRCUITBREAKER_TIMEOUT'] = "5"
     os.environ['ENABLE_CIRCUITBREAKER'] = "true"
     mod = importlib.import_module('tuber')
     tuber.backgroundjobs = importlib.import_module('tuber.backgroundjobs')
     settings_override = {
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': "sqlite:///test.db"
+        'SQLALCHEMY_DATABASE_URI': f"postgresql://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
     }
     mod.app.config.update(settings_override)
     if redis:
@@ -47,6 +48,24 @@ def client_fresh(tuber):
     tuber.database.drop_tables()
     del sys.modules['tuber']
 
+def wait_for(rv, _get):
+    if rv.status_code == 202:
+        print("Waiting for 202 to resolve")
+        assert "Location" in rv.headers
+        url = rv.headers['Location']
+        start_time = time.time()
+        while time.time() - start_time < 15:
+            rv = _get(url)
+            time.sleep(0.2)
+            if rv.status_code == 202:
+                assert "complete" in rv.json
+                assert not rv.json['complete']
+            if rv.status_code == 200:
+                assert rv.json
+                return rv
+        raise TimeoutError(f"Timed out waiting for {url} -- Try again without circuitbreaker for exception.")
+    return rv
+
 @pytest.fixture
 def client(tuber):
     """Creates a test client with initial setup complete and the admin user logged in already.
@@ -63,47 +82,53 @@ def client(tuber):
     client.post("/api/login", json={"username": "admin", "password": "admin"}, headers={"CSRF-Token": csrf(client)})
     client.post("/api/event", json={"name": "Tuber Event", "description": "It's a potato"}, headers={"CSRF-Token": csrf(client)})
     _get = client.get
-    def get(*args, **kwargs):
+    def get(*args, handle_async=True, **kwargs):
         if not 'headers' in kwargs:
             kwargs['headers'] = {}
         kwargs['headers']['CSRF-Token'] = csrf(client)
         rv = _get(*args, **kwargs)
+        if handle_async:
+            return wait_for(rv, _get)
         return rv
     _post = client.post
-    def post(*args, **kwargs):
+    def post(*args, handle_async=True, **kwargs):
         if not 'headers' in kwargs:
             kwargs['headers'] = {}
         kwargs['headers']['CSRF-Token'] = csrf(client)
         rv = _post(*args, **kwargs)
+        if handle_async:
+            return wait_for(rv, _get)
         return rv
     _patch = client.patch
-    def patch(*args, **kwargs):
+    def patch(*args, handle_async=True, **kwargs):
         if not 'headers' in kwargs:
             kwargs['headers'] = {}
         kwargs['headers']['CSRF-Token'] = csrf(client)
         rv = _patch(*args, **kwargs)
+        if handle_async:
+            return wait_for(rv, _get)
         return rv
     _delete = client.delete
-    def delete(*args, **kwargs):
+    def delete(*args, handle_async=True, **kwargs):
         if not 'headers' in kwargs:
             kwargs['headers'] = {}
         kwargs['headers']['CSRF-Token'] = csrf(client)
         rv = _delete(*args, **kwargs)
+        if handle_async:
+            return wait_for(rv, _get)
         return rv
     client.get = get
     client.post = post
     client.patch = patch
     client.delete = delete
     yield client
-    tuber.database.drop_tables()
 
 @pytest.fixture
-def prod_client():
+def prod_client(postgresql):
     os.environ['REDIS_URL'] = ""
-    os.environ['DATABASE_URL'] = "sqlite:///test.db"
+    os.environ['DATABASE_URL'] = f"postgresql://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
     os.environ['CIRCUITBREAKER_TIMEOUT'] = "5"
-    os.environ['FORCE_HTTPS'] = "true"
-    os.environ['FLASK_ENV'] = "production"
+    os.environ['FLASK_DEBUG'] = "false"
     tuber = importlib.import_module('tuber')
     tuber.backgroundjobs = importlib.import_module('tuber.backgroundjobs')
     tuber.database.create_tables()

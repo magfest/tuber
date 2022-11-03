@@ -3,17 +3,17 @@ from .badge import Badge
 from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Date, Table
 from sqlalchemy.orm import relationship
 
-HotelRoommateRequest = Table("hotel_roommate_request", Base.metadata,
-    Column("id", Integer, primary_key=True),
-    Column("requester", Integer, ForeignKey('badge.id', ondelete="CASCADE")),
-    Column("requested", Integer, ForeignKey('badge.id', ondelete="CASCADE")),
-)
+class HotelRoommateRequest(Base):
+    __tablename__ = "hotel_roommate_request"
+    id = Column(Integer, primary_key=True)
+    requester = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
+    requested = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
 
-HotelAntiRoommateRequest = Table("hotel_anti_roommate_request", Base.metadata,
-    Column("id", Integer, primary_key=True),
-    Column("requester", Integer, ForeignKey('badge.id', ondelete="CASCADE")),
-    Column("requested", Integer, ForeignKey('badge.id', ondelete="CASCADE")),
-)
+class HotelAntiRoommateRequest(Base):
+    __tablename__ = "hotel_anti_roommate_request"
+    id = Column(Integer, primary_key=True)
+    requester = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
+    requested = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
 
 class RoomNightRequest(Base):
     __tablename__ = "room_night_request"
@@ -65,11 +65,11 @@ class HotelRoomRequest(Base):
     smoke_sensitive = Column(Boolean, nullable=True)
     sleep_time = Column(String(), nullable=True)
     room_night_justification = Column(String(), nullable=True)
-    roommate_requests = relationship("Badge", secondary="hotel_roommate_request", foreign_keys=[HotelRoommateRequest.c.requested, HotelRoommateRequest.c.requester], primaryjoin=badge==HotelRoommateRequest.c.requester, secondaryjoin=Badge.id==HotelRoommateRequest.c.requested)
-    roommate_anti_requests = relationship("Badge", secondary="hotel_anti_roommate_request", foreign_keys=[HotelAntiRoommateRequest.c.requested, HotelAntiRoommateRequest.c.requester], primaryjoin=badge==HotelAntiRoommateRequest.c.requester, secondaryjoin=Badge.id==HotelAntiRoommateRequest.c.requested)
-    room_night_requests = relationship("RoomNightRequest", foreign_keys=[RoomNightRequest.badge], primaryjoin=badge==RoomNightRequest.badge)
-    room_night_approvals = relationship("RoomNightApproval", foreign_keys=[RoomNightApproval.badge], primaryjoin=badge==RoomNightApproval.badge)
-    room_night_assignments = relationship("RoomNightAssignment", foreign_keys=[RoomNightAssignment.badge], primaryjoin=badge==RoomNightAssignment.badge)
+    roommate_requests = relationship("Badge", secondary="hotel_roommate_request", foreign_keys=[HotelRoommateRequest.requested, HotelRoommateRequest.requester], primaryjoin=badge==HotelRoommateRequest.requester, secondaryjoin=Badge.id==HotelRoommateRequest.requested)
+    roommate_anti_requests = relationship("Badge", secondary="hotel_anti_roommate_request", foreign_keys=[HotelAntiRoommateRequest.requested, HotelAntiRoommateRequest.requester], primaryjoin=badge==HotelAntiRoommateRequest.requester, secondaryjoin=Badge.id==HotelAntiRoommateRequest.requested)
+    room_night_requests = relationship("RoomNightRequest", foreign_keys=[RoomNightRequest.badge], primaryjoin=badge==RoomNightRequest.badge, overlaps="room_night_requests")
+    room_night_approvals = relationship("RoomNightApproval", foreign_keys=[RoomNightApproval.badge], primaryjoin=badge==RoomNightApproval.badge, overlaps="room_night_approvals")
+    room_night_assignments = relationship("RoomNightAssignment", foreign_keys=[RoomNightAssignment.badge], primaryjoin=badge==RoomNightAssignment.badge, overlaps="room_night_assignments")
 
 class HotelRoomBlock(Base):
     __tablename__ = "hotel_room_block"
