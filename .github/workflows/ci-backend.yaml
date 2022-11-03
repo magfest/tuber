@@ -17,6 +17,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v1
 
+      - name: Use action to check for CRLF endings
+        uses: erclu/check-crlf@v1
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v3
