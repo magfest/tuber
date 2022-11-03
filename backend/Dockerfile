@@ -31,6 +31,7 @@ EXPOSE 8080
 
 COPY entrypoint.sh entrypoint.sh
 CMD /bin/sh entrypoint.sh
+RUN adduser -D tuber
 
 FROM build as test
 RUN apk update && \
@@ -39,11 +40,9 @@ RUN apk update && \
 COPY requirements-test.txt requirements-test.txt
 RUN pip3 install -r requirements-test.txt
 COPY tests tests
+USER tuber
 
 FROM build as release
-
 RUN rm -rf /usr/local/lib/python3.11/site-packages/pip \
     rm -rf /usr/local/lib/python3.11/site-packages/setuptools
-
-RUN adduser -D tuber
 USER tuber
