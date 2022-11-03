@@ -41,5 +41,5 @@ jobs:
           tags: ghcr.io/${{ github.repository }}-backend:testing
           labels: ${{ steps.meta.outputs.labels }}
 
-- name: Run Tests
+      - name: Run Tests
         run: docker compose run backend pytest
