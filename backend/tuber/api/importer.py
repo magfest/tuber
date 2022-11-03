@@ -341,6 +341,7 @@ def import_mock():
                 else:
                     requested_room.append(staffer)
                 hotel_request = HotelRoomRequest(
+                    event=event.id,
                     badge=staffer.id,
                     declined=declined,
                     prefer_department=random.random() > 0.1,

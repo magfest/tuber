@@ -13,9 +13,10 @@ def validate_csrf():
         if request.method == "GET":
             g.data = dict(request.args)
             return
-        if not request.json is None:
-            g.data = dict(request.json)
-            return
+        if request.headers.get("Content-Type") == "application/json":
+            if not request.json is None:
+                g.data = dict(request.json)
+                return
         if not request.form is None:
             g.data = dict(request.form)
             return

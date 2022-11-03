@@ -19,7 +19,7 @@ def load_session(endpoint, values):
     }
 
     if request.method != "GET":
-        if not request.json is None:
+        if request.headers.get("Content-Type") == "application/json":
             g.data = dict(request.json)
         elif not request.form is None:
             g.data = dict(request.form)

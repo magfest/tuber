@@ -17,6 +17,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v1
 
+      - name: Use action to check for CRLF endings
+        uses: erclu/check-crlf@v1
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v3
@@ -40,6 +43,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: "./backend"
+          target: release
           push: ${{ github.event_name != 'pull_request' }}
           tags: ghcr.io/${{ github.repository }}-backend:latest
           labels: ${{ steps.meta.outputs.labels }}

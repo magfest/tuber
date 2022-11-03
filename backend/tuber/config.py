@@ -12,7 +12,6 @@ conf = {
     "uber_api_url": "",
     "uber_event": 1,
     "csp_directives": "",
-    "force_https": False,
     "enable_circuitbreaker": False,
     "circuitbreaker_timeout": 1,
     "circuitbreaker_threads": 10,
@@ -28,9 +27,9 @@ for i in conf.keys():
 
 conf.update(environment)
 pathlib.Path("/tmp/app-initialized").touch()
-conf['database_url'] = conf['database_url'].replace("postgres:", "postgresql:", 1)
+conf['database_url'] = conf['database_url'].replace("postgres://", "postgresql://", 1)
 
-for i in ["verbose", "force_https", "enable_circuitbreaker"]:
+for i in ["verbose", "enable_circuitbreaker"]:
     if isinstance(conf[i], str):
         conf[i] = conf[i].lower() == "true"
 
