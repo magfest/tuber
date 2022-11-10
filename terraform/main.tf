@@ -143,13 +143,25 @@ resource "aws_subnet" "primary" {
   cidr_block = "10.0.0.0/24"
 
   tags = {
-    Name = "Tuber"
+    Name = "Tuber Primary"
+  }
+}
+
+resource "aws_subnet" "secondary" {
+  vpc_id     = aws_vpc.tuber.id
+  cidr_block = "10.0.1.0/24"
+
+  tags = {
+    Name = "Tuber Secondary"
   }
 }
 
 resource "aws_db_subnet_group" "tuber" {
   name       = "tuber"
-  subnet_ids = [aws_subnet.primary.id]
+  subnet_ids = [
+    aws_subnet.primary.id,
+    aws_subnet.secondary.id
+  ]
 
   tags = {
     Name = "Tuber"
@@ -555,6 +567,7 @@ resource "aws_db_instance" "tuber" {
   username               = "tuber"
   password               = random_password.tuber_db.result
   skip_final_snapshot    = true
+  multi_az               = false
   vpc_security_group_ids = [
     aws_security_group.tuber_rds.id
   ]
