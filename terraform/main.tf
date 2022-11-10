@@ -265,7 +265,7 @@ resource "aws_lb_target_group" "tuber_backend" {
     interval            = 30
     unhealthy_threshold = 10
     timeout             = 5
-    path                = "/_health"
+    path                = "/api/_health"
     matcher             = "200"
   }
 }
