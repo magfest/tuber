@@ -380,7 +380,7 @@ resource "aws_ecs_task_definition" "tuber" {
 TASK_DEFINITION
 
   cpu                       = 256
-  memory                    = 256
+  memory                    = 512
   requires_compatibilities  = ["FARGATE"]
   network_mode              = "awsvpc"
   execution_role_arn        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"
@@ -451,7 +451,7 @@ resource "aws_ecs_task_definition" "redis" {
 TASK_DEFINITION
 
   cpu                       = 256
-  memory                    = 256
+  memory                    = 512
   requires_compatibilities  = ["FARGATE"]
   network_mode              = "awsvpc"
   execution_role_arn        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"
