@@ -586,11 +586,9 @@ resource "aws_service_discovery_service" "tuber" {
 
 resource "random_password" "tuber_db" {
   length            = 40
-  special           = true
-  min_special       = 5
-  override_special  = "!#$%^&*()-_=+[]{}<>:?"
+  special           = false
   keepers           = {
-    pass_version  = 1
+    pass_version  = 2
   }
 }
 
