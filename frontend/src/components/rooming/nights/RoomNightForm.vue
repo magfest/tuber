@@ -64,7 +64,7 @@ export default {
   methods: {
     load () {
       if (this.id) {
-        get(this.url).then((roomNight) => {
+        get(this.url, {sort: "date"}).then((roomNight) => {
           this.roomNight = roomNight
         })
       }

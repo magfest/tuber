@@ -197,7 +197,7 @@ export default {
       await this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
       await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
       try {
-        this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night')
+        this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', {sort: "date"})
         this.roomNights.sort((a, b) => {
           if (a.date > b.date) {
             return 1

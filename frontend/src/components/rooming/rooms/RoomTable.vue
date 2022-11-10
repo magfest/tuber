@@ -190,7 +190,7 @@ export default {
     async viewRequest (requestID) {
       let request = await get('/api/event/' + this.event.id + '/hotel_room_request', { badge: requestID, full: true, deep: true })
       request = request[0]
-      this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night')
+      this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', {sort: "date"})
       request.room_nights = []
       request.nights = {}
       for (const rn of this.roomNights) {

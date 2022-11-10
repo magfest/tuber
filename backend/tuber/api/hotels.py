@@ -12,7 +12,7 @@ from .room_matcher import rematch_hotel_block
 def update_room_request_props(db, reqs, assigned=None, requested=None, approved=None):
     if not reqs:
         return
-    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == reqs[0].event).all()
+    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == reqs[0].event).order_by(HotelRoomNight.date).all()
     room_night_lookup = {x.id: x for x in room_nights}
     for req in reqs:
         req.requested = False
@@ -53,7 +53,7 @@ def add_roommates(event, hotel_block, room_id):
     if not check_permission(f'hotel_block.{hotel_block}.write', event=event):
         return "", 403
     reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event==event, HotelRoomRequest.badge.in_(g.data['roommates'])).all()
-    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event==event).all()
+    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event==event).order_by(HotelRoomNight.date).all()
     room_nights = {x.id: x for x in room_nights}
     for req in reqs:
         for night in req.room_night_requests:
@@ -114,7 +114,7 @@ def room_details(event):
 
     gender_prefs = {}
 
-    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
+    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).order_by(HotelRoomNight.date).all()
     room_nights = {x.id: x for x in room_nights}
     hotel_rooms = db.query(HotelRoom, HotelRoomRequest).join(RoomNightAssignment, HotelRoom.id == RoomNightAssignment.hotel_room).join(HotelRoomRequest, HotelRoomRequest.badge == RoomNightAssignment.badge).filter(HotelRoom.id.in_(rooms)).options(joinedload(HotelRoomRequest.room_night_approvals)).options(joinedload(HotelRoomRequest.room_night_requests)).all()
     for hotel_room, request in hotel_rooms:
@@ -412,7 +412,7 @@ def update_requests(event):
             db.add(badge)
     badgeLookup = {x.id: x for x in badges}
 
-    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
+    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).order_by(HotelRoomNight.date).all()
     room_night_lookup = {x.id: x for x in room_nights}
     block = db.query(HotelRoomBlock).filter(HotelRoomBlock.event == event).first()
 
