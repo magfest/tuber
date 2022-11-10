@@ -411,12 +411,10 @@ resource "aws_ecs_task_definition" "tuber" {
       {
         "name": "ENABLE_CIRCUITBREAKER",
         "value": "false"
-      }
-    ],
-    "secrets": [
+      },
       {
         "name": "DATABASE_URL",
-        "valueFrom": "postgresql://tuber:${random_password.tuber_db.result}@${aws_db_instance.tuber.endpoint}/tuber"
+        "value": "postgresql://tuber:${random_password.tuber_db.result}@${aws_db_instance.tuber.endpoint}/tuber"
       }
     ],
     "image": "${var.backend_container}",
