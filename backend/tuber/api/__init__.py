@@ -154,6 +154,7 @@ from .importer import *
 from .emails import *
 from .shifts import *
 from .uber import *
+from .health import *
 
 for obj in list(locals().values()):
     if inspect.isclass(obj) and issubclass(obj, Base) and hasattr(obj, "__url__"):
