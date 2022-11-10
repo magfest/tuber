@@ -25,8 +25,8 @@ resource "aws_security_group" "tuber_internal" {
 
   ingress {
     description      = "HTTP to Tuber Frontend"
-    from_port        = 8081
-    to_port          = 8081
+    from_port        = 80
+    to_port          = 80
     protocol         = "tcp"
     cidr_blocks      = [aws_subnet.primary.cidr_block]
   }
@@ -341,7 +341,7 @@ resource "aws_ecs_service" "tuber" {
   load_balancer {
     target_group_arn = aws_lb_target_group.tuber_frontend.arn
     container_name   = "frontend"
-    container_port   = 8081
+    container_port   = 80
   }
 
   load_balancer {
@@ -366,9 +366,9 @@ resource "aws_ecs_task_definition" "tuber" {
     },
     "portMappings": [
       {
-        "hostPort": 8081,
+        "hostPort": 80,
         "protocol": "tcp",
-        "containerPort": 8081
+        "containerPort": 80
       }
     ],
     "image": "${var.frontend_container}:${var.TFC_CONFIGURATION_VERSION_GIT_COMMIT_SHA}",
