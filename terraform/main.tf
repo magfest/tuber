@@ -12,16 +12,6 @@ terraform {
 # Import Data block for AWS information
 # -------------------------------------------------------------------
 
-data "external" "git_hash" {
-  program = [
-    "git",
-    "log",
-    "--pretty=format:{ \"sha\": \"%H\" }",
-    "-1",
-    "HEAD"
-  ]
-}
-
 data "aws_caller_identity" "current" {}
 
 # -------------------------------------------------------------------
@@ -381,7 +371,7 @@ resource "aws_ecs_task_definition" "tuber" {
         "containerPort": 8081
       }
     ],
-    "image": "${var.frontend_container}:${data.external.git_hash}",
+    "image": "${var.frontend_container}:${var.TFC_CONFIGURATION_VERSION_GIT_COMMIT_SHA}",
     "essential": true,
     "name": "frontend"
   },
@@ -427,7 +417,7 @@ resource "aws_ecs_task_definition" "tuber" {
         "value": "postgresql://tuber:${random_password.tuber_db.result}@${aws_db_instance.tuber.endpoint}/tuber"
       }
     ],
-    "image": "${var.backend_container}:${data.external.git_hash}",
+    "image": "${var.backend_container}:${var.TFC_CONFIGURATION_VERSION_GIT_COMMIT_SHA}",
     "essential": true,
     "name": "backend"
   }
