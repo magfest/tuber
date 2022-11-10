@@ -139,8 +139,10 @@ resource "aws_security_group" "tuber_external" {
 }
 
 resource "aws_subnet" "primary" {
-  vpc_id     = aws_vpc.tuber.id
-  cidr_block = "10.0.0.0/24"
+  vpc_id                  = aws_vpc.tuber.id
+  cidr_block              = "10.0.0.0/24"
+  availability_zone       = "us-east-1c"
+  map_public_ip_on_launch = true
 
   tags = {
     Name = "Tuber Primary"
@@ -148,8 +150,10 @@ resource "aws_subnet" "primary" {
 }
 
 resource "aws_subnet" "secondary" {
-  vpc_id     = aws_vpc.tuber.id
-  cidr_block = "10.0.1.0/24"
+  vpc_id                  = aws_vpc.tuber.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1b"
+  map_public_ip_on_launch = true
 
   tags = {
     Name = "Tuber Secondary"
@@ -168,8 +172,39 @@ resource "aws_db_subnet_group" "tuber" {
   }
 }
 
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.tuber.id
+
+  tags = {
+    Name = "Tuber"
+  }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.tuber.id
+
+  route {
+      cidr_block = "0.0.0.0/0"
+      gateway_id = "${aws_internet_gateway.igw.id}"
+  }
+}
+
+resource "aws_route_table_association" "primary_route" {
+  subnet_id      = aws_subnet.primary.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "secondary_route" {
+  subnet_id      = aws_subnet.secondary.id
+  route_table_id = aws_route_table.public.id
+}
+
 resource "aws_vpc" "tuber" {
   cidr_block = "10.0.0.0/16"
+  
+  tags = {
+    Name = "Tuber"
+  }
 }
 
 # -------------------------------------------------------------------
