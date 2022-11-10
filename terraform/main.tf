@@ -428,7 +428,7 @@ TASK_DEFINITION
   memory                    = 512
   requires_compatibilities  = ["FARGATE"]
   network_mode              = "awsvpc"
-  execution_role_arn        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"
+  execution_role_arn        = aws_iam_role.task_role.arn
 
   depends_on = [
     aws_lb_listener.tuber_http,
@@ -499,7 +499,7 @@ TASK_DEFINITION
   memory                    = 512
   requires_compatibilities  = ["FARGATE"]
   network_mode              = "awsvpc"
-  execution_role_arn        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"
+  execution_role_arn        = aws_iam_role.task_role.arn
 
   runtime_platform {
     operating_system_family = "LINUX"
@@ -514,6 +514,9 @@ TASK_DEFINITION
 
 resource "aws_iam_role" "task_role" {
   name_prefix = "tuber"
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  ]
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -603,13 +606,4 @@ resource "aws_db_instance" "tuber" {
     aws_security_group.tuber_rds.id
   ]
   db_subnet_group_name   = aws_db_subnet_group.tuber.name
-}
-
-resource "aws_secretsmanager_secret" "tuber_db_password" {
-  name = "tuber_db_password"
-}
-
-resource "aws_secretsmanager_secret_version" "tuber_db_password" {
-  secret_id     = aws_secretsmanager_secret.tuber_db_password.id
-  secret_string = random_password.tuber_db.result
 }
