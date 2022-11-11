@@ -213,6 +213,7 @@ resource "aws_route_table_association" "secondary_route" {
 
 resource "aws_vpc" "tuber" {
   cidr_block = "10.0.0.0/16"
+  enable_dns_hostnames = true
   
   tags = {
     Name = "Tuber"
