@@ -28,7 +28,10 @@ resource "aws_security_group" "tuber_internal" {
     from_port        = 80
     to_port          = 80
     protocol         = "tcp"
-    cidr_blocks      = [aws_subnet.primary.cidr_block]
+    cidr_blocks      = [
+      aws_subnet.primary.cidr_block,
+      aws_subnet.secondary.cidr_block
+    ]
   }
 
   ingress {
@@ -36,7 +39,10 @@ resource "aws_security_group" "tuber_internal" {
     from_port        = 8080
     to_port          = 8080
     protocol         = "tcp"
-    cidr_blocks      = [aws_subnet.primary.cidr_block]
+    cidr_blocks      = [
+      aws_subnet.primary.cidr_block,
+      aws_subnet.secondary.cidr_block
+    ]
   }
 
   egress {
@@ -62,7 +68,10 @@ resource "aws_security_group" "tuber_redis" {
     from_port        = 6379
     to_port          = 6379
     protocol         = "tcp"
-    cidr_blocks      = [aws_subnet.primary.cidr_block]
+    cidr_blocks      = [
+      aws_subnet.primary.cidr_block,
+      aws_subnet.secondary.cidr_block
+    ]
   }
 
   egress {
@@ -88,7 +97,10 @@ resource "aws_security_group" "tuber_rds" {
     from_port        = 5432
     to_port          = 5432
     protocol         = "tcp"
-    cidr_blocks      = [aws_subnet.primary.cidr_block]
+    cidr_blocks      = [
+      aws_subnet.primary.cidr_block,
+      aws_subnet.secondary.cidr_block
+    ]
   }
 
   egress {
