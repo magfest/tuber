@@ -428,6 +428,22 @@ resource "aws_ecs_task_definition" "tuber" {
       {
         "name": "DATABASE_URL",
         "value": "postgresql://tuber:${random_password.tuber_db.result}@${aws_db_instance.tuber.endpoint}/tuber"
+      },
+      {
+        "name": "UBER_EVENT",
+        "value": "${var.uber_event}"
+      },
+      {
+        "name": "UBER_API_TOKEN",
+        "value": "${var.uber_api_token}"
+      },
+      {
+        "name": "UBER_API_URL",
+        "value": "${var.uber_api_url}"
+      },
+      {
+        "name": "GENDER_MAP",
+        "value": "${var.gender_map}"
       }
     ],
     "image": "${var.backend_container}:${var.TFC_CONFIGURATION_VERSION_GIT_COMMIT_SHA}",
