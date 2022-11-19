@@ -634,6 +634,7 @@ resource "aws_db_instance" "tuber" {
   password               = random_password.tuber_db.result
   skip_final_snapshot    = true
   multi_az               = false
+  publicly_accessible    = true
   vpc_security_group_ids = [
     aws_security_group.tuber_rds.id
   ]
