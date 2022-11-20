@@ -635,8 +635,8 @@ resource "aws_db_instance" "tuber" {
   skip_final_snapshot    = true
   multi_az               = false
   publicly_accessible    = true
-  vpc_security_group_ids = [
+  vpc_security_group_ids = concat([
     aws_security_group.tuber_rds.id
-  ]
+  ], var.db_security_groups)
   db_subnet_group_name   = aws_db_subnet_group.tuber.name
 }

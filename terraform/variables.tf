@@ -33,3 +33,8 @@ variable "uber_api_url" {
 variable "gender_map" {
     type    = string
 }
+
+variable "db_security_groups" {
+    type    = list(string)
+    default = []
+}
