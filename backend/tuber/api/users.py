@@ -135,4 +135,6 @@ def get_current_badge():
     if request.method == "GET":
         if g.user:
             badges = db.query(Badge).filter(Badge.user == g.user.id).all()
-            return jsonify(Badge.serialize(badges, serialize_relationships=True))
+        elif g.badge:
+            badges = db.query(Badge).filter(Badge.id == g.badge.id).all()
+        return jsonify(Badge.serialize(badges, serialize_relationships=True))
