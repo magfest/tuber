@@ -32,7 +32,7 @@ export default {
   },
   methods: {
     async load () {
-      const depts = await get('/api/event/' + this.event.id + '/department')
+      const depts = await get('/api/event/' + this.event.id + '/department', { sort: 'name' })
       if (depts) {
         this.departments = depts
         this.departmentID = this.departments[0].id

@@ -33,7 +33,8 @@ interface User {
     active: boolean,
     badges: [number],
     sessions: [number],
-    grants: [number]
+    grants: [number],
+    default_event?: number
 }
 
 interface UserSession {

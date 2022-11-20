@@ -2,12 +2,12 @@
   <div class="card">
     <Toast />
     <ConfirmPopup></ConfirmPopup>
-    <h3>Users</h3>
     <user-table />
   </div>
 </template>
 
 <style>
+
 </style>
 
 <script>

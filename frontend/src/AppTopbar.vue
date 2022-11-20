@@ -1,32 +1,45 @@
 <template>
-    <div class="layout-topbar">
-        <router-link to="/" class="layout-topbar-logo">
-            <img alt="Logo" src="/images/logo-dark.svg" />
-            <span>Tuber</span>
-        </router-link>
-        <button class="p-link layout-menu-button layout-topbar-button" @click="onMenuToggle">
-            <i class="pi pi-bars"></i>
-        </button>
+  <div class="layout-topbar">
+    <button class="p-link layout-menu-button layout-topbar-button hamburger" @click="onMenuToggle">
+      <i class="pi pi-bars"></i>
+    </button>
+    <router-link to="/" class="layout-topbar-logo">
+      <img alt="Logo" src="/images/logo-dark.svg" />
+      <span>Tuber</span>
+    </router-link>
 
-        <button class="p-link layout-topbar-menu-button layout-topbar-button"
-            v-styleclass="{ selector: '@next', enterClass: 'hidden', enterActiveClass: 'scalein',
-            leaveToClass: 'hidden', leaveActiveClass: 'fadeout', hideOnOutsideClick: true}">
-            <i class="pi pi-ellipsis-v"></i>
+    <button class="p-link layout-topbar-menu-button layout-topbar-button" v-styleclass="{
+      selector: '@next', enterClass: 'hidden', enterActiveClass: 'scalein',
+      leaveToClass: 'hidden', leaveActiveClass: 'fadeout', hideOnOutsideClick: true
+    }">
+      <i class="pi pi-ellipsis-v"></i>
+    </button>
+    <ul class="layout-topbar-menu hidden lg:flex origin-top">
+      <li>
+        <Dropdown class="mt-2" v-if="loggedIn & events.length > 0" :modelValue="activeEvent" :options="events"
+          optionValue="id" optionLabel="name" @change="updateEvent" placeHolder="Select an Event" />
+      </li>
+      <li>
+        <button class="p-link layout-topbar-button" @click="toggleUserMenu">
+          <i class="pi pi-user"></i>
+          <span>Profile</span>
         </button>
-        <ul class="layout-topbar-menu hidden lg:flex origin-top">
-            <li>
-              <Dropdown class="mt-2" v-if="loggedIn & events.length > 0" :modelValue="activeEvent" :options="events" optionValue="id" optionLabel="name" @change="updateEvent" placeHolder="Select an Event" />
-            </li>
-            <li>
-                <button class="p-link layout-topbar-button" @click="toggleUserMenu">
-                    <i class="pi pi-user"></i>
-                    <span>Profile</span>
-                </button>
-                <Menu ref="userMenu" :model="userMenuItems" :popup="true" />
-            </li>
-        </ul>
-    </div>
+        <Menu ref="userMenu" :model="userMenuItems" :popup="true" />
+      </li>
+    </ul>
+  </div>
 </template>
+
+<style scoped>
+.hamburger {
+  margin-left: 0px;
+  margin-right: 20px;
+}
+
+.layout-topbar {
+  padding-left: 0px;
+}
+</style>
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component'
@@ -53,7 +66,7 @@ import { AppActionTypes } from './store/modules/app/actions'
     onTopbarMenuToggle (event: Event) {
       this.$emit('topbar-menu-toggle', event)
     },
-    updateEvent (e: {value: {}}) {
+    updateEvent (e: { value: {} }) {
       for (const evt of this.events) {
         if (evt.id === e.value) {
           this.$store.dispatch(AppActionTypes.SET_EVENT, evt)
@@ -78,8 +91,7 @@ import { AppActionTypes } from './store/modules/app/actions'
       'loggedIn',
       'events',
       'event',
-      'user',
-      'badge'
+      'user'
     ])
   },
   watch: {
@@ -97,5 +109,5 @@ import { AppActionTypes } from './store/modules/app/actions'
   mounted () {
   }
 })
-export default class AppTopBar extends Vue {}
+export default class AppTopBar extends Vue { }
 </script>

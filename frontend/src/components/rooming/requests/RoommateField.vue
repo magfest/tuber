@@ -9,14 +9,17 @@
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component'
-import { mapGetters } from 'vuex'
+import { PropType } from 'vue'
 
 import AutoComplete from 'primevue/autocomplete'
 import { Badge } from '../../../lib/interfaces'
 
 @Options({
   name: 'roommate-field',
-  props: ['modelValue'],
+  props: {
+    modelValue: Object,
+    badges: Object as PropType<Badge[]>
+  },
   components: {
     AutoComplete: AutoComplete
   },
@@ -27,10 +30,13 @@ import { Badge } from '../../../lib/interfaces'
     }
   },
   computed: {
-    ...mapGetters([
-      'badges',
-      'badgeLookup'
-    ])
+    badgeLookup () {
+      const lookup: {[key:number]: Badge} = {}
+      this.badges.forEach((badge: Badge) => {
+        lookup[badge.id] = badge
+      })
+      return lookup
+    }
   },
   watch: {
     badgeLookup () {

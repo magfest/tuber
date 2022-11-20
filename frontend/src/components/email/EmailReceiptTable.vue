@@ -1,25 +1,54 @@
 <template>
-    <div>
-      <tuber-table formTitle="Email" url="/api/event/<event>/email"
-        :parameters="parameters" :filters="filters">
+  <div>
+    <tuber-table tableTitle="Email Receipts" formTitle="Email Receipt" url="/api/event/<event>/email_receipt"
+      :parameters="parameters" :filters="filters">
 
-        <template #columns>
-          <Column field="name" filterField="name" header="Name" :sortable="true" />
-          <Column field="description" filterField="description" header="Description" :sortable="true" />
-          <Column field="subject" filterField="subject" header="Subject" :sortable="true" />
-          <Column field="active" filterField="active" header="Active" :sortable="true" />
-          <Column field="send_once" filterField="send_once" header="Send Once" :sortable="true" />
-        </template>
+      <template #controls>
+        <div></div>
+      </template>
 
-        <template #form="props">
-          <email-form :modelValue="props.modelValue" />
-        </template>
-      </tuber-table>
-    </div>
+      <template #columns>
+        <Column field="subject" filterField="subject" header="Subject" :sortable="true">
+          <template #filter="{ filterModel, filterCallback }">
+            <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter"
+              :placeholder="`Search by Subject`" v-tooltip.top.focus="'Hit enter key to filter'" />
+          </template>
+        </Column>
+        <Column field="to_address" filterField="to_address" header="To" :sortable="true">
+          <template #filter="{ filterModel, filterCallback }">
+            <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter"
+              :placeholder="`Search by Address`" v-tooltip.top.focus="'Hit enter key to filter'" />
+          </template>
+        </Column>
+        <Column field="timestamp" filterField="timestamp" header="Timestamp" :sortable="true">
+          <template #filter="{ filterModel, filterCallback }">
+            <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter"
+              :placeholder="`Search by Timestamp`" v-tooltip.top.focus="'Hit enter key to filter'" />
+          </template>
+        </Column>
+      </template>
+
+      <template #actions="props">
+        <Column header="Actions" style="width: 10rem">
+          <template #body="slotProps">
+            <Button @click="props.edit(slotProps.data)" icon="pi pi-eye" class="p-button-info" />
+          </template>
+        </Column>
+      </template>
+
+      <template #form="props">
+        <email-receipt-form :modelValue="props.modelValue" />
+      </template>
+
+      <template #formActions="props">
+        <Button label="Close" @click="props.cancel"></Button>
+      </template>
+    </tuber-table>
+  </div>
 </template>
 
 <script>
-import EmailForm from './EmailForm.vue'
+import EmailReceiptForm from './EmailReceiptForm.vue'
 import TuberTable from '../TuberTable.vue'
 import { FilterMatchMode } from 'primevue/api'
 
@@ -27,15 +56,13 @@ export default {
   name: 'EmailReceiptTable',
   components: {
     TuberTable,
-    EmailForm
+    EmailReceiptForm
   },
   data: () => ({
     filters: {
-      name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      description: { value: null, matchMode: FilterMatchMode.CONTAINS },
       subject: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      active: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      send_once: { value: null, matchMode: FilterMatchMode.CONTAINS }
+      to_address: { value: null, matchMode: FilterMatchMode.CONTAINS },
+      timestamp: { value: null, matchMode: FilterMatchMode.GREATER_THAN_OR_EQUAL_TO }
     },
     parameters: {
       full: true

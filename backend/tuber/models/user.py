@@ -2,6 +2,7 @@ from tuber.models import Base
 from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, DateTime, JSON
 from sqlalchemy.orm import relationship
 
+
 class User(Base):
     __tablename__ = "user"
     __url__ = "/api/user"
@@ -17,10 +18,13 @@ class User(Base):
     active.allow_r = {"self"}
     badges = relationship("Badge")
     badges.allow_r = {"self"}
-    sessions = relationship("Session", cascade="all, delete", passive_deletes=True)
+    sessions = relationship(
+        "Session", cascade="all, delete", passive_deletes=True)
     sessions.allow_r = {"self"}
     grants = relationship("Grant", cascade="all, delete", passive_deletes=True)
     grants.allow_r = {"self"}
+    default_event = Column(Integer, ForeignKey('event.id'))
+
 
 class APIKey(Base):
     __tablename__ = "api_key"
@@ -31,6 +35,7 @@ class APIKey(Base):
     user = Column(Integer, ForeignKey('user.id', ondelete="CASCADE"))
     allow = Column(String)
     enabled = Column(Boolean)
+
 
 class Session(Base):
     __tablename__ = "session"
@@ -43,6 +48,7 @@ class Session(Base):
     permissions = Column(JSON)
     last_active = Column(DateTime)
 
+
 class Permission(Base):
     __tablename__ = "permission"
     __url__ = "/api/permission"
@@ -50,19 +56,25 @@ class Permission(Base):
     operation = Column(String())
     role = Column(Integer, ForeignKey('role.id', ondelete="CASCADE"))
 
+
 class Role(Base):
     __tablename__ = "role"
     __url__ = "/api/role"
     id = Column(Integer, primary_key=True)
     name = Column(String(), unique=True)
     description = Column(String())
-    permissons = relationship("Permission", cascade="all, delete", passive_deletes=True)
+    permissons = relationship(
+        "Permission", cascade="all, delete", passive_deletes=True)
+
 
 class Grant(Base):
     __tablename__ = "grant"
     __url__ = "/api/grant"
     # Null values become wildcards, i.e. if event is NULL, then the grant applies to all events
     id = Column(Integer, primary_key=True)
-    user = Column(Integer, ForeignKey('user.id', ondelete="CASCADE"), nullable=False)
-    role = Column(Integer, ForeignKey('role.id', ondelete="CASCADE"), nullable=False)
-    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"), nullable=True)
+    user = Column(Integer, ForeignKey(
+        'user.id', ondelete="CASCADE"), nullable=False)
+    role = Column(Integer, ForeignKey(
+        'role.id', ondelete="CASCADE"), nullable=False)
+    event = Column(Integer, ForeignKey(
+        'event.id', ondelete="CASCADE"), nullable=True)

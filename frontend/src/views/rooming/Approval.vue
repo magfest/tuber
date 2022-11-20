@@ -64,7 +64,7 @@ export default {
       get('/api/event/' + this.event.id + '/department', { id: this.departmentID }).then((department) => {
         this.department = department[0]
       })
-      get('/api/event/' + this.event.id + '/hotel_room_night', {sort: "date", hidden: false}).then((roomNights) => {
+      get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date', hidden: false }).then((roomNights) => {
         this.roomNights = roomNights
         get('/api/event/' + this.event.id + '/hotel/requests/' + this.departmentID).then((requests) => {
           this.requests = requests

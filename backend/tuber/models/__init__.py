@@ -8,6 +8,7 @@ from flask import g
 import datetime
 import json
 
+
 def model_permissions(name):
     """
     Retrieves the permissions of the current user on the given model class.
@@ -18,7 +19,8 @@ def model_permissions(name):
     if g.event in g.perms['event']:
         permissions = permissions.union(g.perms['event'][g.event])
     if g.event in g.perms['department'] and g.department in g.perms['department'][g.event]:
-        permissions = permissions.union(set(g.perms['department'][g.event][g.department]))
+        permissions = permissions.union(
+            set(g.perms['department'][g.event][g.department]))
     model_perms = {"*": set()}
     for perm in permissions:
         table, instance, action = perm.split(".")
@@ -28,6 +30,7 @@ def model_permissions(name):
                 model_perms[instance] = set()
             model_perms[instance].add(action)
     return model_perms
+
 
 class Model_Base(object):
     modelclasses = {}
@@ -59,11 +62,13 @@ class Model_Base(object):
         """If instances is a list then data must be a list of the same length.
            Data gets updated in place.
         """
-        transform = lambda inst, column: getattr(inst, column.name)
+        def transform(inst, column): return getattr(inst, column.name)
         if type(column.type) is JSON:
-            transform = lambda inst, column: json.loads(getattr(inst, column.name) or "{}")
+            def transform(inst, column): return json.loads(
+                getattr(inst, column.name) or "{}")
         elif type(column.type) is Date:
-            transform = lambda inst, calumn: getattr(inst, column.name).strftime("%Y-%m-%d")
+            def transform(inst, calumn): return getattr(
+                inst, column.name).strftime("%Y-%m-%d")
         for i in range(len(instances)):
             data[i][column.name] = transform(instances[i], column)
 
@@ -77,7 +82,8 @@ class Model_Base(object):
             single_item = False
         instance_ids = [instance.id for instance in instances]
         model_perms = model_permissions(cls.__tablename__)
-        instance_perms = [model_perms[x] for x in instance_ids if x in model_perms]
+        instance_perms = [model_perms[x]
+                          for x in instance_ids if x in model_perms]
         if any(instance_perms):
             instance_perms = set.intersection(*instance_perms)
         else:
@@ -123,11 +129,13 @@ class Model_Base(object):
             inst_ser = {}
             if serialize_relationships and deep:
                 for relation in visible_relationships:
-                    new_parents = parents + [cls,]
-                    inst_ser[relation.key] = cls.modelclasses[relation.target.name].serialize(getattr(instance, relation.key), parents=new_parents)
+                    new_parents = parents + [cls, ]
+                    inst_ser[relation.key] = cls.modelclasses[relation.target.name].serialize(
+                        getattr(instance, relation.key), parents=new_parents)
             elif serialize_relationships:
                 for relation in visible_relationships:
-                    inst_ser[relation.key] = [getattr(x, 'id') for x in getattr(instance, relation.key)]
+                    inst_ser[relation.key] = [
+                        getattr(x, 'id') for x in getattr(instance, relation.key)]
             data.append(inst_ser)
 
         for column in visible_columns:
@@ -142,29 +150,32 @@ class Model_Base(object):
         instance_perms = perms['*']
         if "id" in instance:
             if instance['id'] in perms:
-                instance_perms += perms[instance['id']]
+                instance_perms.update(perms[instance['id']])
         for key in instance.keys():
             if not hasattr(cls, key):
                 raise MalformedRequest(f"Table {name} has no field {key}")
             field = getattr(cls, key)
             if hasattr(field, "hidden") and field.hidden:
-                raise PermissionDenied(f"User is not permitted to write {name}.{key}")
+                raise PermissionDenied(
+                    f"User is not permitted to write {name}.{key}")
             if hasattr(field, "allow_rw"):
                 if not instance_perms.intersection(field.allow_rw.union({"write", "*"})):
                     if existing and getattr(existing, key) == instance[key]:
                         continue
-                    raise PermissionDenied(f"User is not permitted to write {name}.{key}")
+                    raise PermissionDenied(
+                        f"User is not permitted to write {name}.{key}")
         columns, relations = cls.get_fields()
         for column in columns:
             if column.name in instance:
                 key = column.name
                 val = instance[key]
                 if type(column.type) is DateTime:
-                    instance[key] = datetime.datetime.strptime(val, '%Y-%m-%dT%H:%M:%S.%f')
+                    instance[key] = datetime.datetime.strptime(
+                        val, '%Y-%m-%dT%H:%M:%S.%f')
                 elif type(column.type) is JSON:
                     instance[key] = json.dumps(val)
         for relation in relations:
-        #     new = []
+            #     new = []
             if relation.key in instance:
                 del instance[relation.key]
         #         for model in instance[relation.key]:
@@ -178,7 +189,7 @@ class Model_Base(object):
         if type(data) is list:
             single_item = False
         else:
-            data = [data,]
+            data = [data, ]
             single_item = True
         to_fetch = {}
         models = []
@@ -190,11 +201,13 @@ class Model_Base(object):
                 to_fetch[instance['id']] = instance
             else:
                 if not {"create", "*"}.intersection(perms['*']):
-                    raise PermissionDenied(f"User is not permitted to create {name}")
+                    raise PermissionDenied(
+                        f"User is not permitted to create {name}")
                 models.append(cls(**cls.filter_columns(instance, perms)))
         existing = db.query(cls).filter(cls.id.in_(to_fetch.keys())).all()
         for model in existing:
-            fields = cls.filter_columns(to_fetch[model.id], perms, existing=model)
+            fields = cls.filter_columns(
+                to_fetch[model.id], perms, existing=model)
             for key, val in fields.items():
                 setattr(model, key, val)
             models.append(model)
@@ -202,9 +215,11 @@ class Model_Base(object):
             return models[0]
         return models
 
+
 Base = declarative_base(cls=Model_Base)
 Base.query = db.query_property()
 
+# autopep8: off
 from tuber.models.user import *
 from tuber.models.badge import *
 from tuber.models.event import *

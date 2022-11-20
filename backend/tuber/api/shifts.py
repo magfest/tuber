@@ -6,13 +6,16 @@ from sqlalchemy import or_
 import datetime
 import json
 
+
 def create_shift_schedule(job, schedule_events=[]):
     res = []
     method = json.loads(job.method)
     if method['name'] == "copy":
         for event in schedule_events:
-            res.append(Shift(job=job.id, event=job.event, schedule=event.schedule, schedule_event=event.id, starttime=event.starttime, duration=event.duration, slots=method['slots'], filledslots=0))
+            res.append(Shift(job=job.id, event=job.event, schedule=event.schedule, schedule_event=event.id,
+                       starttime=event.starttime, duration=event.duration, slots=method['slots'], filledslots=0))
     return res
+
 
 def reschedule_job(job, schedule_event=None):
     """Regenerates the shifts associated with this job. If a schedule_event is passed then it will
@@ -21,7 +24,8 @@ def reschedule_job(job, schedule_event=None):
     if schedule_event:
         schedule_events = [schedule_event]
     else:
-        schedule_events = db.query(ScheduleEvent).filter(or_(ScheduleEvent.schedule.in_([x.id for x in job.schedules]), ScheduleEvent.id.in_([x.id for x in job.schedule_events]))).all()
+        schedule_events = db.query(ScheduleEvent).filter(or_(ScheduleEvent.schedule.in_(
+            [x.id for x in job.schedules]), ScheduleEvent.id.in_([x.id for x in job.schedule_events]))).all()
 
     if not schedule_event:
         # Completely regenerate this schedule. Drop and recreate everything.
@@ -35,19 +39,24 @@ def reschedule_job(job, schedule_event=None):
     if schedule_event:
         # Find adjacent schedule events
         adjacent = []
-        starttime = schedule_event.starttime - datetime.timedelta(seconds=10) # Treat times within 10 seconds as being adjacent
-        endtime = schedule_event.starttime + datetime.timedelta(seconds=schedule_event.duration+10) # Calculate the endtime, and add 10 seconds of margin
+        # Treat times within 10 seconds as being adjacent
+        starttime = schedule_event.starttime - datetime.timedelta(seconds=10)
+        # Calculate the endtime, and add 10 seconds of margin
+        endtime = schedule_event.starttime + \
+            datetime.timedelta(seconds=schedule_event.duration+10)
         for event in schedule_events:
             if not event in adjacent:
                 eventstart = event.starttime
-                eventend = event.starttime + datetime.timedelta(seconds=event.duration)
+                eventend = event.starttime + \
+                    datetime.timedelta(seconds=event.duration)
                 if eventstart <= starttime and eventend >= starttime:
                     adjacent.append(event)
                 elif eventstart >= starttime and eventstart <= endtime:
                     adjacent.append(event)
         # Delete all adjacent schedule events
         for event in adjacent:
-            shifts = db.query(Shift).filter(Shift.schedule_event == event.id).all()
+            shifts = db.query(Shift).filter(
+                Shift.schedule_event == event.id).all()
             for shift in shifts:
                 remove_shift(db, shift)
         db.flush()
@@ -61,65 +70,85 @@ def reschedule_job(job, schedule_event=None):
     assignments = db.query(ShiftAssignment).all()
     return shifts
 
+
 def schedulechange(db, schedule):
     if request.method == "DELETE":
         shifts = db.query(Shift).filter(Shift.schedule == schedule.id).all()
         list(map(db.delete, shifts))
-        jobs = db.query(Job).filter(Job.schedules.any(Schedule.id == schedule.id)).all()
+        jobs = db.query(Job).filter(
+            Job.schedules.any(Schedule.id == schedule.id)).all()
         for job in jobs:
             job.schedules.remove(schedule.id)
             db.add(job)
-        shiftassignments = db.query(ShiftAssignment).filter(ShiftAssignment.shift.in_([x.id for x in shifts])).all()
+        shiftassignments = db.query(ShiftAssignment).filter(
+            ShiftAssignment.shift.in_([x.id for x in shifts])).all()
         list(map(db.delete, shiftassignments))
-        shiftsignups = db.query(ShiftSignup).filter(ShiftSignup.schedule == schedule.id).all()
+        shiftsignups = db.query(ShiftSignup).filter(
+            ShiftSignup.schedule == schedule.id).all()
         for signup in shiftsignups:
             signup.schedule = None
             db.add(signup)
 
+
 Schedule.onchange(schedulechange)
 
+
 def scheduleeventchange(db, schedule_event):
-    jobs = db.query(Job).filter(Job.schedules.any(Schedule.id == schedule_event.schedule)).all()
+    jobs = db.query(Job).filter(Job.schedules.any(
+        Schedule.id == schedule_event.schedule)).all()
     for job in jobs:
         reschedule_job(job, schedule_event=schedule_event)
 
+
 ScheduleEvent.onchange(scheduleeventchange)
+
 
 def jobchange(db, job):
     reschedule_job(job)
 
+
 Job.onchange(jobchange)
 
+
 def remove_shift(db, shift):
-    signups = db.query(ShiftSignup).filter(ShiftSignup.shift == shift.id).order_by(ShiftSignup.signuptime.desc()).all()
+    signups = db.query(ShiftSignup).filter(ShiftSignup.shift == shift.id).order_by(
+        ShiftSignup.signuptime.desc()).all()
     for signup in signups:
         signup.shift = None
         db.add(signup)
-    db.query(ShiftAssignment).filter(ShiftAssignment.shift == shift.id).delete()
-    db.delete(shift)    
+    db.query(ShiftAssignment).filter(
+        ShiftAssignment.shift == shift.id).delete()
+    db.delete(shift)
+
 
 def clear_broken_signups(db, shift):
-    signups = db.query(ShiftSignup).filter(ShiftSignup.shift == shift.id).order_by(ShiftSignup.signuptime.desc()).all()
+    signups = db.query(ShiftSignup).filter(ShiftSignup.shift == shift.id).order_by(
+        ShiftSignup.signuptime.desc()).all()
     for signup in signups:
         if signup.starttime != shift.starttime or signup.duration != shift.duration or signup.job != shift.job or shift.filledslots > shift.slots:
             signup.shift = None
-            db.query(ShiftAssignment).filter(ShiftAssignment.shift == shift.id).delete()
+            db.query(ShiftAssignment).filter(
+                ShiftAssignment.shift == shift.id).delete()
             db.add(signup)
             shift.filledslots = max(0, shift.filledslots-1)
     db.add(shift)
 
+
 def add_shift(db, shift):
-    signups = db.query(ShiftSignup).filter(ShiftSignup.job == shift.job, ShiftSignup.starttime == shift.starttime, ShiftSignup.duration == shift.duration, ShiftSignup.shift == None).order_by(ShiftSignup.signuptime).all()
+    signups = db.query(ShiftSignup).filter(ShiftSignup.job == shift.job, ShiftSignup.starttime == shift.starttime,
+                                           ShiftSignup.duration == shift.duration, ShiftSignup.shift == None).order_by(ShiftSignup.signuptime).all()
     for signup in signups:
         if shift.slots > shift.filledslots:
             db.add(shift)
             db.flush()
             signup.shift = shift.id
             db.add(signup)
-            assignment = ShiftAssignment(badge=signup.badge, shift=shift.id, event=shift.event)
+            assignment = ShiftAssignment(
+                badge=signup.badge, shift=shift.id, event=shift.event)
             db.add(assignment)
             shift.filledslots += 1
     db.add(shift)
+
 
 def shiftchange(db, shift):
     if request.method == "POST":
@@ -130,7 +159,9 @@ def shiftchange(db, shift):
     elif request.method == "DELETE":
         clear_broken_signups(db, shift)
 
+
 Shift.onchange(shiftchange)
+
 
 def shiftassignmentchange(db, shiftassignment):
     if request.method == "POST":
@@ -140,21 +171,24 @@ def shiftassignmentchange(db, shiftassignment):
             return "Too many badges assigned to shift.", 412
         db.add(shift)
     elif request.method == "DELETE":
-        shift = db.query(Shift).filter(Shift.id == shiftassignmentchange.shift).one()
+        shift = db.query(Shift).filter(
+            Shift.id == shiftassignmentchange.shift).one()
         shift.filledslots = max(0, shift.filledslots - 1)
         db.add(shift)
 
+
 ShiftAssignment.onchange(shiftassignmentchange)
+
 
 @app.route("/api/event/<int:event>/job/available", methods=["GET"])
 def available_jobs(event):
     if "badge" in request.args:
-        badge = db.query(Badge).filter(Badge.id == request.args['badge']).one_or_none()
-    elif g.badge:
-        badge = g.badge
+        badge = db.query(Badge).filter(
+            Badge.id == request.args['badge']).one_or_none()
     if not badge:
         return "Your current user does not have a badge and no badge was passed as a parameter.", 412
-    all_roles = db.query(DepartmentRole, DepartmentGrant).join(DepartmentGrant, DepartmentGrant.role == DepartmentRole.id).filter(DepartmentGrant.user == badge.user).all()
+    all_roles = db.query(DepartmentRole, DepartmentGrant).join(
+        DepartmentGrant, DepartmentGrant.role == DepartmentRole.id).filter(DepartmentGrant.user == badge.user).all()
 
     roles = {}
     for dept in badge.departments:
@@ -163,7 +197,8 @@ def available_jobs(event):
             if grant.department == dept.id or grant.department is None:
                 roles[dept.id].append(role.id)
 
-    res = db.query(Department, Job).join(Job, Job.department == Department.id).filter(Department.id.in_([x.id for x in badge.departments])).all()
+    res = db.query(Department, Job).join(Job, Job.department == Department.id).filter(
+        Department.id.in_([x.id for x in badge.departments])).all()
     jobs = []
     for department, job in res:
         for role in job.roles:
@@ -180,8 +215,8 @@ def available_jobs(event):
                 jobject['shifts'].append({
                     'id': shift.id,
                     'job': shift.job,
-                    'schedule': shift.schedule, 
-                    'schedule_event': shift.schedule_event, 
+                    'schedule': shift.schedule,
+                    'schedule_event': shift.schedule_event,
                     'starttime': shift.starttime,
                     'duration': shift.duration,
                     'slots': shift.slots,
@@ -194,12 +229,11 @@ def available_jobs(event):
             jobs.append(jobject)
     return jsonify(jobs)
 
+
 @app.route("/api/event/<int:event>/shift/<int:shift>/signup", methods=["POST"])
 def shift_signup(event, shift):
     if 'badge' in request.json:
         badge = db.query(Badge).filter(Badge.id == request.json['badge']).one()
-    elif g.badge:
-        badge = g.badge
     else:
         return "The current user does not have a badge, and thus cannot sign up for shifts.", 412
     shift = db.query(Shift).filter(Shift.id == shift).one()
@@ -207,12 +241,14 @@ def shift_signup(event, shift):
         return "The shift is full.", 412
     shift.filledslots += 1
     assignment = ShiftAssignment(shift=shift.id, badge=badge.id, event=event)
-    signup = ShiftSignup(badge=badge.id, shift=shift.id, job=shift.job, schedule=shift.schedule, schedule_event=shift.schedule_event, starttime=shift.starttime, duration=shift.duration)
+    signup = ShiftSignup(badge=badge.id, shift=shift.id, job=shift.job, schedule=shift.schedule,
+                         schedule_event=shift.schedule_event, starttime=shift.starttime, duration=shift.duration)
     db.add(shift)
     db.add(assignment)
     db.add(signup)
     db.commit()
     return jsonify(shift=Shift.serialize(shift), shift_assignment=ShiftAssignment.serialize(assignment), shift_signup=ShiftSignup.serialize(signup))
+
 
 @app.route("/api/event/<int:event>/job/<int:job>/dryrun", methods=["POST"])
 def job_dryrun(event, job):

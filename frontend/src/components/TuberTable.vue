@@ -1,44 +1,44 @@
 <template>
-    <div>
-        <Toast />
-        <ConfirmPopup></ConfirmPopup>
-        <div class="flex justify-content-between">
-            <h3>{{ tableTitle }}</h3>
-            <slot name="controls" :add="add">
-                    <Button @click="add">Add</Button>
-            </slot>
-        </div>
-        <DataTable :value="formattedInstances" :loading="loading" dataKey="id" class="p-datatable-sm" ref="dt"
-            :paginator="true" :rows="rows"
-            :lazy="true" :totalRecords="totalRecords" @page="onPage($event)" @sort="onSort($event)"
-            :filterDisplay="filterDisplay" @filter="onFilter($event)" :filters="filters"
-        >
-            <slot name="columns"></slot>
-            <slot name="actions" :edit="edit" :remove="remove">
-                <Column header="Actions" style="width: 10rem">
-                    <template #body="slotProps">
-                        <Button @click="edit(slotProps.data)" icon="pi pi-cog" class="p-button-info" />
-                        <Button @click="remove($event, slotProps.data)" icon="pi pi-times" class="p-button-danger ml-2" />
-                    </template>
-                </Column>
-            </slot>
-        </DataTable>
-
-        <Dialog v-model:visible="editing">
-            <template #header>
-                <h3>{{ formTitle }}</h3>
-            </template>
-
-            <slot name="form" :modelValue="edited" @update:modelValue="edited=event.target.value" @save="save(edited)" @cancel="cancel"></slot>
-
-            <template #footer>
-                <slot name="formActions" :edited="edited" :save="save" :cancel="cancel">
-                    <Button label="Cancel" @click="cancel" icon="pi pi-times" class="p-button-text"/>
-                    <Button label="Save" @click="save(edited)" icon="pi pi-check" autofocus />
-                </slot>
-            </template>
-        </Dialog>
+  <div>
+    <Toast />
+    <ConfirmPopup></ConfirmPopup>
+    <div class="flex justify-content-between">
+      <h3>{{ tableTitle }}</h3>
+      <slot name="controls" :add="add">
+        <Button @click="add">Add</Button>
+      </slot>
     </div>
+    <DataTable :value="formattedInstances" :loading="loading" dataKey="id" class="p-datatable-sm" ref="dt"
+      :paginator="true" :rows="rows" :lazy="true" :totalRecords="totalRecords" @page="onPage($event)"
+      @sort="onSort($event)" :filterDisplay="filterDisplay" @filter="onFilter($event)" :filters="filters">
+      <slot name="columns"></slot>
+      <slot name="actions" :edit="edit" :remove="remove">
+        <Column header="Actions" style="width: 10rem">
+          <template #body="slotProps">
+            <Button @click="edit(slotProps.data)" icon="pi pi-cog" class="p-button-info" />
+            <Button @click="remove($event, slotProps.data)" icon="pi pi-times" class="p-button-danger ml-2" />
+          </template>
+        </Column>
+      </slot>
+    </DataTable>
+
+    <Dialog v-model:visible="editing" :breakpoints="{ '1500px': '50vw', '1000px': '75vw', '500px': '95vw' }"
+      :style="{ width: '50vw' }">
+      <template #header>
+        <h3>{{ formTitle }}</h3>
+      </template>
+
+      <slot name="form" :modelValue="edited" @update:modelValue="edited = event.target.value" @save="save(edited)"
+        @cancel="cancel"></slot>
+
+      <template #footer>
+        <slot name="formActions" :edited="edited" :save="save" :cancel="cancel">
+          <Button label="Cancel" @click="cancel" icon="pi pi-times" class="p-button-text" />
+          <Button label="Save" @click="save(edited)" icon="pi pi-check" autofocus />
+        </slot>
+      </template>
+    </Dialog>
+  </div>
 </template>
 
 <script>
@@ -110,7 +110,10 @@ export default {
       'event'
     ]),
     fullUrl () {
-      return this.url.replace('<event>', this.event.id)
+      if (this.url.includes('<event>')) {
+        return this.url.replace('<event>', this.event.id)
+      }
+      return this.url
     },
     eventSpecific () {
       return this.url.includes('<event>')
@@ -124,7 +127,7 @@ export default {
       sortOrder: 1,
       filters: this.filters
     }
-    if (this.autoload && this.event) {
+    if (this.autoload && (this.event || !this.eventSpecific)) {
       this.load()
     }
   },
@@ -140,7 +143,7 @@ export default {
         paginationParams.order = this.lazyParams.sortOrder > 0 ? 'asc' : 'desc'
       }
       for (const filter in this.lazyParams.filters) {
-        if (this.lazyParams.filters[filter].value) {
+        if (this.lazyParams.filters[filter].value || this.lazyParams.filters[filter].value === false) {
           paginationParams.search_field = filter
           paginationParams.search = this.lazyParams.filters[filter].value
           paginationParams.search_mode = this.lazyParams.filters[filter].matchMode

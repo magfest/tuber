@@ -73,7 +73,7 @@ export default {
   methods: {
     async load () {
       this.loading = true
-      this.hotelRoomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', {sort: "date"})
+      this.hotelRoomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' })
       this.loading = false
     },
     remove (event, data) {

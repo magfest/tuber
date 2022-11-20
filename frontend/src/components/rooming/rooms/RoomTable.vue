@@ -96,7 +96,6 @@ import { mapGetters } from 'vuex'
 import { get, patch } from '@/lib/rest'
 import { FilterMatchMode } from 'primevue/api'
 import RequestShortForm from '../requests/RequestShortForm.vue'
-import { ModelActionTypes } from '@/store/modules/models/actions'
 
 export default {
   name: 'RoomTable',
@@ -142,7 +141,6 @@ export default {
   },
   methods: {
     async load () {
-      this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
       this.hotelBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
       if (this.hotelBlocks && !this.hotelBlocks.includes(this.hotelBlock)) {
         this.hotelBlock = this.hotelBlocks[0].id
@@ -190,7 +188,7 @@ export default {
     async viewRequest (requestID) {
       let request = await get('/api/event/' + this.event.id + '/hotel_room_request', { badge: requestID, full: true, deep: true })
       request = request[0]
-      this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', {sort: "date"})
+      this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' })
       request.room_nights = []
       request.nights = {}
       for (const rn of this.roomNights) {

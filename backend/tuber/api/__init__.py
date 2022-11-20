@@ -1,5 +1,13 @@
+from .users import *
+from .health import *
+from .uber import *
+from .shifts import *
+from .emails import *
+from .importer import *
+from .hotels import *
 from functools import partial
 from flask import request, jsonify, g
+from sqlalchemy.sql.sqltypes import Boolean, Integer, String
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func
 from tuber.models import *
@@ -13,10 +21,21 @@ import time
 READ_PERMS = {"read", "write", "*", "searchname"}
 WRITE_PERMS = {"write", "*"}
 
+
+def event_is_readonly(event):
+    if event is None:
+        return False
+    db_event = db.query(Event).filter(Event.id == event).one_or_none()
+    if not db_event:
+        return False
+    return db_event.readonly
+
+
 def crud_group(model, event=None, department=None):
     start = time.time()
     if request.method == "GET":
-        count = request.args.get("count", False, type=lambda x: x.lower()=='true')
+        count = request.args.get(
+            "count", False, type=lambda x: x.lower() == 'true')
         sort = request.args.get("sort", "")
         order = request.args.get("order", "asc")
         limit = request.args.get("limit", 0, type=int)
@@ -25,9 +44,12 @@ def crud_group(model, event=None, department=None):
         search = request.args.get("search", "", type=str)
         search_field = request.args.get("search_field", "", type=str)
         search_mode = request.args.get("search_mode", "contains", type=str)
-        search_case_sensitive = request.args.get("search_case_sensitive", False, type=lambda x: x.lower()=='true')
-        full = request.args.get("full", False, type=lambda x: x.lower()=='true')
-        deep = request.args.get("deep", False, type=lambda x: x.lower()=='true')
+        search_case_sensitive = request.args.get(
+            "search_case_sensitive", False, type=lambda x: x.lower() == 'true')
+        full = request.args.get(
+            "full", False, type=lambda x: x.lower() == 'true')
+        deep = request.args.get(
+            "deep", False, type=lambda x: x.lower() == 'true')
         if page:
             offset = page*10
             if limit:
@@ -35,9 +57,11 @@ def crud_group(model, event=None, department=None):
         filters = []
         perms = model_permissions(model.__tablename__.lower())
         if not READ_PERMS.intersection(perms['*']):
-            ids = [int(x) for x in perms.keys() if READ_PERMS.intersection(perms[x])]
+            ids = [int(x) for x in perms.keys()
+                   if READ_PERMS.intersection(perms[x])]
             if not ids:
-                raise PermissionDenied(f"User is not able to read any values in {model.__tablename__}")
+                raise PermissionDenied(
+                    f"User is not able to read any values in {model.__tablename__}")
             filters.append(model.id.in_(ids))
         if event:
             filters.append(model.event == event)
@@ -53,22 +77,39 @@ def crud_group(model, event=None, department=None):
                     rel_model = model.modelclasses[relationships[search_field].target.name]
                     search = [int(x) for x in search.split(",")]
                     filters.append(search_model.any(rel_model.id.in_(search)))
-                else:
-                    if search_case_sensitive:
-                        search_model = getattr(model, search_field)
+                elif search_field in columns:
+                    col = columns[search_field]
+                    search_model = getattr(model, search_field)
+                    if isinstance(col.type, Boolean):
+                        search = search.lower() in ["true", "yes", "1"]
+                        assert search_mode in ["equals", "notEquals"]
+                    elif isinstance(col.type, String):
+                        if not search_case_sensitive:
+                            search_model = func.lower(
+                                getattr(model, search_field))
+                            search = search.lower()
+                    elif isinstance(col.type, Integer):
+                        search = int(search)
+                        assert search_mode in ["equals", "notEquals"]
                     else:
-                        search_model = func.lower(getattr(model, search_field))
-                        search = search.lower()
+                        raise AttributeError(
+                            f"Searching {type(col.type)} is unsupported.")
                     if search_mode == "contains":
-                        filters.append(search_model.contains(search, autoescape=True))
+                        filters.append(search_model.contains(
+                            search, autoescape=True))
                     elif search_mode == "startswith":
-                        filters.append(search_model.startswith(search, autoescape=True))
+                        filters.append(search_model.startswith(
+                            search, autoescape=True))
                     elif search_mode == "endswith":
-                        filters.append(search_model.endswith(search, autoescape=True))
+                        filters.append(search_model.endswith(
+                            search, autoescape=True))
                     elif search_mode == "equals":
                         filters.append(search_model == search)
                     elif search_mode == "notEquals":
                         filters.append(search_model != search)
+                else:
+                    raise AttributeError(
+                        f"Could not locate search_field {search_field} in model {model.__name__}")
         for key, val in request.args.items():
             if hasattr(model, key):
                 filters.append(getattr(model, key) == val)
@@ -95,6 +136,8 @@ def crud_group(model, event=None, department=None):
         print(f"{request.path} Serialize time {time.time() - now}s")
         return jsonify(data)
     elif request.method == "POST":
+        if event_is_readonly(event):
+            return "This event is readonly", 403
         if event:
             g.data['event'] = event
         if department:
@@ -109,15 +152,19 @@ def crud_group(model, event=None, department=None):
         return jsonify(model.serialize(instance))
     raise MethodNotAllowed()
 
+
 def crud_single(model, event=None, department=None, id=None):
     perms = model_permissions(model.__tablename__.lower())
     if request.method == "GET":
         if READ_PERMS.intersection(perms['*']) or (id in perms and READ_PERMS.intersection(perms[id])):
-            full = request.args.get("full", False, type=lambda x: x.lower()=='true')
+            full = request.args.get(
+                "full", False, type=lambda x: x.lower() == 'true')
             instance = db.query(model).filter(model.id == id).one_or_none()
             return jsonify(model.serialize(instance, serialize_relationships=full))
         raise PermissionDenied()
     elif request.method == "PATCH":
+        if event_is_readonly(event):
+            return "This event is readonly", 403
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):
             g.data['id'] = id
             g.data = {k: v for k, v in g.data.items() if hasattr(model, k)}
@@ -131,13 +178,19 @@ def crud_single(model, event=None, department=None, id=None):
             return jsonify(model.serialize(instance))
         raise PermissionDenied()
     elif request.method == "DELETE":
+        if event_is_readonly(event):
+            return "This event is readonly", 403
+        if model is Event:
+            if event_is_readonly(id):
+                return "This event is readonly", 403
         if WRITE_PERMS.intersection(perms['*']) or (id in perms and WRITE_PERMS.intersection(perms[id])):
             instance = db.query(model).filter(model.id == id).one_or_none()
             if not instance:
                 return "", 404
             instance_data = None
             if hasattr(instance, 'onchange_cb'):
-                instance_data = model.serialize(instance, serialize_relationships=True)
+                instance_data = model.serialize(
+                    instance, serialize_relationships=True)
             db.delete(instance)
             if hasattr(instance, 'onchange_cb'):
                 db.flush()
@@ -148,15 +201,10 @@ def crud_single(model, event=None, department=None, id=None):
         raise PermissionDenied()
     raise MethodNotAllowed()
 
-from .users import *
-from .hotels import *
-from .importer import *
-from .emails import *
-from .shifts import *
-from .uber import *
-from .health import *
 
 for obj in list(locals().values()):
     if inspect.isclass(obj) and issubclass(obj, Base) and hasattr(obj, "__url__"):
-        app.add_url_rule(obj.__url__, f"crud_group_{obj.__tablename__}", partial(crud_group, obj), methods=["GET", "POST"])
-        app.add_url_rule(obj.__url__+"/<int:id>", f"crud_single_{obj.__tablename__}", partial(crud_single, obj), methods=["GET", "PATCH", "DELETE"])
+        app.add_url_rule(obj.__url__, f"crud_group_{obj.__tablename__}", partial(
+            crud_group, obj), methods=["GET", "POST"])
+        app.add_url_rule(obj.__url__+"/<int:id>", f"crud_single_{obj.__tablename__}", partial(
+            crud_single, obj), methods=["GET", "PATCH", "DELETE"])

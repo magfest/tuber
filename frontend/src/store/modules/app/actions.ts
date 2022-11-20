@@ -9,13 +9,13 @@ import { Event, UserSession } from '@/lib/interfaces'
 import { get, post } from '@/lib/rest'
 
 export enum AppActionTypes {
-    GET_INITIAL_SETUP = 'GET_INITIAL_SETUP',
-    GET_LOGGED_IN = 'GET_LOGGED_IN',
-    GET_EVENTS = 'GET_EVENTS',
-    SET_EVENT = 'SET_EVENT',
-    LOGOUT = 'LOGOUT',
-    LOGIN = 'LOGIN',
-    GET_PERMISSIONS = 'GET_PERMISSIONS'
+  GET_INITIAL_SETUP = 'GET_INITIAL_SETUP',
+  GET_LOGGED_IN = 'GET_LOGGED_IN',
+  GET_EVENTS = 'GET_EVENTS',
+  SET_EVENT = 'SET_EVENT',
+  LOGOUT = 'LOGOUT',
+  LOGIN = 'LOGIN',
+  GET_PERMISSIONS = 'GET_PERMISSIONS'
 }
 
 type AugmentedActionContext = {
@@ -26,13 +26,13 @@ type AugmentedActionContext = {
 } & Omit<ActionContext<State, RootState>, 'commit'>
 
 export interface Actions {
-    [AppActionTypes.GET_INITIAL_SETUP]({ commit }: AugmentedActionContext): Promise<void>;
-    [AppActionTypes.GET_LOGGED_IN]({ commit }: AugmentedActionContext): Promise<void>;
-    [AppActionTypes.GET_EVENTS]({ commit }: AugmentedActionContext): Promise<void>;
-    [AppActionTypes.SET_EVENT]({ commit }: AugmentedActionContext, event: Event | null): Promise<void>;
-    [AppActionTypes.LOGOUT]({ dispatch }: AugmentedActionContext): Promise<void>;
-    [AppActionTypes.LOGIN]({ dispatch }: AugmentedActionContext, user: {username: string, password: string}): Promise<void>;
-    [AppActionTypes.GET_PERMISSIONS]({ dispatch }: AugmentedActionContext): Promise<void>;
+  [AppActionTypes.GET_INITIAL_SETUP]({ commit }: AugmentedActionContext): Promise<void>;
+  [AppActionTypes.GET_LOGGED_IN]({ commit }: AugmentedActionContext): Promise<void>;
+  [AppActionTypes.GET_EVENTS]({ commit }: AugmentedActionContext): Promise<void>;
+  [AppActionTypes.SET_EVENT]({ commit }: AugmentedActionContext, event: Event | null): Promise<void>;
+  [AppActionTypes.LOGOUT]({ dispatch }: AugmentedActionContext): Promise<void>;
+  [AppActionTypes.LOGIN]({ dispatch }: AugmentedActionContext, user: { username: string, password: string }): Promise<void>;
+  [AppActionTypes.GET_PERMISSIONS]({ dispatch }: AugmentedActionContext): Promise<void>;
 }
 
 export const actions: ActionTree<State, RootState> & Actions = {
@@ -62,21 +62,8 @@ export const actions: ActionTree<State, RootState> & Actions = {
     })
   },
   async [AppActionTypes.GET_EVENTS] ({ commit }) {
-    return get('/api/event').then((events: Event[]) => {
-      events.sort((a, b) => {
-        if (a.id < b.id) {
-          return 1
-        }
-        return -1
-      })
+    return get('/api/event', { sort: 'name', reverse: true }).then((events: Event[]) => {
       commit(AppMutationTypes.SET_EVENTS, events)
-      if (events.length > 0) {
-        commit(AppMutationTypes.SET_EVENT, events[0])
-      } else {
-        commit(AppMutationTypes.SET_EVENT, null)
-      }
-    }).catch(() => {
-      commit(AppMutationTypes.SET_EVENT, null)
     })
   },
   async [AppActionTypes.SET_EVENT] ({ commit }, event: Event | null) {
@@ -98,7 +85,7 @@ export const actions: ActionTree<State, RootState> & Actions = {
       dispatch(AppActionTypes.GET_LOGGED_IN)
     })
   },
-  async [AppActionTypes.LOGIN] ({ dispatch }, user: {username: string, password: string}) {
+  async [AppActionTypes.LOGIN] ({ dispatch }, user: { username: string, password: string }) {
     return post('/api/login', user).then(() => {
       dispatch(AppActionTypes.GET_LOGGED_IN)
     })

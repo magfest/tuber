@@ -26,7 +26,6 @@ for i in conf.keys():
         environment[i] = os.environ[i.upper()]
 
 conf.update(environment)
-pathlib.Path("/tmp/app-initialized").touch()
 conf['database_url'] = conf['database_url'].replace("postgres://", "postgresql://", 1)
 
 for i in ["verbose", "enable_circuitbreaker"]:

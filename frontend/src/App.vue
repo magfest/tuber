@@ -1,24 +1,25 @@
 <template>
-    <div :class="containerClass" @click="onWrapperClick">
-        <AppTopBar @menu-toggle="onMenuToggle" />
-        <div class="layout-sidebar" @click="onSidebarClick">
-            <AppMenu :model="menu" @menuitem-click="onMenuItemClick" />
-        </div>
-
-        <div class="layout-main-container">
-            <div class="layout-main">
-              <div class="card">
-                <login v-if="(loggedIn === false) & (initialSetup === false) & !($route.name === 'uberlogin') & !($route.name === 'uberdepartmentlogin')" />
-                <router-view v-else />
-              </div>
-            </div>
-            <AppFooter />
-        </div>
-
-        <transition name="layout-mask">
-            <div class="layout-mask p-component-overlay" v-if="mobileMenuActive"></div>
-        </transition>
+  <div :class="containerClass" @click="onWrapperClick">
+    <AppTopBar @menu-toggle="onMenuToggle" />
+    <div class="layout-sidebar" @click="onSidebarClick">
+      <AppMenu :model="menu" @menuitem-click="onMenuItemClick" />
     </div>
+
+    <div class="layout-main-container">
+      <div class="layout-main">
+        <div class="card">
+          <login
+            v-if="(loggedIn === false) & (initialSetup === false) & !($route.name === 'uberlogin') & !($route.name === 'uberdepartmentlogin')" />
+          <router-view v-else />
+        </div>
+      </div>
+      <AppFooter />
+    </div>
+
+    <transition name="layout-mask">
+      <div class="layout-mask p-component-overlay" v-if="mobileMenuActive"></div>
+    </transition>
+  </div>
 </template>
 
 <script lang="ts">
@@ -48,32 +49,35 @@ type LayoutMode = 'static' | 'overlay'
         {
           label: 'My Home',
           items: [{
-            label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/'
           },
           {
             label: 'Room Request', icon: 'pi pi-fw pi-home', to: '/rooming/request', permission: 'rooming.*.request'
           },
           {
-            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/', visible: false
+            label: 'Shifts', icon: 'pi pi-fw pi-calendar', to: '/', visible: false
           },
           {
-            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/', visible: false
+            label: 'Checklist', icon: 'pi pi-fw pi-check-square', to: '/', visible: false
+          },
+          {
+            label: 'Profile', icon: 'pi pi-fw pi-cog', to: '/user/profile'
           }]
         },
         {
           label: 'Department Home',
           visible: false,
           items: [{
-            label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/'
           },
           {
-            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Shifts', icon: 'pi pi-fw pi-calendar', to: '/'
           },
           {
-            label: 'Checklist', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Checklist', icon: 'pi pi-fw pi-check-square', to: '/'
           },
           {
-            label: 'Members', icon: 'pi pi-fw pi-home', to: '/'
+            label: 'Members', icon: 'pi pi-fw pi-users', to: '/'
           }]
         },
         {
@@ -87,19 +91,19 @@ type LayoutMode = 'static' | 'overlay'
                 label: 'Requests', icon: 'pi pi-fw pi-home', to: '/rooming/requests'
               },
               {
-                label: 'Approvals', icon: 'pi pi-fw pi-home', to: '/rooming/approvals'
+                label: 'Approvals', icon: 'pi pi-fw pi-thumbs-up', to: '/rooming/approvals'
               },
               {
-                label: 'Assignments', icon: 'pi pi-fw pi-home', to: '/rooming/assignments'
+                label: 'Assignments', icon: 'pi pi-fw pi-sign-in', to: '/rooming/assignments'
               },
               {
-                label: 'Rooms', icon: 'pi pi-fw pi-home', to: '/rooming/rooms'
+                label: 'Rooms', icon: 'pi pi-fw pi-list', to: '/rooming/rooms'
               },
               {
-                label: 'Blocks', icon: 'pi pi-fw pi-home', to: '/rooming/blocks'
+                label: 'Blocks', icon: 'pi pi-fw pi-th-large', to: '/rooming/blocks'
               },
               {
-                label: 'Settings', icon: 'pi pi-fw pi-home', to: '/rooming/settings'
+                label: 'Settings', icon: 'pi pi-fw pi-cog', to: '/rooming/settings'
               }]
           },
           {
@@ -113,36 +117,39 @@ type LayoutMode = 'static' | 'overlay'
             }]
           },
           {
-            label: 'Shifts', icon: 'pi pi-fw pi-home', to: '/', visible: false
+            label: 'Shifts', icon: 'pi pi-fw pi-calendar', to: '/', visible: false
           }]
         },
         {
           label: 'Event',
           permission: 'event.*.write',
           items: [{
-            label: 'Badges', icon: 'pi pi-fw pi-home', to: '/badges'
+            label: 'Badges', icon: 'pi pi-fw pi-id-card', to: '/badges'
           },
           {
-            label: 'Schedule', icon: 'pi pi-fw pi-home', to: '/', visible: false
+            label: 'Schedule', icon: 'pi pi-fw pi-calendar', to: '/', visible: false
           },
           {
-            label: 'Emails', icon: 'pi pi-fw pi-home', to: '/email'
+            label: 'Emails', icon: 'pi pi-fw pi-envelope', to: '/email'
           },
           {
-            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/', visible: false
+            label: 'Settings', icon: 'pi pi-fw pi-cog', to: '/settings'
           }]
         },
         {
           label: 'Server',
           permission: 'server.*.write',
           items: [{
-            label: 'Import/Export', icon: 'pi pi-fw pi-home', to: '/', visible: false
+            label: 'Import/Export', icon: 'pi pi-fw pi-sort-alt', to: '/', visible: false
           },
           {
-            label: 'Users', icon: 'pi pi-fw pi-home', to: '/settings/users'
+            label: 'Users', icon: 'pi pi-fw pi-users', to: '/settings/users'
           },
           {
-            label: 'Settings', icon: 'pi pi-fw pi-home', to: '/', visible: false
+            label: 'Events', icon: 'pi pi-fw pi-calendar', to: '/settings/events'
+          },
+          {
+            label: 'Settings', icon: 'pi pi-fw pi-cog', to: '/server/settings', visible: false
           }]
         }
       ]
@@ -164,7 +171,7 @@ type LayoutMode = 'static' | 'overlay'
     }
   },
   methods: {
-    refreshMenu (menu: [{visible: boolean, permission?: string, items?: []}]) {
+    refreshMenu (menu: [{ visible: boolean, permission?: string, items?: [] }]) {
       menu.forEach((menuitem) => {
         if (Object.prototype.hasOwnProperty.call(menuitem, 'permission') && menuitem.permission) {
           menuitem.visible = checkPermission(menuitem.permission)
@@ -280,7 +287,7 @@ type LayoutMode = 'static' | 'overlay'
     Login: Login
   }
 })
-export default class App extends Vue {}
+export default class App extends Vue { }
 </script>
 
 <style lang="scss">

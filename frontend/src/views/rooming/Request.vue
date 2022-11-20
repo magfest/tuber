@@ -3,16 +3,19 @@
     <Toast />
     <h3>Staff Hotel Room Request Form</h3>
     <div v-if="!badge">
-      You do not current have a badge to this event.
+      You do not currently have a badge to this event.
     </div>
     <div v-else>
       <p><b>You are filling out this form as {{ badge.public_name }}.</b></p>
       <form @submit.prevent>
-        <p>These questions will help us find the best roommates for you. If you already have a group you'd like to room with the best way to be grouped
-          together is to each request each other as roommates, and request the same nights. If this is your first time in staff housing or you don't
+        <p>These questions will help us find the best roommates for you. If you already have a group you'd like to room
+          with the best way to be grouped
+          together is to each request each other as roommates, and request the same nights. If this is your first time
+          in staff housing or you don't
           know who you would like to room with then this form will help us match you with compatible roommates.</p>
 
-        <p>Rooms are best-effort; we take your request details into consideration but cannot guarantee assignments will perfectly match requests.</p><br>
+        <p>Rooms are best-effort; we take your request details into consideration but cannot guarantee assignments will
+          perfectly match requests.</p><br>
 
         <h4>Let us know if you don't want to apply for a room:</h4>
         <div class="field-checkbox">
@@ -22,74 +25,96 @@
 
         <div v-if="!request.declined">
           <h4>What name is on your photo ID?</h4>
-          <p>The software used by our host hotel requires a first and last name. The front desk will compare these against your photo ID at checkin time. This will be shared only with STOPS and the hotel.</p>
+          <p>The software used by our host hotel requires a first and last name. The front desk will compare these
+            against your photo ID at checkin time. This will be shared only with STOPS and the hotel.</p>
           <div class="formgrid grid">
-              <div class="field col">
-                <label for="first_name">First Name</label>
-                <InputText id="first_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64" maxlength="64" v-model="request.first_name" />
-              </div>
-              <div class="field col">
-                <label for="last_name">Last Name</label>
-                <InputText id="last_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64" maxlength="64" v-model="request.last_name" /><br>
-              </div>
+            <div class="field col">
+              <label for="first_name">First Name</label>
+              <InputText id="first_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64"
+                maxlength="64" v-model="request.first_name" />
+            </div>
+            <div class="field col">
+              <label for="last_name">Last Name</label>
+              <InputText id="last_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64"
+                maxlength="64" v-model="request.last_name" /><br>
+            </div>
           </div>
 
           <h4>Which nights would you like a room?</h4>
-          <p>Nights marked "Setup" or "Teardown" will require department head approval. Talk to your department head for details.</p>
+          <p>Nights marked "Setup" or "Teardown" will require department head approval. Talk to your department head for
+            details.</p>
           <div v-for="night in request.room_nights" :key="night.name" class="field-checkbox">
             <Checkbox v-model="night.requested" :id="night.name" :disabled="request.declined" :binary="true" />
-            <label :for="night.name">{{ night.restricted ? night.name + ' (' + night.restriction_type + ')' : night.name }}</label>
+            <label :for="night.name">{{ night.restricted ? night.name + ' (' + night.restriction_type + ')' : night.name
+            }}</label>
           </div>
 
           <p v-if="justification_required">Please provide justification for requesting restricted nights:</p>
-          <Textarea v-model="request.room_night_justification" @input="blah" v-if="justification_required" :disabled="request.declined" :autoResize="true" rows="5" cols="50" placeholder="I'm helping with setup in <department>." maxlength="512"></Textarea>
+          <Textarea v-model="request.room_night_justification" @input="blah" v-if="justification_required"
+            :disabled="request.declined" :autoResize="true" rows="5" cols="50"
+            placeholder="I'm helping with setup in <department>." maxlength="512"></Textarea>
           <br><br>
 
           <h4>Who would you like to room with?</h4>
-          <roommate-field label="Requested Roommates" v-model="request.requested_roommates" :disabled="request.declined"></roommate-field>
+          <roommate-field label="Requested Roommates" :badges="search_badges" v-model="request.requested_roommates"
+            :disabled="request.declined"></roommate-field>
           <br>
 
           <h4>Who would you <b>not</b> like to room with?</h4>
-          <roommate-field label="Anti-requested Roommates" v-model="request.antirequested_roommates" :disabled="request.declined"></roommate-field><br>
+          <roommate-field label="Anti-requested Roommates" :badges="search_badges" v-model="request.antirequested_roommates"
+            :disabled="request.declined"></roommate-field><br>
 
-          <p v-if="invalidRoommates">You cannot both request and anti-request a single person, and you can't request or anti-request yourself.</p>
+          <p v-if="invalidRoommates">You cannot both request and anti-request a single person, and you can't request or
+            anti-request yourself.</p>
 
           <h4>Would you prefer single gender rooming?</h4>
           <div class="field-checkbox">
-            <Checkbox class="my-n5" :disabled="request.declined" v-model="request.prefer_single_gender" :binary="true"/>
+            <Checkbox class="my-n5" :disabled="request.declined" v-model="request.prefer_single_gender"
+              :binary="true" />
             <label for="single_gender">Yes, I would prefer a single-gender room.</label>
           </div>
 
           <div class="field">
             <label for="single_gender">What is your gender?</label><br>
-            <InputText id="single_gender" :disabled="request.declined" counter="64" maxlength="64" v-model="request.preferred_gender" /><br>
-            <small>This will be used to help match single-gender rooms. We will do our best to group entries logically.</small>
+            <InputText id="single_gender" :disabled="request.declined" counter="64" maxlength="64"
+              v-model="request.preferred_gender" /><br>
+            <small>This will be used to help match single-gender rooms. We will do our best to group entries
+              logically.</small>
           </div><br>
 
           <h4>Is there anything else we should know?</h4>
-          <Textarea maxlength="512" v-model="request.notes" rows="5" cols="50" :autoResize="true" :disabled="request.declined" outlined placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></TextArea>
+          <Textarea maxlength="512" v-model="request.notes" rows="5" cols="50" :autoResize="true"
+            :disabled="request.declined" outlined
+            placeholder="I'm allergic to down pillows/I need to be able to take the stairs to my room/I like the view from the 19th floor and I see elevators as a challenge"></TextArea>
 
           <br><br>
           <Divider />
           <br>
           <p>The following questions are optional, but will help us match you with roommates.
-            Note that the above roommate requests and anti-requests will take precedence over the below preferences.</p><br>
+            Note that the above roommate requests and anti-requests will take precedence over the below preferences.</p>
+          <br>
 
           <h4>Would you prefer to room with other people in your department?</h4>
           <div class="field-checkbox">
             <Checkbox :disabled="request.declined" v-model="request.prefer_department" :binary="true" />
             <label for="prefer_department">Yes, I would prefer to room with my department.</label>
           </div>
-          <p v-if="request.prefer_department && badge.departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
-          <Dropdown :disabled="request.declined" :options="badge_departments" v-if="request.prefer_department && badge.departments.length > 1" optionValue="id" optionLabel="name" v-model="request.preferred_department"></Dropdown>
-          <p v-if="request.prefer_department && badge.departments.length == 1">We will try to put you with the {{ badge.departments[0].name }} department.</p><br>
+          <p v-if="request.prefer_department && badge.departments.length > 1">You are assigned to multiple departments.
+            Select your preferred department to room with:</p>
+          <Dropdown :disabled="request.declined" :options="badge_departments"
+            v-if="request.prefer_department && badge.departments.length > 1" optionValue="id" optionLabel="name"
+            v-model="request.preferred_department"></Dropdown>
+          <p v-if="request.prefer_department && badge.departments.length == 1">We will try to put you with the {{
+              badge.departments[0].name
+          }} department.</p><br>
 
           <h4>What is your preferred noise level?</h4>
-          <Dropdown :disabled="request.declined" v-model="request.noise_level" :options="noise_levels"></Dropdown><br><br>
+          <Dropdown :disabled="request.declined" v-model="request.noise_level" :options="noise_levels"></Dropdown>
+          <br><br>
 
           <h4>Would you prefer non-smoking roommates?</h4>
           <div class="field-checkbox">
-            <Checkbox :disabled="request.declined" v-model="request.smoke_sensitive" :binary="true"/><br>
+            <Checkbox :disabled="request.declined" v-model="request.smoke_sensitive" :binary="true" /><br>
             <label for="smoke_sensitive">Yes, I would prefer non-smoking roommates.</label>
           </div><br>
 
@@ -105,6 +130,7 @@
 </template>
 
 <style>
+
 </style>
 
 <script>
@@ -119,6 +145,8 @@ export default {
     RoommateField
   },
   data: () => ({
+    badges: [],
+    search_badges: [],
     loading: false,
     roommates: [1, 2],
     confirmation: false,
@@ -159,9 +187,21 @@ export default {
       'loggedIn',
       'event',
       'user',
-      'badge',
       'departmentLookup'
     ]),
+    badge () {
+      if (!this.event) {
+        return null
+      }
+      if (this.badges) {
+        for (let i = 0; i < this.badges.length; i += 1) {
+          if (this.badges[i].event === this.event.id) {
+            return this.badges[i]
+          }
+        }
+      }
+      return null
+    },
     justification_required () {
       if (!this.request.room_nights) {
         return false
@@ -174,6 +214,9 @@ export default {
       return false
     },
     badge_departments () {
+      if (!this.badge) {
+        return []
+      }
       const res = []
       for (let i = 0; i < this.badge.departments.length; i += 1) {
         if (Object.prototype.hasOwnProperty.call(this.departmentLookup, this.badge.departments[i])) {
@@ -184,6 +227,9 @@ export default {
     },
     invalidRoommates () {
       if (!this.request) {
+        return false
+      }
+      if (!this.badge) {
         return false
       }
       for (const roommate of this.request.requested_roommates) {
@@ -201,7 +247,6 @@ export default {
     }
   },
   mounted () {
-    this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
     this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
     this.loadRequest()
   },
@@ -210,7 +255,13 @@ export default {
       if (!this.event) {
         return {}
       }
+      get('/api/event/' + this.event.id + '/badge').then((badges) => {
+        this.search_badges = badges
+      })
       get('/api/event/' + this.event.id + '/hotel/request').then((request) => {
+        get('/api/badge/me').then((badges) => {
+          this.badges = badges
+        })
         this.request = request
       })
     },
@@ -247,7 +298,6 @@ export default {
   },
   watch: {
     event () {
-      this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
       this.loadRequest()
     }
   }

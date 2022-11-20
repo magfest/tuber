@@ -6,9 +6,14 @@ import itertools
 import datetime
 import time
 
-class AntiRequestException(Exception): pass
 
-class MatchingError(Exception): pass
+class AntiRequestException(Exception):
+    pass
+
+
+class MatchingError(Exception):
+    pass
+
 
 class HashNS(SimpleNamespace):
     def __hash__(self):
@@ -19,7 +24,11 @@ class HashNS(SimpleNamespace):
 
     def __lt__(self, other):
         return self.id < other.id
+
+
 unmapped = set()
+
+
 def score_room(staffers, room_night_weight=100, roommate_weight=5, department_weight=1, other_weight=1, allow_empty=True):
     staffers = set(staffers)
     nights = set().union(*[x.room_nights for x in staffers])
@@ -83,13 +92,14 @@ def score_room(staffers, room_night_weight=100, roommate_weight=5, department_we
     else:
         other_score = other_weight
 
-
     for staffer in staffers:
         if staffer.antiroommates.intersection(staffers):
-            raise AntiRequestException(f"{str(staffer)} anti-requested {', '.join([str(x) for x in staffer.antiroommates.intersection(staffers)])}")
+            raise AntiRequestException(
+                f"{str(staffer)} anti-requested {', '.join([str(x) for x in staffer.antiroommates.intersection(staffers)])}")
 
     #print(f"Scores: {room_night_score} {roommate_score} {dept_score} {filled_dept_req} {total_dept_req} {', '.join([x.name for x in staffers])}")
     return room_night_score, roommate_score, dept_score, other_score
+
 
 def get_roommates(staffer, matched, visited=None):
     if not visited:
@@ -102,9 +112,10 @@ def get_roommates(staffer, matched, visited=None):
             roommates.update(get_roommates(roommate, matched, visited))
     return roommates.difference(matched)
 
+
 def match_perfect(staffers, matched, n):
     rooms = []
-    
+
     for staffer in staffers:
         if staffer in matched:
             continue
@@ -129,9 +140,10 @@ def match_perfect(staffers, matched, n):
             rooms.append(best)
     return rooms
 
+
 def combine_rooms(rooms):
     rooms = list(rooms)
-    lengths = {4:0,3:0,2:0,1:0}
+    lengths = {4: 0, 3: 0, 2: 0, 1: 0}
     for i in rooms:
         lengths[len(i)] += 1
     print(lengths)
@@ -174,15 +186,18 @@ def combine_rooms(rooms):
             for i in rooms:
                 combined.append(i)
             rooms = []
-    lengths = {4:0,3:0,2:0,1:0}
+    lengths = {4: 0, 3: 0, 2: 0, 1: 0}
     for i in combined:
         lengths[len(i)] += 1
     print(lengths)
     return combined
 
+
 def load_staffers(db, event, hotel_block):
-    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
-    requests = db.query(HotelRoomRequest, Badge).join(Badge, Badge.id == HotelRoomRequest.badge).filter(~HotelRoomRequest.room_night_assignments.any(), HotelRoomRequest.hotel_block == hotel_block).all()
+    room_nights = db.query(HotelRoomNight).filter(
+        HotelRoomNight.event == event).all()
+    requests = db.query(HotelRoomRequest, Badge).join(Badge, Badge.id == HotelRoomRequest.badge).filter(
+        ~HotelRoomRequest.room_night_assignments.any(), HotelRoomRequest.hotel_block == hotel_block).all()
     staffers = []
     for request, badge in requests:
         if not request.approved:
@@ -198,24 +213,25 @@ def load_staffers(db, event, hotel_block):
         for night_request in request.room_night_requests:
             if night_request.requested:
                 requested.add(night_request.room_night)
-        
+
         assigned = set()
         for room_night in room_nights:
             if room_night.id in requested:
                 if not room_night.restricted or room_night.id in approved:
                     assigned.add(room_night.id)
-                    
+
         if assigned:
             staffer.room_nights = assigned
             staffer.id = badge.id
             staffer.request = request
             staffer.roommates = set()
-            staffer.iroommates = set() # incoming roommate requests
+            staffer.iroommates = set()  # incoming roommate requests
             staffer.antiroommates = set()
-            staffer.iantiroommates = set() # incoming antiroommate requests
+            staffer.iantiroommates = set()  # incoming antiroommate requests
             staffer.departments = badge.departments
             staffer.prefer_dept = request.prefer_department
-            staffer.preferred_dept = request.preferred_department or (badge.departments[0] if badge.departments else None)
+            staffer.preferred_dept = request.preferred_department or (
+                badge.departments[0] if badge.departments else None)
             staffer.hotel_block = request.hotel_block
             staffer.name = badge.public_name
             staffer.preferred_gender = request.preferred_gender
@@ -236,8 +252,10 @@ def load_staffers(db, event, hotel_block):
                 rm_badge.iantiroommates.add(staffer)
     return staffers
 
+
 def rematch_hotel_block(db, event, hotel_block):
-    rooms = db.query(HotelRoom).filter(HotelRoom.hotel_block == hotel_block, HotelRoom.completed == False, HotelRoom.locked == False).all()
+    rooms = db.query(HotelRoom).filter(HotelRoom.hotel_block == hotel_block,
+                                       HotelRoom.completed == False, HotelRoom.locked == False).all()
     roommates = []
     for room in rooms:
         roommates.extend(room.roommates)
@@ -262,24 +280,26 @@ def rematch_hotel_block(db, event, hotel_block):
         all_rooms.extend(rooms)
         matched = matched.union(*rooms)
         print(f"Matched rooms of at least {n}")
-        print(f"Got {len(rooms)} rooms and {len(matched)} total cumulative matches")
+        print(
+            f"Got {len(rooms)} rooms and {len(matched)} total cumulative matches")
     print(f"Perfect Match time: {time.perf_counter() - start}")
-    
+
     start = time.perf_counter()
     remaining = set(staffers).difference(matched)
     print(f"Giving the remaining {len(remaining)} staffers their own rooms")
     all_rooms.extend([set([x]) for x in remaining])
     matched = set.union(*all_rooms)
-    print(f"Now have {sum(map(len, all_rooms))} Staffers Matched of {len(staffers)} into {len(all_rooms)} rooms")
+    print(
+        f"Now have {sum(map(len, all_rooms))} Staffers Matched of {len(staffers)} into {len(all_rooms)} rooms")
     assert len(matched) == len(staffers)
     print(f"Single Match time: {time.perf_counter() - start}")
-    
+
     start = time.perf_counter()
     start_len = len(all_rooms)
     all_rooms = combine_rooms(all_rooms)
     print(f"Combined {start_len} rooms into {len(all_rooms)}")
     print(f"Combine Round 1 time: {time.perf_counter() - start}")
-    
+
     start = time.perf_counter()
     all_rooms = combine_rooms(all_rooms)
     print(f"Combined {start_len} rooms into {len(all_rooms)}")
@@ -295,7 +315,8 @@ def rematch_hotel_block(db, event, hotel_block):
     for room, hotel_room in hotels:
         for roommate in room:
             for room_night in roommate.room_nights:
-                assoc = RoomNightAssignment(event=event, badge=roommate.id, hotel_room=hotel_room.id, room_night=room_night)
+                assoc = RoomNightAssignment(
+                    event=event, badge=roommate.id, hotel_room=hotel_room.id, room_night=room_night)
                 db.add(assoc)
             roommate.request.assigned = True
             db.add(roommate.request)

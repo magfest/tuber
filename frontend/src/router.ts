@@ -13,7 +13,10 @@ import { RoomTable, RequestTable } from './components/rooming'
 import EmailSettings from './views/event/EmailSettings.vue'
 
 import UserSettings from './views/settings/Users.vue'
+import UserProfile from './views/settings/Profile.vue'
+import Events from './views/settings/Events.vue'
 import Badges from './views/event/Badges.vue'
+import EventSettings from './views/event/Settings.vue'
 
 import Login from './views/Login.vue'
 import Logout from './views/Logout.vue'
@@ -93,6 +96,21 @@ const routes = [
     path: '/logout',
     name: 'logout',
     component: Logout
+  },
+  {
+    path: '/settings/events',
+    name: 'events',
+    component: Events
+  },
+  {
+    path: '/user/profile',
+    name: 'userprofile',
+    component: UserProfile
+  },
+  {
+    path: '/settings',
+    name: 'eventsettings',
+    component: EventSettings
   },
   {
     path: '/settings/users',

@@ -44,7 +44,6 @@ import { get, patch } from '@/lib/rest'
 import RequestShortForm from './RequestShortForm.vue'
 import TuberTable from '../../TuberTable.vue'
 import { FilterMatchMode } from 'primevue/api'
-import { ModelActionTypes } from '@/store/modules/models/actions'
 
 export default {
   name: 'RequestTable',
@@ -83,8 +82,7 @@ export default {
   },
   methods: {
     async load () {
-      this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
-      this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', {sort: "date"})
+      this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' })
       this.hotelBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
       if (this.hotelBlocks && !this.hotelBlocks.includes(this.hotelBlock)) {
         this.hotelBlock = this.hotelBlocks[0].id

@@ -25,7 +25,7 @@
               {{ badgeLookup[slotProps.data.badge] != undefined ? badgeLookup[slotProps.data.badge].public_name : "loading" }}
             </template>
           </Column>
-          <Column style="width: 2rem" v-for="night in roomNights" :key="night.id">
+          <Column style="width: 2rem" v-for="night in roomNights" :key="'rn'+night.id">
             <template #body="slotProps">
               <Tag :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': (slotProps.data.nights_requested[night.id] ? 'warning' : 'danger')" class="mr-1" style="width: 27px" />
             </template>
@@ -49,7 +49,7 @@
               <InputText type="text" v-model="roomSearchText" placeholder="Search Rooms" @change="roomSearch" />
           </span>
         </div>
-        <Card v-for="room in filteredRooms" :key="room.id" class="mb-2">
+        <Card v-for="room in filteredRooms" :key="'rm'+room.id" class="mb-2">
             <template #title>
               <div class="flex justify-content-between">
                 <span>
@@ -124,6 +124,7 @@ export default {
   },
   data: () => ({
     roomSearchText: '',
+    badges: [],
     blocks: [],
     block: '',
     loading: false,
@@ -149,7 +150,6 @@ export default {
   computed: {
     ...mapGetters([
       'event',
-      'badgeLookup',
       'departments'
     ]),
     filteredRooms () {
@@ -171,6 +171,13 @@ export default {
         lookup[night.id] = night
       }
       return lookup
+    },
+    badgeLookup () {
+      const lookup = {}
+      this.badges.forEach((badge) => {
+        lookup[badge.id] = badge
+      })
+      return lookup
     }
   },
   mounted () {
@@ -181,9 +188,14 @@ export default {
       sortOrder: 1,
       filters: this.requestFilters
     }
-    this.load().then(() => {
-      this.getblocks()
-    })
+    if (this.event) {
+      get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' }).then((roomNights) => {
+        this.roomNights = roomNights
+        this.getblocks().then(() => {
+          this.load()
+        })
+      })
+    }
   },
   methods: {
     async getblocks () {
@@ -194,24 +206,9 @@ export default {
     },
     async load () {
       this.loading = true
-      await this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
+      this.badges = await get('/api/event/' + this.event.id + '/badge')
+      await this.fetchRooms()
       await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
-      try {
-        this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', {sort: "date"})
-        this.roomNights.sort((a, b) => {
-          if (a.date > b.date) {
-            return 1
-          }
-          return -1
-        })
-      } catch (error) {
-        this.roomNights = []
-      }
-      try {
-        this.requests = await get('/api/event/' + this.event.id + '/hotel_room_request')
-      } catch (error) {
-        this.requests = []
-      }
       this.loading = false
     },
     async fetchRooms () {
@@ -378,8 +375,13 @@ export default {
   },
   watch: {
     event () {
-      this.load().then(() => {
-        this.getblocks()
+      this.rooms = []
+      this.roomNights = []
+      get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' }).then((roomNights) => {
+        this.roomNights = roomNights
+        this.getblocks().then(() => {
+          this.load()
+        })
       })
     },
     block () {

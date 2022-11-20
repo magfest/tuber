@@ -1,5 +1,6 @@
 from tuber.models import Base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
+
 
 class Event(Base):
     __tablename__ = "event"
@@ -7,3 +8,4 @@ class Event(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(), unique=True)
     description = Column(String())
+    readonly = Column(Boolean, default=False)

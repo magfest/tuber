@@ -38,11 +38,11 @@
           <br><br>
 
           <h4>Who would you like to room with?</h4>
-          <roommate-field label="Requested Roommates" v-model="request.requested_roommates" :disabled="request.declined"></roommate-field>
+          <roommate-field label="Requested Roommates" v-model="request.requested_roommates" :badges="badges" :disabled="request.declined"></roommate-field>
           <br>
 
           <h4>Who would you <b>not</b> like to room with?</h4>
-          <roommate-field label="Anti-requested Roommates" v-model="request.antirequested_roommates" :disabled="request.declined"></roommate-field><br>
+          <roommate-field label="Anti-requested Roommates" v-model="request.antirequested_roommates" :badges="badges" :disabled="request.declined"></roommate-field><br>
 
           <p v-if="invalidRoommates">You cannot both request and anti-request a single person, and you can't request or anti-request yourself.</p>
 
@@ -106,6 +106,7 @@ export default {
     RoommateField
   },
   data: () => ({
+    badges: [],
     loading: false,
     roommates: [1, 2],
     confirmation: false,
@@ -201,7 +202,7 @@ export default {
   },
   methods: {
     async load () {
-      await this.$store.dispatch(ModelActionTypes.LOAD_BADGES)
+      this.badges = await get('/api/event/' + this.event.id + '/badge')
       await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
       if (this.id) {
         this.request = await get(this.url)
