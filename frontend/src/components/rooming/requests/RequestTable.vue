@@ -83,7 +83,7 @@ export default {
   methods: {
     async load () {
       this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' })
-      this.hotelBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
+      this.hotelBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block', { sort: 'name' })
       if (this.hotelBlocks && !this.hotelBlocks.includes(this.hotelBlock)) {
         this.hotelBlock = this.hotelBlocks[0].id
       }

@@ -46,7 +46,7 @@ export default {
   methods: {
     load () {
       if (this.id) {
-        get(this.url).then((hotelRoomBlock) => {
+        get(this.url, { sort: 'name' }).then((hotelRoomBlock) => {
           this.hotelRoomBlock = hotelRoomBlock
         })
       }

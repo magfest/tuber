@@ -23,7 +23,8 @@ class User(Base):
     sessions.allow_r = {"self"}
     grants = relationship("Grant", cascade="all, delete", passive_deletes=True)
     grants.allow_r = {"self"}
-    default_event = Column(Integer, ForeignKey('event.id'))
+    default_event = Column(Integer, ForeignKey(
+        'event.id', ondelete="SET NULL"), nullable=True)
 
 
 class APIKey(Base):

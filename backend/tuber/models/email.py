@@ -2,6 +2,7 @@ from tuber.models import Base
 from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, JSON, DateTime
 from sqlalchemy.orm import relationship
 
+
 class Email(Base):
     __tablename__ = "email"
     __url__ = "/api/event/<int:event>/email"
@@ -14,8 +15,10 @@ class Email(Base):
     body = Column(String())
     active = Column(Boolean)
     send_once = Column(Boolean)
-    source = Column(Integer, ForeignKey('email_source.id'), nullable=True)
+    source = Column(Integer, ForeignKey('email_source.id',
+                    ondelete="SET NULL"), nullable=True)
     receipts = relationship("EmailReceipt")
+
 
 class EmailTrigger(Base):
     __tablename__ = "email_trigger"
@@ -25,6 +28,7 @@ class EmailTrigger(Base):
     trigger = Column(String())
     timestamp = Column(DateTime())
     context = Column(JSON())
+
 
 class EmailSource(Base):
     __tablename__ = "email_source"
@@ -41,15 +45,20 @@ class EmailSource(Base):
     emails = relationship("Email")
     receipts = relationship("EmailReceipt")
 
+
 class EmailReceipt(Base):
     __tablename__ = "email_receipt"
     __url__ = "/api/event/<int:event>/email_receipt"
     id = Column(Integer, primary_key=True)
     event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
-    email = Column(Integer, ForeignKey('email.id'))
-    badge = Column(Integer, ForeignKey('badge.id'))
-    source = Column(Integer, ForeignKey('email_source.id'))
-    trigger = Column(Integer, ForeignKey('email_trigger.id'), nullable=True)
+    email = Column(Integer, ForeignKey(
+        'email.id', ondelete="SET NULL"), nullable=True)
+    badge = Column(Integer, ForeignKey(
+        'badge.id', ondelete="SET NULL"), nullable=True)
+    source = Column(Integer, ForeignKey('email_source.id',
+                    ondelete="SET NULL"), nullable=True)
+    trigger = Column(Integer, ForeignKey(
+        'email_trigger.id', ondelete="SET NULL"), nullable=True)
     to_address = Column(String())
     from_address = Column(String())
     subject = Column(String())

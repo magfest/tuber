@@ -10,9 +10,10 @@
     </div>
     <DataTable :value="formattedInstances" :loading="loading" dataKey="id" class="p-datatable-sm" ref="dt"
       :paginator="true" :rows="rows" :lazy="true" :totalRecords="totalRecords" @page="onPage($event)"
-      @sort="onSort($event)" :filterDisplay="filterDisplay" @filter="onFilter($event)" :filters="filters">
+      @sort="onSort($event)" :filterDisplay="filterDisplay" @filter="onFilter($event)" :filters="filters"
+      v-model:selection="selection" @select-all-change="onSelectAllChange" :selectAll="selectAll" @row-select="onRowSelect" @row-unselect="onRowUnselect">
       <slot name="columns"></slot>
-      <slot name="actions" :edit="edit" :remove="remove">
+      <slot name="actions" :edit="edit" :remove="remove" v-if="showActions">
         <Column header="Actions" style="width: 10rem">
           <template #body="slotProps">
             <Button @click="edit(slotProps.data)" icon="pi pi-cog" class="p-button-info" />
@@ -92,6 +93,34 @@ export default {
       default () {
         return 'row'
       }
+    },
+    onSelect: {
+      type: Function,
+      default (data) {
+        return data
+      }
+    },
+    onRowSelect: {
+      type: Function,
+      default (data) {
+      }
+    },
+    onRowUnselect: {
+      type: Function,
+      default (data) {
+      }
+    },
+    showActions: {
+      type: Boolean,
+      default () {
+        return true
+      }
+    },
+    neverload: {
+      type: Boolean,
+      default () {
+        return false
+      }
     }
   },
   components: {
@@ -103,7 +132,9 @@ export default {
     edited: null,
     loading: false,
     totalRecords: 0,
-    lazyParams: {}
+    lazyParams: {},
+    selection: [],
+    selectAll: false
   }),
   computed: {
     ...mapGetters([
@@ -133,6 +164,9 @@ export default {
   },
   methods: {
     async load () {
+      if (this.neverload) {
+        return
+      }
       this.loading = true
       const paginationParams = {
         offset: this.lazyParams.first,
@@ -159,19 +193,27 @@ export default {
       this.editing = true
     },
     async add () {
-      const newmodel = await post(this.fullUrl)
-      this.edited = newmodel
-      this.editing = true
+      try {
+        const newmodel = await post(this.fullUrl)
+        this.edited = newmodel
+        this.editing = true
+      } catch {
+        this.$toast.add({ severity: 'error', summary: 'Failed to add ' + this.formTitle })
+      }
     },
     cancel () {
       this.editing = false
       this.edited = null
     },
     async save (data) {
-      await patch(this.fullUrl + '/' + data.id, data)
-      this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 1000 })
-      this.editing = false
-      this.edited = null
+      try {
+        await patch(this.fullUrl + '/' + data.id, data)
+        this.editing = false
+        this.edited = null
+        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 1000 })
+      } catch {
+        this.$toast.add({ severity: 'error', summary: 'Failed to save ' + this.formTitle + '(' + data.id + ')' })
+      }
       this.load()
     },
     async remove (event, data) {
@@ -180,10 +222,15 @@ export default {
         message: 'Are you sure you want to delete this?',
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
-          await del(this.fullUrl + '/' + data.id)
-          this.$toast.add({ severity: 'success', summary: 'Deleted Successfully', life: 1000 })
-          this.editing = false
-          this.edited = null
+          try {
+            await del(this.fullUrl + '/' + data.id)
+            this.$toast.add({ severity: 'success', summary: 'Deleted Successfully', life: 1000 })
+            this.editing = false
+            this.edited = null
+          } catch (ex) {
+            console.log(ex, ex.message)
+            this.$toast.add({ severity: 'error', summary: 'Failed to delete ' + this.formTitle, detail: ex.message })
+          }
           this.load()
         },
         reject: () => {
@@ -201,6 +248,9 @@ export default {
     onFilter (event) {
       this.lazyParams = event
       this.load()
+    },
+    onSelectAllChange (event) {
+      this.selectAll = !this.selectAll
     }
   },
   watch: {
@@ -222,6 +272,9 @@ export default {
     },
     parameters () {
       this.load()
+    },
+    selection () {
+      this.onSelect(this.selection)
     }
   }
 }

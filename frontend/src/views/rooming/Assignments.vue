@@ -199,7 +199,7 @@ export default {
   },
   methods: {
     async getblocks () {
-      this.blocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
+      this.blocks = await get('/api/event/' + this.event.id + '/hotel_room_block', { sort: 'name' })
       if (this.blocks) {
         this.block = this.blocks[0].id
       }
@@ -310,6 +310,7 @@ export default {
       this.fetchRequests()
     },
     onFilter () {
+      this.lazyParams.first = 0
       this.lazyParams.filters = this.requestFilters
       this.fetchRequests()
     },

@@ -1,33 +1,38 @@
 <template>
   <div class="card">
     <Toast />
-    <h3>Room Blocking</h3>
-    <Dropdown v-model="selectedRoomBlock" :options="room_blocks" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter" ref="room_block"></Dropdown><Button @click="saveSelected" :disabled="selected.length === 0">Apply Selected</Button>
-    <DataTable :value="requests" :paginator="true" :rows="25" dataKey="id" v-model:filters="filters" filterDisplay="row" :loading="loading"
-                :globalFilterFields="['name','departments','badge_type']" v-model:selection="selected">
+    <tuber-table tableTitle="Room Blocking" formTitle="" url="/api/event/<event>/hotel/block_assignments" :filters="filters" :showActions="false" :onSelect="onSelect">
+      <template #controls>
+        <div>
+          <Dropdown v-model="selectedRoomBlock" :options="room_blocks" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter" ref="room_block"></Dropdown>
+          <Button @click="saveSelected" :disabled="selected.length === 0">Apply Selected</Button>
+        </div>
+      </template>
+
+      <template #columns>
         <Column selectionMode="multiple" style="width: 3rem"></Column>
+
         <Column header="Name" field="public_name" filterField="public_name" :sortable="true">
             <template #filter="{filterModel,filterCallback}">
                 <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter" :placeholder="`Search by name - `" v-tooltip.top.focus="'Hit enter key to filter'"/>
             </template>
         </Column>
-        <Column header="Departments" filterField="departments">
+
+        <Column field="departments" header="Departments" filterField="departments">
             <template #body="slotProps">
-                {{ slotProps.data.department_names.join(", ") }}
+                {{ slotProps.data.department_names.join(', ') }}
             </template>
             <template #filter="{filterModel,filterCallback}">
                 <Dropdown v-model="filterModel.value" @change="filterCallback()" :options="departments" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter"></Dropdown>
             </template>
         </Column>
-        <Column header="Notes" field="notes" :sortable="true" />
-        <Column header="Badge Type" filterField="badge_type" :sortable="true" style="width: 12rem">
-            <template #body="slotProps">
-                {{ badgeTypeLookup[slotProps.data.badge_type].name }}
-            </template>
-            <template #filter="{filterModel,filterCallback}">
-                <Dropdown v-model="filterModel.value" @change="filterCallback()" :options="badgeTypes" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter"></Dropdown>
+
+        <Column header="Notes" field="notes" :sortable="true">
+          <template #filter="{filterModel,filterCallback}">
+                <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter" :placeholder="`Search by notes - `" v-tooltip.top.focus="'Hit enter key to filter'"/>
             </template>
         </Column>
+
         <Column header="Room Block" filterField="hotel_block" :sortable="true" style="width: 12rem">
             <template #body="slotProps">
                 <Dropdown v-model="slotProps.data.hotel_block" @change="save(slotProps.data.hotel_room_request, slotProps.data.hotel_block)" :options="room_blocks" optionLabel="name" optionValue="id"></Dropdown>
@@ -36,7 +41,8 @@
                 <Dropdown v-model="filterModel.value" @change="filterCallback()" :options="room_blocks" optionLabel="name" optionValue="id" placeholder="Any" class="p-column-filter"></Dropdown>
             </template>
         </Column>
-    </DataTable>
+      </template>
+    </tuber-table>
   </div>
 </template>
 
@@ -48,6 +54,7 @@ import { mapGetters } from 'vuex'
 import { get, post, patch } from '@/lib/rest'
 import { ModelActionTypes } from '@/store/modules/models/actions'
 import { FilterMatchMode } from 'primevue/api'
+import TuberTable from '../../components/TuberTable.vue'
 
 export default {
   name: 'RoomBlocks',
@@ -55,17 +62,15 @@ export default {
     ''
   ],
   components: {
+    TuberTable
   },
   data: () => ({
-    requests: [],
     filters: {
-      global: { value: null, matchMode: FilterMatchMode.CONTAINS },
       public_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
       departments: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      badge_type: { value: null, matchMode: FilterMatchMode.EQUALS },
+      notes: { value: null, matchMode: FilterMatchMode.CONTAINS },
       hotel_block: { value: null, matchMode: FilterMatchMode.EQUALS }
     },
-    loading: false,
     selected: [],
     selectedRoomBlock: null,
     room_blocks: []
@@ -80,23 +85,36 @@ export default {
     ])
   },
   mounted () {
-    this.load()
+    if (this.event) {
+      this.load()
+    }
   },
   methods: {
     async load () {
       this.loading = true
       await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
       await this.$store.dispatch(ModelActionTypes.LOAD_BADGETYPES)
-      this.room_blocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
-      this.requests = await get('/api/event/' + this.event.id + '/hotel/block_assignments')
+      const roomblocks = await get('/api/event/' + this.event.id + '/hotel_room_block', { sort: 'name' })
+      roomblocks.push({
+        description: 'No Block Assigned',
+        event: this.event.id,
+        id: -1,
+        name: '---'
+      })
+      this.room_blocks = roomblocks
       this.loading = false
     },
-    save (hotelRoomRequest, roomBlock) {
-      patch('/api/event/' + this.event.id + '/hotel_room_request/' + hotelRoomRequest, { hotel_block: roomBlock }).then(() => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
-      }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })
-      })
+    async save (hotelRoomRequest, roomBlock) {
+      try {
+        if (roomBlock === -1) {
+          await patch('/api/event/' + this.event.id + '/hotel_room_request/' + hotelRoomRequest, { hotel_block: null })
+        } else {
+          await patch('/api/event/' + this.event.id + '/hotel_room_request/' + hotelRoomRequest, { hotel_block: roomBlock })
+        }
+        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 1000 })
+      } catch {
+        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
+      }
     },
     saveSelected () {
       const updates = []
@@ -109,10 +127,13 @@ export default {
       }
 
       post('/api/event/' + this.event.id + '/hotel/block_assignments', { updates: updates }).then(() => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
+        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 1000 })
       }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })
+        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
       })
+    },
+    onSelect (data) {
+      this.selected = data
     }
   },
   watch: {

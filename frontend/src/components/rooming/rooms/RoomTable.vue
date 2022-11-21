@@ -1,7 +1,7 @@
 <template>
     <div>
         <tuber-table tableTitle="Hotel Rooms" formTitle="Hotel Room" url="/api/event/<event>/hotel_room"
-            :parameters="parameters" :autoload="false" :format="format" ref="table" :filters="filters">
+            :parameters="parameters" :autoload="false" :format="format" ref="table" :filters="filters" :neverload="neverload">
 
             <template #controls>
                 <div class="grid">
@@ -29,11 +29,15 @@
                 <Column field="empty_slots" header="Empty Slots" style="width: 5rem"></Column>
                 <Column field="roommates" header="Roommates" :showFilterMatchModes="false">
                     <template #body="slotProps">
-                        <div v-for="roommate in slotProps.data.roommates" :key="slotProps.data.id + '_' + roommate.id">
-                            <Button class="p-button-info minibutton" icon="pi pi-plus" iconPos="right" @click="viewRequest(roommate.id)" />
-                            {{ roommate.name }}
-                            <Chip v-for="error in roommate.errors" :key="roommate.id + error" :label="error" />
+                      <div>
+                        <div v-for="group in slotProps.data.groups" :key="Object.keys(group)[0] + '_group'" class="roommate_group">
+                          <div v-for="roommate in group" :key="slotProps.data.id + '_' + roommate.id">
+                              <Button class="p-button-info minibutton" icon="pi pi-plus" iconPos="right" @click="viewRequest(roommate.id)" />
+                              {{ roommate.name }}
+                              <Chip v-for="error in roommate.errors" :key="roommate.id + error" :label="error" />
+                          </div>
                         </div>
+                      </div>
                     </template>
                     <template #filter="{filterModel,filterCallback}">
                         <InputText type="text" v-model="badgeSearch" @keydown.enter="loadBadges(filterModel, filterCallback)" class="p-column-filter" :placeholder="`Search by name`" v-tooltip.top.focus="'Hit enter key to filter'"/>
@@ -87,6 +91,22 @@
   margin-bottom: 2px;
   margin-right: 2px;
 }
+
+.roommate_group {
+  margin-bottom: 5px;
+}
+.roommate_group:nth-child(1) {
+  background: darkred;
+}
+.roommate_group:nth-child(2) {
+  background: darkblue;
+}
+.roommate_group:nth-child(3) {
+  background: darkgreen;
+}
+.roommate_group:nth-child(4) {
+  background: brown;
+}
 </style>
 
 <script>
@@ -111,7 +131,8 @@ export default {
       badgeSearch: '',
       roomRequest: {},
       requestFormActive: false,
-      roomNights: []
+      roomNights: [],
+      neverload: true
     }
   },
   components: {
@@ -141,7 +162,11 @@ export default {
   },
   methods: {
     async load () {
-      this.hotelBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block')
+      if (!this.event) {
+        return
+      }
+      this.hotelBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block', { sort: 'name' })
+      this.neverload = false
       if (this.hotelBlocks && !this.hotelBlocks.includes(this.hotelBlock)) {
         this.hotelBlock = this.hotelBlocks[0].id
       }
@@ -170,11 +195,13 @@ export default {
       for (const room of rooms) {
         room.empty_slots = 0
         room.roommates = []
+        room.groups = []
         room.name = room.name ? room.name : 'Room ' + room.id
         const ID = room.id.toString()
         if (Object.prototype.hasOwnProperty.call(roomDetails, ID)) {
           room.empty_slots = roomDetails[ID].empty_slots
           room.roommates = roomDetails[ID].roommates
+          room.groups = roomDetails[ID].groups
         }
       }
       return rooms

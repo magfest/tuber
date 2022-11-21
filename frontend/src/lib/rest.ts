@@ -62,13 +62,13 @@ async function pollJob (response: Response, progressCB?: (n: Progress) => any): 
   return job
 }
 
-async function restFetch (method: string, url:string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
+async function restFetch (method: string, url: string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
   if (!data) {
     data = {}
   }
   setProgress(progressCB, { active: true })
 
-  const headers: {[key:string]: string} = {
+  const headers: { [key: string]: string } = {
     Accept: 'application/json',
     'CSRF-Token': VueCookieNext.getCookie('csrf_token')
   }
@@ -94,23 +94,24 @@ async function restFetch (method: string, url:string, data?: any, progressCB?: (
     const job = await pollJob(response, progressCB)
     return await job.json()
   } else {
-    throw new Error(method + ': ' + url + ' ' + response.status)
+    const msg = await response.text()
+    throw new Error(msg)
   }
 }
 
-async function get (url:string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
+async function get (url: string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
   return await restFetch('GET', url, data, progressCB)
 }
 
-async function post (url:string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
+async function post (url: string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
   return await restFetch('POST', url, data, progressCB)
 }
 
-async function patch (url:string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
+async function patch (url: string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
   return await restFetch('PATCH', url, data, progressCB)
 }
 
-async function del (url:string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
+async function del (url: string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
   return await restFetch('DELETE', url, data, progressCB)
 }
 
