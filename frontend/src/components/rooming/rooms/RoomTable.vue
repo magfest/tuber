@@ -95,9 +95,6 @@
 .roommate_group {
   margin-bottom: 5px;
 }
-.roommate_group:nth-child(1) {
-  background: darkred;
-}
 .roommate_group:nth-child(2) {
   background: darkblue;
 }
@@ -105,7 +102,7 @@
   background: darkgreen;
 }
 .roommate_group:nth-child(4) {
-  background: brown;
+  background: darkred;
 }
 </style>
 
