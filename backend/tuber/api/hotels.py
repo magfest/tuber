@@ -224,7 +224,7 @@ def room_search(event):
     if not check_permission("hotel_block.*.read"):
         return "", 403
     rooms = db.query(HotelRoom).filter(HotelRoom.event == event).join(RoomNightAssignment, RoomNightAssignment.hotel_room == HotelRoom.id).join(
-        Badge, Badge.id == RoomNightAssignment.badge).filter(Badge.search_name.contains(g.data['search'].lower())).limit(10).order_by(Badge.search_name).all()
+        Badge, Badge.id == RoomNightAssignment.badge).filter(Badge.search_name.contains(g.data['search'].lower())).order_by(Badge.search_name).limit(10).all()
     return jsonify(HotelRoom.serialize(rooms, serialize_relationships=True)), 200
 
 
