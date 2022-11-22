@@ -1,20 +1,23 @@
 <template>
     <div>
-        <tuber-table tableTitle="Hotel Rooms" formTitle="Hotel Room" url="/api/event/<event>/hotel_room"
-            :parameters="parameters" :autoload="false" :format="format" ref="table" :filters="filters" :neverload="neverload">
+      <h3>Hotel Rooms</h3>
+        <tuber-table tableTitle="" formTitle="Hotel Room" url="/api/event/<event>/hotel_room"
+            :parameters="parameters" :autoload="false" :format="format" ref="table" :filters="filters" :neverload="neverload" :loading="loading">
 
             <template #controls>
-                <div class="grid">
-                    <div class="col">
-                        <Dropdown :options="hotelBlocks" optionLabel="name" optionValue="id" v-model="hotelBlock" />
-                    </div>
-                    <div class="col">
-                        <span class="field-checkbox">
-                            <Checkbox id="hideCompleted" v-model="hideCompleted" :binary="true" />
-                            <label for="hideCompleted">Hide Completed</label>
-                        </span>
-                    </div>
-                </div>
+              <Toolbar class="mb-1 toolbar">
+                <template #left>
+                  <Button class="p-button-success mr-2" @click="rematchAll($event)">Rematch All</Button>
+                  <Button class="p-button-info" @click="clearAutoMatches($event)">Reset Auto Matches</Button>
+                </template>
+                <template #right>
+                  <span class="field-checkbox">
+                      <Checkbox id="hideCompleted" class="pt-2" v-model="hideCompleted" :binary="true" />
+                      <label for="hideCompleted" class="checklabel">Hide Completed</label>
+                  </span>
+                  <Dropdown class="ml-2" :options="hotelBlocks" optionLabel="name" optionValue="id" v-model="hotelBlock" />
+                </template>
+              </Toolbar>
             </template>
 
             <template #columns>
@@ -32,7 +35,7 @@
                       <div>
                         <div v-for="group in slotProps.data.groups" :key="Object.keys(group)[0] + '_group'" class="roommate_group">
                           <div v-for="roommate in group" :key="slotProps.data.id + '_' + roommate.id">
-                              <Button class="p-button-info minibutton" icon="pi pi-plus" iconPos="right" @click="viewRequest(roommate.id)" />
+                              <Button class="p-button-info minibutton" icon="pi pi-eye" iconPos="right" @click="viewRequest(roommate.id)" />
                               {{ roommate.name }}
                               <Chip v-for="error in roommate.errors" :key="roommate.id + error" :label="error" />
                           </div>
@@ -80,6 +83,12 @@
 </template>
 
 <style scoped>
+.toolbar {
+  width: 100%;
+}
+.checklabel {
+  padding-top: 1rem;
+}
 .p-chip {
     height: 15px;
     font-size: x-small;
@@ -110,7 +119,7 @@
 import RoomDetails from './RoomDetails.vue'
 import TuberTable from '../../TuberTable.vue'
 import { mapGetters } from 'vuex'
-import { get, patch } from '@/lib/rest'
+import { get, patch, post } from '@/lib/rest'
 import { FilterMatchMode } from 'primevue/api'
 import RequestShortForm from '../requests/RequestShortForm.vue'
 
@@ -129,7 +138,8 @@ export default {
       roomRequest: {},
       requestFormActive: false,
       roomNights: [],
-      neverload: true
+      neverload: true,
+      loading: false
     }
   },
   components: {
@@ -244,6 +254,22 @@ export default {
       this.roomRequest = request
       this.requestFormActive = true
     },
+    async rematchAll (event) {
+      this.$confirm.require({
+        target: event.currentTarget,
+        message: 'This will delete unlocked/incomplete rooms then recreate them. Are you sure?',
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+          this.loading = true
+          await post('/api/event/' + this.event.id + '/hotel/' + this.hotelBlock + '/rematch_all', { weights: {} })
+          await this.$refs.table.load()
+          this.loading = false
+        },
+        reject: () => {
+
+        }
+      })
+    },
     cancel () {
       this.requestFormActive = false
       this.roomRequest = {}
@@ -264,6 +290,24 @@ export default {
       } catch (error) {
         this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
       }
+    },
+    async clearAutoMatches (evt) {
+      this.$confirm.require({
+        target: event.currentTarget,
+        message: 'This will delete unlocked/incomplete rooms. Are you sure?',
+        icon: 'pi pi-exclamation-triangle',
+        accept: () => {
+          this.loading = true
+          post('/api/event/' + this.event.id + '/hotel/' + this.hotelBlock + '/clear_matches', { weights: {} }).then(() => {
+            this.$refs.table.load().then(() => {
+              this.loading = false
+            })
+          })
+        },
+        reject: () => {
+
+        }
+      })
     }
   },
   watch: {

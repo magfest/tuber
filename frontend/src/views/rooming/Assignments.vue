@@ -5,8 +5,9 @@
     <h3>Room Assignments</h3>
     <Toolbar class="mb-1">
         <template #left>
-            <Button class="p-button-success mr-2" @click="createRoom"><u>C</u>reate Room</Button>
-            <Button class="p-button-info mr-2" @click="rematchAll($event)"><u>R</u>ematch All</Button>
+            <Button class="p-button-success mr-2" @click="createRoom">Create Room</Button>
+            <Button class="p-button-info mr-2" @click="rematchAll($event)">Rematch All</Button>
+            <Button class="p-button-info mr-2" @click="clearAutoMatches($event)">Reset Auto Matches</Button>
         </template>
 
         <template #right>
@@ -17,24 +18,23 @@
 
     <div class="grid">
       <div class="col">
-        <DataTable class="p-datatable-sm" ref="dt" :lazy="true" selectionMode="multiple" :value="filteredRequests" :paginator="true" :rows="10" dataKey="id"
+        <DataTable class="p-datatable-sm" ref="dt" :lazy="true" selectionMode="multiple" :value="filteredRequests" :paginator="true" :rows="25" dataKey="id"
          v-model:filters="requestFilters" filterDisplay="row" :globalFilterFields="['public_name']" v-model:selection="selectedRequests"
          :totalRecords="totalRequests" :loading="loading" @page="onPage($event)" @sort="onSort($event)" @filter="onFilter($event)">
-          <Column header="Name" field="first_name" filterField="first_name" style="width: 8rem" :sortable="true">
+          <Column header="Name" field="first_name" filterField="first_name" :sortable="true">
             <template #body="slotProps">
               {{ badgeLookup[slotProps.data.badge] != undefined ? badgeLookup[slotProps.data.badge].public_name : "loading" }}
             </template>
-          </Column>
-          <Column style="width: 2rem" v-for="night in roomNights" :key="'rn'+night.id">
-            <template #body="slotProps">
-              <Tag :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': (slotProps.data.nights_requested[night.id] ? 'warning' : 'danger')" class="mr-1" style="width: 27px" />
-            </template>
-          </Column>
-          <Column header="Notes" field="notes" filterField="notes" :sortable="true">
             <template #filter="{filterModel,filterCallback}">
-                <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter" :placeholder="`Search Requests by Name`" v-tooltip.top.focus="'Hit enter key to filter'"/>
+                <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter" :placeholder="`Search Requests`" v-tooltip.top.focus="'Hit enter key to filter'"/>
             </template>
           </Column>
+          <Column>
+            <template #body="slotProps">
+              <Tag  v-for="night in roomNights" :key="'rn'+night.id" :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': (slotProps.data.nights_requested[night.id] ? 'warning' : 'danger')" class="mr-1" style="width: 18px" />
+            </template>
+          </Column>
+          <Column header="Notes" field="notes" filterField="notes" :sortable="true"></Column>
         </DataTable>
       </div>
 
@@ -53,16 +53,18 @@
             <template #title>
               <div class="flex justify-content-between">
                 <span>
-                  <Button v-if="room.completed" class="p-button-success mr-2" icon="pi pi-check-circle" @click="completeRoom(room, false)" />
-                  <Button v-else class="p-button-warning mr-2" icon="pi pi-circle-off" @click="completeRoom(room, true)" />
+                  <Button class="p-button-success mr-2" icon="pi pi-plus" @click="addRoommates(room)" />
+                  <Button v-if="room.completed" class="p-button-success mr-2" icon="pi pi-check-square" @click="completeRoom(room, false)" />
+                  <Button v-else class="p-button-warning mr-2" icon="pi pi-stop" @click="completeRoom(room, true)" />
                   <Button v-if="room.locked" class="p-button-success mr-2" icon="pi pi-lock" @click="lockRoom(room, false)" />
                   <Button v-else class="p-button-warning mr-2" icon="pi pi-unlock" @click="lockRoom(room, true)" />
                   <InputText v-if="room.edit" v-model="room.name" @blur="saveRoom(room)" />
                   <span v-else @click="room.edit=true">
-                    {{ room.name ? room.name : "Room " + room.id}}
+                    {{ room.name ? room.name : "Unnamed" }}
                   </span>
                 </span>
                 <span>
+                  <span class="external-block mr-2">{{ room.hotel_block != block ? (blockLookup[room.hotel_block] != undefined ? "("+blockLookup[room.hotel_block].name+")" : "loading") : ""}}</span>
                   <Button class="p-button-info mr-2" icon="pi pi-info-circle" @click="roomInfo(room)" />
                   <Button class="p-button-danger" @click="removeRoom(room)">Remove</Button>
                 </span>
@@ -73,29 +75,66 @@
                 <div class="col">
                   <div v-for="roommate in room.roommates" :key="room.id + '_' + roommate">
                     <Button class="p-button-danger minibutton" icon="pi pi-times" iconPos="right" @click="removeRoommate(room, roommate)" />
-                    {{ badgeLookup[roommate].public_name }}
-                  </div>
-                  <div>
-                    <Button class="p-button-success minibutton" icon="pi pi-plus" iconPos="right" @click="addRoommates(room)" />
+                    {{  badgeLookup[roommate] != undefined ? badgeLookup[roommate].public_name : "loading" }}
                   </div>
                 </div>
-                <div class="col">
+                <div class="col notebox">
                   Messages
-                  <Textarea v-model="room.messages" rows="5" @change="saveRoom(room)" />
+                  <Textarea v-model="room.messages" rows="3" @change="saveRoom(room)" />
                 </div>
-                <div class="col">
+                <div class="col notebox">
                   Internal Notes
-                  <Textarea v-model="room.notes" rows="5" @change="saveRoom(room)" />
+                  <Textarea v-model="room.notes" rows="3" @change="saveRoom(room)" />
                 </div>
               </div>
             </template>
         </Card>
+        <Paginator :totalRecords="roomCount" :rows="10" :first="roomOffset" @page="roomPage($event)"></Paginator>
       </div>
     </div>
+
+    <Dialog v-model:visible="showRoomInfo" :breakpoints="{ '1500px': '50vw', '1000px': '75vw', '500px': '95vw' }"
+      :style="{ width: '50vw' }">
+      <template #header>
+        <h3>{{ currentRoom.name }}</h3>
+      </template>
+
+      <div>
+        <div v-for="group in roomDetails[currentRoom.id].groups" :key="Object.keys(group)[0] + '_group'" class="roommate_group">
+          <div v-for="roommate in group" :key="currentRoom.id + '_' + roommate.id">
+              {{ roommate.name }}
+              <Chip v-for="error in roommate.errors" :key="roommate.id + error" :label="error" />
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+          <Button label="Close" @click="cancelInfo" icon="pi pi-times" class="p-button-text" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
 <style>
+.roommate_group {
+  margin-bottom: 5px;
+}
+.roommate_group:nth-child(2) {
+  background: darkblue;
+}
+.roommate_group:nth-child(3) {
+  background: darkgreen;
+}
+.roommate_group:nth-child(4) {
+  background: darkred;
+}
+.p-chip {
+    height: 15px;
+    font-size: x-small;
+}
+.notebox .p-inputtext {
+  width: 100%
+}
 .p-card .p-card-content {
   padding-top: 0;
   padding-bottom: 0;
@@ -133,7 +172,8 @@ export default {
     rooms: [],
     requestFilters: {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      notes: { value: null, matchMode: FilterMatchMode.CONTAINS }
+      notes: { value: null, matchMode: FilterMatchMode.CONTAINS },
+      first_name: { value: null, matchMode: FilterMatchMode.CONTAINS }
     },
     roomFilters: {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -145,7 +185,12 @@ export default {
     assignedNights: {},
     lazyParams: {},
     totalRequests: 0,
-    filteredRequests: []
+    filteredRequests: [],
+    roomCount: 0,
+    roomOffset: 0,
+    showRoomInfo: false,
+    roomDetails: {},
+    currentRoom: null
   }),
   computed: {
     ...mapGetters([
@@ -178,6 +223,13 @@ export default {
         lookup[badge.id] = badge
       })
       return lookup
+    },
+    blockLookup () {
+      const lookup = {}
+      this.blocks.forEach((block) => {
+        lookup[block.id] = block
+      })
+      return lookup
     }
   },
   mounted () {
@@ -206,6 +258,7 @@ export default {
     },
     async load () {
       this.loading = true
+      this.roomOffset = 0
       this.badges = await get('/api/event/' + this.event.id + '/badge')
       await this.fetchRooms()
       await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
@@ -215,12 +268,16 @@ export default {
       this.loading = true
       try {
         if (this.roomSearchText) {
-          this.rooms = await get('/api/event/' + this.event.id + '/hotel/room_search', { search: this.roomSearchText })
+          const result = await get('/api/event/' + this.event.id + '/hotel/room_search', { search: this.roomSearchText, offset: this.roomOffset })
+          this.roomCount = result.count
+          this.rooms = result.hotel_rooms
         } else {
           if (this.hidecompleted) {
-            this.rooms = await get('/api/event/' + this.event.id + '/hotel_room', { full: true, limit: 25, hotel_block: this.block, completed: false })
+            this.roomCount = await get('/api/event/' + this.event.id + '/hotel_room', { full: true, limit: 25, offset: this.roomOffset, hotel_block: this.block, completed: false, sort: 'modified', order: 'desc', count: true })
+            this.rooms = await get('/api/event/' + this.event.id + '/hotel_room', { full: true, limit: 25, offset: this.roomOffset, hotel_block: this.block, completed: false, sort: 'modified', order: 'desc' })
           } else {
-            this.rooms = await get('/api/event/' + this.event.id + '/hotel_room', { full: true, limit: 25, hotel_block: this.block })
+            this.roomCount = await get('/api/event/' + this.event.id + '/hotel_room', { full: true, limit: 25, offset: this.roomOffset, hotel_block: this.block, sort: 'modified', order: 'desc', count: true })
+            this.rooms = await get('/api/event/' + this.event.id + '/hotel_room', { full: true, limit: 25, offset: this.roomOffset, hotel_block: this.block, sort: 'modified', order: 'desc' })
           }
         }
       } catch (error) {
@@ -232,11 +289,11 @@ export default {
       this.loading = true
       try {
         let requests = []
-        if (this.lazyParams.filters.notes.value) {
+        if (this.lazyParams.filters.first_name.value) {
           const searchRes = await get('/api/event/' + this.event.id + '/hotel/' + this.block + '/request_search', {
             approved: true,
             assigned: false,
-            search_term: this.lazyParams.filters.notes.value,
+            search_term: this.lazyParams.filters.first_name.value,
             full: true,
             deep: true,
             offset: this.lazyParams.first,
@@ -305,6 +362,10 @@ export default {
       this.lazyParams = event
       this.fetchRequests()
     },
+    async roomPage (event) {
+      this.roomOffset = event.first
+      await this.fetchRooms()
+    },
     onSort (event) {
       this.lazyParams = event
       this.fetchRequests()
@@ -315,20 +376,23 @@ export default {
       this.fetchRequests()
     },
     async createRoom () {
-      const room = await post('/api/event/' + this.event.id + '/hotel_room', { hotel_block: this.block })
+      this.roomOffset = 0
+      const room = await post('/api/event/' + this.event.id + '/hotel_room', { hotel_block: this.block, name: 'New Room' })
       return this.addRoommates(room)
     },
     async rematchAll (event) {
+      this.roomOffset = 0
       this.$confirm.require({
         target: event.currentTarget,
-        message: 'This will delete unlocked rooms. Are you sure?',
+        message: 'This will delete unlocked/incomplete rooms then recreate them. Are you sure?',
         icon: 'pi pi-exclamation-triangle',
-        accept: async () => {
+        accept: () => {
           this.loading = true
-          await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/rematch_all', { weights: {} })
-          this.fetchRooms()
-          this.fetchRequests()
-          this.loading = false
+          post('/api/event/' + this.event.id + '/hotel/' + this.block + '/rematch_all', { weights: {} }).then(() => {
+            this.fetchRooms()
+            this.fetchRequests()
+            this.loading = false
+          })
         },
         reject: () => {
 
@@ -336,12 +400,21 @@ export default {
       })
     },
     async removeRoom (room) {
+      this.roomOffset = 0
       await del('/api/event/' + this.event.id + '/hotel_room/' + room.id)
       this.fetchRooms()
       this.fetchRequests()
     },
-    roomInfo (room) {
-      console.log('Getting info', room)
+    async roomInfo (room) {
+      this.roomDetails = await get('/api/event/' + this.event.id + '/hotel/room_details', { rooms: room.id })
+      this.currentRoom = room
+      this.showRoomInfo = true
+    },
+    async saveInfo (details) {
+
+    },
+    async cancelInfo () {
+      this.showRoomInfo = false
     },
     async removeRoommate (room, roommate) {
       await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/room/' + room.id + '/remove_roommates', { roommates: [roommate] })
@@ -358,20 +431,44 @@ export default {
       this.fetchRequests()
     },
     async roomSearch () {
+      this.roomOffset = 0
       this.fetchRooms()
     },
     async saveRoom (room) {
       room.edit = false
-      await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id, { id: room.id, completed: room.completed, locked: room.locked, notes: room.notes, name: room.name, messages: room.messages })
-      this.fetchRooms()
+      try {
+        await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id, { id: room.id, completed: room.completed, locked: room.locked, notes: room.notes, name: room.name, messages: room.messages })
+        this.$toast.add({ severity: 'success', summary: 'Saved ' + room.name + ' successfully!', life: 500 })
+      } catch {
+        this.$toast.add({ severity: 'error', summary: 'Failed to save ' + room.name, life: 3000 })
+      }
     },
     completeRoom (room, completed) {
       room.completed = completed
       this.saveRoom(room)
+      this.fetchRooms()
     },
     lockRoom (room, locked) {
       room.locked = locked
       this.saveRoom(room)
+    },
+    async clearAutoMatches (evt) {
+      this.$confirm.require({
+        target: event.currentTarget,
+        message: 'This will delete unlocked/incomplete rooms. Are you sure?',
+        icon: 'pi pi-exclamation-triangle',
+        accept: () => {
+          this.loading = true
+          post('/api/event/' + this.event.id + '/hotel/' + this.block + '/clear_matches', { weights: {} }).then(() => {
+            this.fetchRooms()
+            this.fetchRequests()
+            this.loading = false
+          })
+        },
+        reject: () => {
+
+        }
+      })
     }
   },
   watch: {

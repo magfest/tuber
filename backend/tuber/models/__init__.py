@@ -2,6 +2,8 @@
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy.inspection
 from sqlalchemy.types import JSON
+from sqlalchemy.sql import func
+from sqlalchemy import Column, DateTime
 from tuber.errors import *
 from tuber.database import db
 from flask import g
@@ -216,8 +218,15 @@ class Model_Base(object):
         return models
 
 
-Base = declarative_base(cls=Model_Base)
-Base.query = db.query_property()
+_Base = declarative_base(cls=Model_Base)
+_Base.query = db.query_property()
+
+
+class Base(_Base):
+    __abstract__ = True
+    created = Column(DateTime(), server_default=func.now())
+    modified = Column(DateTime(), onupdate=func.now(),
+                      server_default=func.now())
 
 # autopep8: off
 from tuber.models.user import *

@@ -4,7 +4,7 @@ import sys
 from .backgroundjobs import AsyncMiddleware
 import logging
 logging.basicConfig()
-logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 if tuber.config.enable_circuitbreaker:
     print("Using circuitbreaker")

@@ -8,7 +8,7 @@
         <Button @click="add">Add</Button>
       </slot>
     </div>
-    <DataTable :value="formattedInstances" :loading="loading" dataKey="id" class="p-datatable-sm" ref="dt"
+    <DataTable :value="formattedInstances" :loading="isLoading" dataKey="id" class="p-datatable-sm" ref="dt"
       :paginator="true" :rows="rows" :lazy="true" :totalRecords="totalRecords" @page="onPage($event)"
       @sort="onSort($event)" :filterDisplay="filterDisplay" @filter="onFilter($event)" :filters="filters"
       v-model:selection="selection" @select-all-change="onSelectAllChange" :selectAll="selectAll" @row-select="onRowSelect" @row-unselect="onRowUnselect">
@@ -121,6 +121,12 @@ export default {
       default () {
         return false
       }
+    },
+    loading: {
+      type: Boolean,
+      default () {
+        return false
+      }
     }
   },
   components: {
@@ -130,7 +136,7 @@ export default {
     formattedInstances: [],
     editing: false,
     edited: null,
-    loading: false,
+    isLoading: false,
     totalRecords: 0,
     lazyParams: {},
     selection: [],
@@ -167,7 +173,7 @@ export default {
       if (this.neverload) {
         return
       }
-      this.loading = true
+      this.isLoading = true
       const paginationParams = {
         offset: this.lazyParams.first,
         limit: this.lazyParams.rows
@@ -263,11 +269,11 @@ export default {
       if (this.instances.length > 0) {
         Promise.resolve(this.format(this.instances)).then((formatted) => {
           this.formattedInstances = formatted
-          this.loading = false
+          this.isLoading = false
         })
       } else {
         this.formattedInstances = []
-        this.loading = false
+        this.isLoading = false
       }
     },
     parameters () {
@@ -275,6 +281,9 @@ export default {
     },
     selection () {
       this.onSelect(this.selection)
+    },
+    loading () {
+      this.isLoading = this.loading
     }
   }
 }

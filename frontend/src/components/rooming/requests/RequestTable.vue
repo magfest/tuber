@@ -20,7 +20,7 @@
           </Column>
           <Column header="Room Nights">
             <template #body="slotProps">
-              <Tag v-for="night in roomNights" :key="slotProps.data.id + '_' + night.id" :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': (slotProps.data.nights_requested[night.id] ? 'warning' : 'danger')" class="mr-1" style="width: 27px" />
+              <Tag v-for="night in roomNights" :key="slotProps.data.id + '_' + night.id" :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': (slotProps.data.nights_requested[night.id] ? 'warning' : 'danger')" class="mr-1" style="width: 18px" />
             </template>
           </Column>
           <Column field="notes" filterField="notes" header="Notes" :sortable="true"></Column>

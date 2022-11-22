@@ -96,6 +96,7 @@ def paginate(query, model, event=None, department=None):
             rows = rows.options(selectinload(
                 getattr(model, relation.key)))
     if hasattr(model, sort):
+        print(f"Sorting on {sort}")
         if order == "asc":
             rows = rows.order_by(getattr(model, sort))
         else:

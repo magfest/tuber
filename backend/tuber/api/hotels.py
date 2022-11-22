@@ -3,11 +3,11 @@ from flask import send_file, request, jsonify, escape
 from tuber.models import *
 from tuber.permissions import *
 from tuber.database import db
-from sqlalchemy import and_
+from sqlalchemy import and_, or_, func
 from sqlalchemy.orm import joinedload, selectinload
 import os
 from tuber.api.util import *
-from .room_matcher import rematch_hotel_block
+from .room_matcher import rematch_hotel_block, clear_hotel_block
 import time
 
 
@@ -96,6 +96,14 @@ def rematch_block(event, hotel_block):
     if rematch_hotel_block(db, event, hotel_block):
         return "[]", 200
     return "", 500
+
+
+@app.route("/api/event/<int:event>/hotel/<int:hotel_block>/clear_matches", methods=["POST"])
+def clear_matches(event, hotel_block):
+    if not check_permission(f"hotel_block.{hotel_block}.write", event=event):
+        return "", 403
+    clear_hotel_block(db, event, hotel_block)
+    return "[]", 200
 
 
 @app.route("/api/event/<int:event>/hotel/room_details", methods=["GET"])
@@ -223,9 +231,15 @@ def room_details(event):
 def room_search(event):
     if not check_permission("hotel_block.*.read"):
         return "", 403
-    rooms = db.query(HotelRoom).filter(HotelRoom.event == event).join(RoomNightAssignment, RoomNightAssignment.hotel_room == HotelRoom.id).join(
-        Badge, Badge.id == RoomNightAssignment.badge).filter(Badge.search_name.contains(g.data['search'].lower())).order_by(Badge.search_name).limit(10).all()
-    return jsonify(HotelRoom.serialize(rooms, serialize_relationships=True)), 200
+    count = db.query(HotelRoom).filter(HotelRoom.event == event).filter(
+        HotelRoom.roommates.any(Badge.search_name.contains(g.data['search'].lower()))).count()
+    offset = int(g.data.get('offset', '0'))
+    rooms = db.query(HotelRoom).filter(HotelRoom.event == event).filter(
+        HotelRoom.roommates.any(Badge.search_name.contains(g.data['search'].lower()))).order_by(HotelRoom.name).offset(offset).limit(10).all()
+
+    # .join(RoomNightAssignment, RoomNightAssignment.hotel_room == HotelRoom.id).join(
+    #    Badge, Badge.id == RoomNightAssignment.badge).filter(Badge.search_name.contains(g.data['search'].lower())).order_by(Badge.search_name).all()
+    return jsonify(hotel_rooms=HotelRoom.serialize(rooms, serialize_relationships=True), count=count), 200
 
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/request_search", methods=["GET"])
@@ -238,7 +252,8 @@ def request_search(event, hotel_block):
         HotelRoomRequest.approved == True,
         HotelRoomRequest.assigned == False
     ).join(Badge, Badge.id == HotelRoomRequest.badge).filter(
-        Badge.search_name.contains(g.data['search_term'].lower())
+        or_(Badge.search_name.contains(g.data['search_term'].lower()), func.lower(
+            HotelRoomRequest.notes).contains(g.data['search_term'].lower()))
     ).order_by(g.data['sort']).offset(int(g.data['offset'])).limit(int(g.data['limit'])).all()
     count = db.query(HotelRoomRequest).filter(
         HotelRoomRequest.event == event,
@@ -246,7 +261,8 @@ def request_search(event, hotel_block):
         HotelRoomRequest.approved == True,
         HotelRoomRequest.assigned == False
     ).join(Badge, Badge.id == HotelRoomRequest.badge).filter(
-        Badge.search_name.contains(g.data['search_term'].lower())
+        or_(Badge.search_name.contains(g.data['search_term'].lower()), func.lower(
+            HotelRoomRequest.notes).contains(g.data['search_term'].lower()))
     ).count()
     return jsonify(requests=HotelRoomRequest.serialize(reqs, serialize_relationships=True, deep=True), count=count), 200
 

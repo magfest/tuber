@@ -253,7 +253,7 @@ def load_staffers(db, event, hotel_block):
     return staffers
 
 
-def rematch_hotel_block(db, event, hotel_block):
+def clear_hotel_block(db, event, hotel_block):
     rooms = db.query(HotelRoom).filter(HotelRoom.hotel_block == hotel_block,
                                        HotelRoom.completed == False, HotelRoom.locked == False).all()
     roommates = []
@@ -264,6 +264,10 @@ def rematch_hotel_block(db, event, hotel_block):
         roommate.hotel_room_request[0].assigned = False
         db.add(roommate)
     db.commit()
+
+
+def rematch_hotel_block(db, event, hotel_block):
+    clear_hotel_block(db, event, hotel_block)
 
     start = time.perf_counter()
     staffers = load_staffers(db, event, hotel_block)
@@ -306,8 +310,9 @@ def rematch_hotel_block(db, event, hotel_block):
     print(f"Combine Round 2 time: {time.perf_counter() - start}")
 
     hotels = []
-    for room in all_rooms:
-        hotel_room = HotelRoom(event=event, hotel_block=hotel_block)
+    for idx, room in enumerate(all_rooms):
+        hotel_room = HotelRoom(
+            event=event, hotel_block=hotel_block, name=f"Auto Room {idx}")
         db.add(hotel_room)
         hotels.append((room, hotel_room))
     db.flush()
