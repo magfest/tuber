@@ -183,6 +183,10 @@ class Model_Base(object):
         #         for model in instance[relation.key]:
         #             new.append(cls.modelclasses[relation.target.name].deserialize(model))
         #         instance[relation.key] = new
+        if "created" in instance:
+            del instance['created']
+        if "modified" in instance:
+            del instance['modified']
         return instance
 
     @classmethod
