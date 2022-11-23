@@ -153,6 +153,10 @@ class Model_Base(object):
         if "id" in instance:
             if instance['id'] in perms:
                 instance_perms.update(perms[instance['id']])
+        if "created" in instance:
+            del instance['created']
+        if "modified" in instance:
+            del instance['modified']
         for key in instance.keys():
             if not hasattr(cls, key):
                 raise MalformedRequest(f"Table {name} has no field {key}")
@@ -183,10 +187,6 @@ class Model_Base(object):
         #         for model in instance[relation.key]:
         #             new.append(cls.modelclasses[relation.target.name].deserialize(model))
         #         instance[relation.key] = new
-        if "created" in instance:
-            del instance['created']
-        if "modified" in instance:
-            del instance['modified']
         return instance
 
     @classmethod
