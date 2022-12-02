@@ -1,3 +1,4 @@
+from collections import defaultdict
 from tuber import app, config
 from flask import send_file, request, jsonify, escape
 from tuber.models import *
@@ -116,10 +117,13 @@ def room_details(event):
     rnas = db.query(RoomNightAssignment, Badge.public_name).join(Badge, Badge.id ==
                                                                  RoomNightAssignment.badge).filter(RoomNightAssignment.hotel_room.in_(rooms)).all()
 
+    badges = []
     request_groups = {}
 
     details = {}
     for rna, public_name in rnas:
+        if not rna.badge in badges:
+            badges.append(rna.badge)
         if not rna.hotel_room in details:
             details[rna.hotel_room] = {
                 "room_nights": [],
@@ -134,9 +138,17 @@ def room_details(event):
             details[rna.hotel_room]['roommates'][rna.badge] = {
                 "id": rna.badge,
                 "name": public_name,
-                "errors": set()
+                "errors": set(),
+                "room_night_assignments": {}
             }
             request_groups[rna.hotel_room][rna.badge] = []
+        details[rna.hotel_room]['roommates'][rna.badge]['room_night_assignments'][rna.room_night] = rna.id
+
+    all_rnas = db.query(RoomNightAssignment).filter(
+        RoomNightAssignment.badge.in_(badges)).all()
+    rnas_by_badge = defaultdict(list)
+    for rna in all_rnas:
+        rnas_by_badge[rna.badge].append(rna)
 
     gender_prefs = {}
 
@@ -195,11 +207,17 @@ def room_details(event):
                             nights.add(night_request.room_night)
                 else:
                     nights.add(night_request.room_night)
-        extra_nights = nights.symmetric_difference(
-            set(details[hotel_room.id]['room_nights']))
+        assigned_nights = [x.room_night for x in rnas_by_badge[request.badge]]
+        missing_nights = nights.difference(set(assigned_nights))
+        assigned_nights_in_this_room = [
+            x.room_night for x in rnas_by_badge[request.badge] if x.hotel_room == hotel_room.id]
+        extra_nights = set(assigned_nights_in_this_room).difference(nights)
         if extra_nights:
             details[hotel_room.id]['roommates'][request.badge]['errors'].add(
-                f'Extra Room Night ({len(extra_nights)})')
+                f'Extra Room Night ({", ".join([room_nights[x].name[:2] for x in extra_nights])})')
+        if missing_nights:
+            details[hotel_room.id]['roommates'][request.badge]['errors'].add(
+                f'Missing Room Night ({", ".join([room_nights[x].name[:2] for x in missing_nights])})')
         if request.prefer_single_gender and len(gender_prefs[hotel_room.id]) > 1:
             details[hotel_room.id]['roommates'][request.badge]['errors'].add(
                 f'Gender Mismatch ({request.preferred_gender}) ({", ".join(gender_prefs[hotel_room.id])})')
