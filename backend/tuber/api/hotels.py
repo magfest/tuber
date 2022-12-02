@@ -209,9 +209,8 @@ def room_details(event):
                     nights.add(night_request.room_night)
         assigned_nights = [x.room_night for x in rnas_by_badge[request.badge]]
         missing_nights = nights.difference(set(assigned_nights))
-        assigned_nights_in_this_room = [
-            x.room_night for x in rnas_by_badge[request.badge] if x.hotel_room == hotel_room.id]
-        extra_nights = set(assigned_nights_in_this_room).difference(nights)
+        extra_nights = set(details[hotel_room.id]
+                           ['room_nights']).difference(nights)
         if extra_nights:
             details[hotel_room.id]['roommates'][request.badge]['errors'].add(
                 f'Extra Room Night ({", ".join([room_nights[x].name[:2] for x in extra_nights])})')
@@ -245,7 +244,49 @@ def room_details(event):
     return jsonify(details)
 
 
-@ app.route("/api/event/<int:event>/hotel/room_search", methods=["GET"])
+@app.route("/api/event/<int:event>/hotel/matching_roommates", methods=["GET"])
+def matching_roommates(event):
+    if not check_permission("hotel_block.*.read"):
+        return "", 403
+
+    room = db.query(HotelRoom).filter(
+        HotelRoom.id == int(g.data['hotel_room'])).one()
+
+    room_nights = db.query(HotelRoomNight).filter(
+        HotelRoomNight.event == event).order_by(HotelRoomNight.date).all()
+    room_nights = {x.id: x for x in room_nights}
+
+    badges = db.query(Badge).filter(Badge.event == event,
+                                    Badge.search_name.contains(g.data.get('search', "").lower())).order_by(Badge.public_name).limit(10).all()
+    results = []
+    for badge in badges:
+        missing = []
+        for night in badge.room_night_requests:
+            assign = False
+            if night.requested:
+                if room_nights[night.room_night].restricted:
+                    for approval in badge.room_night_approvals:
+                        if approval.room_night == night.room_night and approval.approved:
+                            assign = True
+                            break
+                else:
+                    assign = True
+            for assignment in badge.room_night_assignments:
+                if assignment.room_night == night.room_night:
+                    assign = False
+                    break
+            if assign:
+                missing.append(night.room_night)
+        results.append({
+            "missing_nights": missing,
+            "id": badge.id,
+            "name": badge.public_name,
+        })
+
+    return jsonify(results)
+
+
+@app.route("/api/event/<int:event>/hotel/room_search", methods=["GET"])
 def room_search(event):
     if not check_permission("hotel_block.*.read"):
         return "", 403

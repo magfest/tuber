@@ -1,19 +1,21 @@
 <template>
     <form @submit.prevent>
-      <div class="field">
-            <label for="name">Name</label><br>
-            <InputText id="name" v-model="data.name" /><br>
-          </div>
+      <div class="grid">
+        <div class="field col">
+          <label for="name">Name</label><br>
+          <InputText id="name" v-model="data.name" /><br>
+        </div>
 
-          <div class="field">
-            <label for="messages">Messages</label><br>
-            <Textarea id="messages" v-model="data.messages" /><br>
-          </div>
+        <div class="field col">
+          <label for="messages">Messages</label><br>
+          <Textarea id="messages" v-model="data.messages" /><br>
+        </div>
 
-          <div class="field">
-            <label for="notes">Notes</label><br>
-            <Textarea id="notes" v-model="data.notes" /><br>
-          </div><br>
+        <div class="field col">
+          <label for="notes">Notes</label><br>
+          <Textarea id="notes" v-model="data.notes" /><br>
+        </div><br>
+      </div>
       <table>
         <tr>
           <th>Name</th>
@@ -36,6 +38,20 @@
           </td>
           <td>
             <Chip v-for="error in roommate.errors" :key="roommate.id + error" :label="error" />
+          </td>
+        </tr>
+      </table>
+      <h4>Add Roommates</h4>
+      <InputText class="mt-2" placeholder="Name Search" id="search" v-model="search"></InputText>
+      <table>
+        <tr>
+          <th>Name</th>
+          <th>Needed Room Nights</th>
+        </tr>
+        <tr v-for="roommate in matches" :key="roommate.id">
+          <td><Button class="minibutton" icon="pi pi-plus" iconPos="right" @click="addRoommate(roommate)" />{{ roommate.name }}</td>
+          <td>
+            <Tag  v-for="night in roomNights" :key="'rnr'+night.id+roommate.id" :value="night.name.slice(0,2)" :severity="roommate.missing_nights.includes(night.id) ? 'primary':  'danger'" class="mr-1" style="width: 22px" />
           </td>
         </tr>
       </table>
@@ -62,7 +78,9 @@ export default {
       details: {
         roommates: {}
       },
-      roomNights: []
+      roomNights: [],
+      search: '',
+      matches: []
     }
   },
   mounted () {
@@ -77,6 +95,7 @@ export default {
 
       this.details = resp[this.data.id.toString()]
       this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' })
+      await this.matchingRoomates()
     },
     async toggleAssignment (roommate, night) {
       if (Object.prototype.hasOwnProperty.call(roommate.room_night_assignments, night.id)) {
@@ -102,6 +121,15 @@ export default {
         }
       }
     },
+    async addRoommate (roommate) {
+      try {
+        await post('/api/event/' + this.event.id + '/hotel/' + this.data.hotel_block + '/room/' + this.data.id + '/add_roommates', { roommates: [roommate.id] })
+        this.$toast.add({ severity: 'success', summary: roommate.name + ' added', life: 3000 })
+        await this.load()
+      } catch (error) {
+        this.$toast.add({ severity: 'error', summary: 'Failed to add ' + roommate.name, life: 3000 })
+      }
+    },
     async removeRoommate (roommate) {
       try {
         await post('/api/event/' + this.event.id + '/hotel/' + this.data.hotel_block + '/room/' + this.data.id + '/remove_roommates', { roommates: [roommate.id] })
@@ -110,6 +138,22 @@ export default {
       } catch (error) {
         this.$toast.add({ severity: 'error', summary: 'Failed to remove ' + roommate.name, life: 3000 })
       }
+    },
+    async matchingRoomates () {
+      try {
+        if (this.search) {
+          this.matches = await get('/api/event/' + this.event.id + '/hotel/matching_roommates', { search: this.search, hotel_room: this.data.id })
+        } else {
+          this.matches = await get('/api/event/' + this.event.id + '/hotel/matching_roommates', { hotel_room: this.data.id })
+        }
+      } catch {
+        this.$toast.add({ severity: 'error', summary: 'Failed to get matching roommates', life: 3000 })
+      }
+    }
+  },
+  watch: {
+    search () {
+      this.matchingRoomates()
     }
   }
 }
