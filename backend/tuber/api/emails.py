@@ -34,6 +34,7 @@ def get_email_context(badge, tables):
             roommates[roommate]['nights'].sort()
         hotel_rooms.append({
             "roommates": roommates, 
+            "hotel_block": room.hotel_block,
             "messages": room.messages,
             "completed": room.completed,
             "start_night": start_night,
