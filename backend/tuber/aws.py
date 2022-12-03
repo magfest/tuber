@@ -127,7 +127,7 @@ def send_email(destination, body, subject, source, region, access_key, secret_ke
         "Content": { 
             "Simple": { 
                 "Body": {
-                    "Text": { 
+                    "Html": { 
                         "Charset": "UTF-8",
                         "Data": body
                     }
