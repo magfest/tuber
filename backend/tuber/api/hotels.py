@@ -644,7 +644,7 @@ def export_passkey(event):
                 arrival = room_nights[rna.room_night].date
             if room_nights[rna.room_night].date > departure:
                 departure = room_nights[rna.room_night].date
-        for idx, roommate in room.roommates:
+        for idx, roommate in enumerate)room.roommates):
             if roommate.room_night_requests:
                 fnames[idx] = rnrs[roommate.room_night_requests[0]].first_name
                 lnames[idx] = rnrs[roommate.room_night_requests[0]].last_name
