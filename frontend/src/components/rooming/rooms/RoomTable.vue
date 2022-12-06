@@ -124,6 +124,7 @@ import { mapGetters } from 'vuex'
 import { get, patch, post } from '@/lib/rest'
 import { FilterMatchMode } from 'primevue/api'
 import RequestShortForm from '../requests/RequestShortForm.vue'
+import { VueCookieNext } from 'vue-cookie-next'
 
 export default {
   name: 'RoomTable',
