@@ -6,6 +6,7 @@ from tuber.permissions import *
 from tuber.database import db
 from sqlalchemy import and_, or_, func
 from sqlalchemy.orm import joinedload, selectinload
+import datetime
 import os
 from tuber.api.util import *
 from .room_matcher import rematch_hotel_block, clear_hotel_block
@@ -642,6 +643,7 @@ def export_passkey(event):
                 arrival = room_nights[rna.room_night].date
             if room_nights[rna.room_night].date > departure:
                 departure = room_nights[rna.room_night].date
+        departure += datetime.timedelta(days=1)
         for idx, roommate in enumerate(room.roommates[:4]):
             if roommate.room_night_requests:
                 if roommate.hotel_room_request[0].first_name:
