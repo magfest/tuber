@@ -633,8 +633,8 @@ def export_passkey(event):
         fnames = ["","","",""]
         lnames = ["","","",""]
         emails = []
-        arrival = dates[rnas[0].room_night.id]
-        departure = dates[rnas[0].room_night.id]
+        arrival = rnas[0].room_night.date
+        departure = rnas[0].room_night.date
         for rna in rnas:
             if rna.room_night.date < arrival:
                 arrival = rna.room_night.date
