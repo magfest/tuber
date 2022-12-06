@@ -623,7 +623,11 @@ def export_passkey(event):
             'Notes', 'Emails',
         ]
 
+    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
+    room_nights = {x.id: x for x in room_nights}
     completed_rooms = db.query(HotelRoom).filter(HotelRoom.completed == True, HotelRoom.event == event).all()
+    rnrs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == event).all()
+    rnrs = {x.id: x for x in rnrs}
 
     result = ",".join(fields)+"\n"
     for room in completed_rooms:
@@ -633,17 +637,17 @@ def export_passkey(event):
         fnames = ["","","",""]
         lnames = ["","","",""]
         emails = []
-        arrival = rnas[0].room_night.date
-        departure = rnas[0].room_night.date
+        arrival = room_nights[rnas[0].room_night].date
+        departure = room_nights[rnas[0].room_night].date
         for rna in rnas:
-            if rna.room_night.date < arrival:
-                arrival = rna.room_night.date
-            if rna.room_night.date > departure:
-                departure = rna.room_night.date
+            if room_nights[rna.room_night].date < arrival:
+                arrival = room_nights[rna.room_night].date
+            if room_nights[rna.room_night].date > departure:
+                departure = room_nights[rna.room_night].date
         for idx, roommate in room.roommates:
             if roommate.room_night_requests:
-                fnames[idx] = roommate.room_night_requests[0].first_name
-                lnames[idx] = roommate.room_night_requests[0].last_name
+                fnames[idx] = rnrs[roommate.room_night_requests[0]].first_name
+                lnames[idx] = rnrs[roommate.room_night_requests[0]].last_name
             else:
                 fnames[idx] = roommate.first_name
                 lnames[idx] = roommate.last_name
