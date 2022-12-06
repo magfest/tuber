@@ -650,8 +650,8 @@ def export_passkey(event):
                 fnames[idx] = roommate.first_name
                 lnames[idx] = roommate.last_name
             emails.append(roommate.email)
-            
-        result += f'"{fnames[0]}","{lnames[0]}","{emails[0]}",,"{arrival.strftime("%m/%d/%Y")}","{departure.strftime("%m/%d/%Y")}",,,,,,,,,,,,,"{fnames[1]}","{lnames[1]}","{fnames[2]}","{lnames[2]}","{fnames[3]}","{lnames[3]}","{",".join(emails)}"\n'
+        notes = room.notes
+        result += f'"{fnames[0]}","{lnames[0]}","{emails[0]}",,"{arrival.strftime("%m/%d/%Y")}","{departure.strftime("%m/%d/%Y")}",,,,,,,,,,,,,,"{fnames[1]}","{lnames[1]}","{fnames[2]}","{lnames[2]}","{fnames[3]}","{lnames[3]}","{notes}","{",".join(emails)}"\n'
 
     headers = {
         "Content-Type": "text/csv",
