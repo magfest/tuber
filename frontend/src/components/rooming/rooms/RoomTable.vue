@@ -9,7 +9,7 @@
               <Toolbar class="mb-1 toolbar">
                 <template #left>
                   <Button class="p-button-success mr-2" @click="rematchAll($event)">Rematch All</Button>
-                  <Button class="p-button-info" @click="clearAutoMatches($event)">Reset Auto Matches</Button>
+                  <Button class="p-button-info mr-2" @click="clearAutoMatches($event)">Reset Auto Matches</Button>
                   <Button class="p-button-info" @click="downloadAssignments($event)">Download Assignments</Button>
                 </template>
                 <template #right>
