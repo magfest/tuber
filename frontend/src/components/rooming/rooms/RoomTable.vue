@@ -1,5 +1,6 @@
 <template>
     <div>
+      <a ref="download" />
       <h3>Hotel Rooms</h3>
         <tuber-table tableTitle="" formTitle="Hotel Room" url="/api/event/<event>/hotel_room"
             :parameters="parameters" :autoload="false" :format="format" ref="table" :filters="filters" :neverload="neverload" :loading="loading">
@@ -9,6 +10,7 @@
                 <template #left>
                   <Button class="p-button-success mr-2" @click="rematchAll($event)">Rematch All</Button>
                   <Button class="p-button-info" @click="clearAutoMatches($event)">Reset Auto Matches</Button>
+                  <Button class="p-button-info" @click="downloadAssignments($event)">Download Assignments</Button>
                 </template>
                 <template #right>
                   <span class="field-checkbox">
@@ -308,6 +310,27 @@ export default {
 
         }
       })
+    },
+    async downloadAssignments(evt) {
+      const headers = {
+        Accept: 'text/csv',
+        'CSRF-Token': VueCookieNext.getCookie('csrf_token')
+      }
+
+      const response = await fetch('/api/event/' + this.event.id + '/hotel/export_passkey', {
+        method: 'GET',
+        headers,
+        body: null,
+        credentials: 'include'
+      })
+
+      if (response.status === 200) {
+        const body = await response.blob()
+        const text = await body.text()
+        this.$refs.download.setAttribute('href', 'data:text/csv;charset=utf-8, ' + encodeURIComponent(text))
+        this.$refs.download.setAttribute('download', 'rooms.csv')
+        this.$refs.download.click()
+      }
     }
   },
   watch: {

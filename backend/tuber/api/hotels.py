@@ -1,6 +1,6 @@
 from collections import defaultdict
 from tuber import app, config
-from flask import send_file, request, jsonify, escape
+from flask import send_file, request, jsonify, escape, Response, stream_with_context
 from tuber.models import *
 from tuber.permissions import *
 from tuber.database import db
@@ -605,6 +605,60 @@ def hotel_request_api(event):
     if not hotel_request:
         return "Could not locate hotel room request", 404
     return hotel_request_single_api(event, hotel_request.id)
+
+
+@app.route("/api/event/<int:event>/hotel/export_passkey", methods=["GET"])
+def export_passkey(event):
+    if not check_permission("rooming.*.assignment", event=event):
+        return "", 403
+
+    fields = [
+            'First Name', 'Last Name', 'Guest Email Address for confirmation purposes', 'Special Requests',
+            'Arrival', 'Departure', 'City', 'State', 'Zip', 'GUEST COUNTRY', 'Telephone',
+            'Payment Type', 'Card #', 'Exp.',
+            'BILLING ADDRESS', 'BILLING CITY', 'BILLING STATE', 'BILLING ZIP CODE', 'BILLING COUNTRY',
+            'Additional Guest First Name-2', 'Additional Guest Last Name-2',
+            'Additional Guest First Name-3', 'Additional Guest Last Name3',  # No, this is not a typo
+            'Additional Guest First Name-4', 'Additional Guest Last Name-4',
+            'Notes', 'Emails',
+        ]
+
+    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
+    dates = {x.id: x.date for x in room_nights}
+    completed_rooms = db.query(HotelRoom).filter(HotelRoom.completed == True, HotelRoom.event == event).all()
+
+    def stream_rooms():
+        yield ",".join(fields)+"\n"
+        for room in completed_rooms:
+            rnas = room.room_night_assignments
+            if not rnas:
+                continue
+            fnames = ["","","",""]
+            lnames = ["","","",""]
+            emails = []
+            arrival = dates[rnas[0].room_night.id]
+            departure = dates[rnas[0].room_night.id]
+            for rna in rnas:
+                if rna.room_night.date < arrival:
+                    arrival = rna.room_night.date
+                if rna.room_night.date > departure:
+                    departure = rna.room_night.date
+            for idx, roommate in room.roommates:
+                if roommate.room_night_requests:
+                    fnames[idx] = roommate.room_night_requests[0].first_name
+                    lnames[idx] = roommate.room_night_requests[0].last_name
+                else:
+                    fnames[idx] = roommate.first_name
+                    lnames[idx] = roommate.last_name
+                emails.append(roommate.email)
+            
+            yield f'"{fnames[0]}","{lnames[0]}","{emails[0]}",,"{arrival.strftime("%m/%d/%Y")}","{departure.strftime("%m/%d/%Y")}",,,,,,,,,,,,,"{fnames[1]}","{lnames[1]}","{fnames[2]}","{lnames[2]}","{fnames[3]}","{lnames[3]}","{",".join(emails)}"'
+
+    headers = {
+        "Content-Type": "text/csv",
+        "Content-Disposition": "attachment; filename=rooms.csv",
+    }
+    return Response(stream_with_context(stream_rooms()), headers=headers)
 
 
 @app.route("/api/event/<int:event>/hotel/update_requests", methods=["POST"])
