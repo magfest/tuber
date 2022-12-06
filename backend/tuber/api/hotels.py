@@ -626,8 +626,6 @@ def export_passkey(event):
     room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
     room_nights = {x.id: x for x in room_nights}
     completed_rooms = db.query(HotelRoom).filter(HotelRoom.completed == True, HotelRoom.event == event).all()
-    rnrs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == event).all()
-    rnrs = {x.id: x for x in rnrs}
 
     result = ",".join(fields)+"\n"
     for room in completed_rooms:
@@ -646,8 +644,8 @@ def export_passkey(event):
                 departure = room_nights[rna.room_night].date
         for idx, roommate in enumerate(room.roommates):
             if roommate.room_night_requests:
-                fnames[idx] = rnrs[roommate.room_night_requests[0]].first_name
-                lnames[idx] = rnrs[roommate.room_night_requests[0]].last_name
+                fnames[idx] = roommate.room_night_requests[0].first_name
+                lnames[idx] = roommate.room_night_requests[0].last_name
             else:
                 fnames[idx] = roommate.first_name
                 lnames[idx] = roommate.last_name
