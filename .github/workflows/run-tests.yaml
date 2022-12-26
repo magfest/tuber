@@ -29,3 +29,5 @@ jobs:
 
       - name: Run Tests
         run: docker compose run backend pytest
+        env:
+          REPO_NAME: ${{ steps.lowercase-repo-name.outputs.lowercase }}
