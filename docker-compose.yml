@@ -21,7 +21,7 @@ services:
     build: ./backend
     ports:
       - 8080:8080
-    image: ghcr.io/magfest/tuber-backend:latest
+    image: ghcr.io/${REPO_NAME:-magfest/tuber}-backend:latest
     depends_on:
       - postgres
       - redis
