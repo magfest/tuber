@@ -456,8 +456,8 @@ resource "aws_ecs_task_definition" "tuber" {
 ]
 TASK_DEFINITION
 
-  cpu                       = 512
-  memory                    = 2048
+  cpu                       = 256
+  memory                    = 512
   requires_compatibilities  = ["FARGATE"]
   network_mode              = "awsvpc"
   execution_role_arn        = aws_iam_role.task_role.arn
