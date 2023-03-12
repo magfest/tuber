@@ -1,6 +1,0 @@
-.
-pytest
-pytest-postgresql
-psycopg
-coverage
-fakeredis
