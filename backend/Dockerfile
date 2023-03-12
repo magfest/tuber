@@ -7,17 +7,15 @@ RUN apk update && \
     pip3 install flask && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements.txt
-COPY setup.py setup.py
+COPY pyproject.toml pyproject.toml
 
 # Workaround for https://github.com/scoder/lupa/issues/222
 RUN pip3 install Cython && \
     pip3 install lupa --global-option="--with-cython"
 
-RUN pip3 install -r requirements.txt
 
 COPY tuber tuber
-RUN python setup.py install
+RUN pip install .
 
 ENV DATABASE_URL=sqlite:///database.db
 ENV FLASK_DEBUG=false
@@ -37,8 +35,8 @@ FROM build as test
 RUN apk update && \
     apk add --no-cache linux-headers postgresql && \
     rm -rf /var/lib/apt/lists/*
-COPY requirements-test.txt requirements-test.txt
-RUN pip3 install -r requirements-test.txt
+COPY pyproject.toml pyproject.toml
+RUN pip install .[test]
 COPY tests tests
 USER tuber
 

@@ -83,14 +83,14 @@ ENABLE_CIRCUITBREAKER=true
 python -m venv venv
 source venv/bin/activate
 cd backend
-python setup.py develop
+python -m pip install -e .
 tuber
 
 # Windows 
 python -m venv venv
 venv\Scripts\activate.bat
 cd backend
-python setup.py develop
+python -m pip install -e .
 ..\venv\Scripts\tuber.exe
 ```
 

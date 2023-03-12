@@ -1,0 +1,58 @@
+[project]
+name = "tuber"
+version = "0.0.1"
+description = "It's a potato."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+keywords = ["events"]
+authors = [
+  {name = "Mark Murnane", email = "mark@hackafe.net"}
+]
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'Environment :: No Input/Output (Daemon)',
+    'Operating System :: POSIX :: Linux',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3 :: Only',
+]
+
+dependencies = [
+    'requests',
+    'alembic',
+    'passlib',
+    'flask>=1.0',
+    'gunicorn',
+    'redis',
+    'lupa',
+    'jinja2',
+    'psycopg2-binary'
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-postgresql",
+    "psycopg",
+    "coverage",
+    "fakeredis"
+]
+
+[project.urls]
+homepage = "https://github.com/magfest/tuber"
+
+[project.scripts]
+tuber = "tuber.__main__:main"
+
+
+[tool.setuptools.package-data]
+mypkg = [
+    "alembic.ini",
+    "migrations/*",
+    "migrations/**/*",
+    "static/*"
+]
+
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"

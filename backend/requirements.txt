@@ -1,9 +1,0 @@
-requests
-alembic
-passlib
-flask>=1.0
-gunicorn
-redis
-lupa
-jinja2
-psycopg2-binary
