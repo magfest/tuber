@@ -2,6 +2,49 @@ from unittest.mock import patch
 import json
 import time
 
+from sqlalchemy.orm.exc import ObjectDeletedError
+import pytest
+
+
+def test_clear_matches(client):
+    """Tests that the clear_matches endpoint clears existing Hotel Room matches"""
+    from tuber.database import db
+    from tuber.models import (Badge, HotelRoom, HotelRoomRequest,
+                              RoomNightAssignment)
+
+    _ = client.post(
+        "/api/importer/mock",
+        json={
+            "event": 1,
+            "attendees": 100,
+            "departments": 10,
+            "staffers": 100,
+        },
+    )
+
+    hotel_room = HotelRoom(event=1, hotel_block=1, hotel_location=1)
+    for i in range(1, 5):
+        b = db.query(Badge).filter(Badge.id == i).one()
+        rna = RoomNightAssignment(
+            event=1, badge=b.id, room_night=1, hotel_room=hotel_room.id
+        )
+        hotel_room.room_night_assignments.append(rna)
+        hotel_room.roommates.append(b)
+        db.add(rna)
+
+        hrr = HotelRoomRequest(event=1, badge=b.id, assigned=False)
+        db.add(hrr)
+
+    db.add(hotel_room)
+    db.flush()
+    db.commit()
+
+    rv = client.post("/api/event/1/hotel/1/clear_matches", json={})
+    assert rv.status_code == 200
+
+    with pytest.raises(ObjectDeletedError):
+        _ = db.query(HotelRoom).filter(HotelRoom.id == hotel_room.id).one_or_none()
+
 @patch('tuber.api.uber.requests.post')
 def test_staffer_auth(mock_post, client):
     """Make sure the staffer login system is able to authenticate against uber"""
