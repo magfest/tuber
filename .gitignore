@@ -7,3 +7,4 @@ tuber.egg-info/
 venv/
 *.sh
 scripts/cache/
+cov/

@@ -26,8 +26,21 @@ jobs:
           target: test
           load: true
           tags: ghcr.io/${{ steps.lowercase-repo-name.outputs.lowercase }}-backend:latest
-
       - name: Run Tests
-        run: docker compose run backend pytest
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/cov
+          sudo chown -R 1000:1000 $GITHUB_WORKSPACE/cov
+          sudo chmod g+s $GITHUB_WORKSPACE/cov
+          docker compose run \
+          --volume $GITHUB_WORKSPACE/cov:/cov \
+          -u 1000 \
+          backend sh -c \
+          "coverage run --data-file=/cov/.coverage -m pytest tests/ && coverage xml --data-file=/cov/.coverage -o /cov/coverage.xml"
         env:
           REPO_NAME: ${{ steps.lowercase-repo-name.outputs.lowercase }}
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v3
+        with:
+          files: cov/coverage.xml
+          fail_ci_if_error: true
+          verbose: true
