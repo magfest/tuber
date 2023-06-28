@@ -93,6 +93,8 @@ def get_nights():
     dates = {key.lower(): value for key, value in result['dates'].items()}
     lookup = {}
     for idx, name in enumerate(result['names']):
+        if not name in dates:
+            continue
         newdate = datetime.datetime.strptime(
             dates[name], "%Y-%m-%d") + datetime.timedelta(days=1)
         newdate = newdate.strftime("%Y-%m-%d")
