@@ -11,7 +11,7 @@ COPY pyproject.toml pyproject.toml
 
 # Workaround for https://github.com/scoder/lupa/issues/222
 RUN pip3 install Cython && \
-    pip3 install lupa --global-option="--with-cython"
+    pip3 install lupa==1.14.1 --global-option="--with-cython"
 
 
 COPY tuber tuber
