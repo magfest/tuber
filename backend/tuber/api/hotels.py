@@ -1,6 +1,6 @@
 from collections import defaultdict
 from tuber import app, config
-from flask import send_file, request, jsonify, escape, Response, stream_with_context
+from flask import send_file, request, jsonify, Response, stream_with_context
 from tuber.models import *
 from tuber.permissions import *
 from tuber.database import db

@@ -1,5 +1,5 @@
 from tuber import app
-from flask import request, Response, escape
+from flask import request, Response
 from tuber.models import *
 from tuber.database import db
 from tuber.permissions import *
@@ -204,7 +204,7 @@ def import_mock():
         return "Event is a required parament.", 406
     event = db.query(Event).filter(Event.id == request.json['event']).one_or_none()
     if not event:
-        return "Could not locate event {}".format(escape(request.json['event'])), 404
+        return "Could not locate event {}".format(request.json['event']), 404
     badges = db.query(Badge).filter(Badge.event == event.id).all()
     if badges:
         return "You cannot generate mock data if there are already badges. Please delete the badges first if you really want junk data.", 412

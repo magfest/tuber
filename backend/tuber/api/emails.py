@@ -1,5 +1,5 @@
 from tuber import app, aws
-from flask import request, Response, stream_with_context, escape
+from flask import request, Response, stream_with_context
 from tuber.models import *
 from tuber.database import db
 from tuber.permissions import *
@@ -126,7 +126,7 @@ def api_email_trigger(event, email):
         return "Permission Denied", 403
     email = db.query(Email).filter(Email.id == email).one_or_none()
     if not email:
-        return "Could not find requested email {}".format(escape(request.json['email'])), 404
+        return "Could not find requested email {}".format(request.json['email']), 404
     if not email.active:
         return "Email must be activated before triggering.", 400
     source = db.query(EmailSource).filter(EmailSource.id == email.source).one_or_none()
