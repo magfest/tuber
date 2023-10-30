@@ -84,7 +84,12 @@ def department_sync():
                 "full"
             ]
         }
-        uber_model = requests.post(config.uber_api_url, headers=headers, json=req).json()['result'][0]
+        uber_model = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
+        if uber_model:
+            uber_model = uber_model[0]
+        else:
+            print(f"Skipping attendee {attendee} since I couldn't find it in Uber")
+            continue
         if attendee in badgelookup:
             badge = badgelookup[attendee]
             if uber_model['full_name'] != badge.public_name:
