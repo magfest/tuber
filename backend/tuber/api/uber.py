@@ -76,6 +76,7 @@ def department_sync():
     badgelookup = {badge.uber_id: badge for badge in badges}
 
     for attendee in eligible:
+        print(f"Importing {attendee}")
         req = {
             "method": "attendee.search",
             "params": [
