@@ -93,9 +93,9 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, patch } from '@/lib/rest'
+import { get, patch } from '../../../lib/rest'
 import RoommateField from './RoommateField.vue'
-import { ModelActionTypes } from '@/store/modules/models/actions'
+import { ModelActionTypes } from '../../../store/modules/models/actions'
 
 export default {
   name: 'RequestForm',

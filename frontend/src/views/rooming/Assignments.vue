@@ -150,9 +150,9 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, post, patch, del } from '@/lib/rest'
+import { get, post, patch, del } from '../../lib/rest'
 import { FilterMatchMode } from 'primevue/api'
-import { ModelActionTypes } from '@/store/modules/models/actions'
+import { ModelActionTypes } from '../../store/modules/models/actions'
 
 export default {
   name: 'RoomAssignments',

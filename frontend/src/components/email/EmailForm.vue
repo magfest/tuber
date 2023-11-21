@@ -41,7 +41,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get } from '@/lib/rest'
+import { get } from '../../lib/rest'
 
 export default {
   name: 'EmailForm',

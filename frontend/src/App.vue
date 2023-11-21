@@ -149,6 +149,9 @@ type LayoutMode = 'static' | 'overlay'
             label: 'Events', icon: 'pi pi-fw pi-calendar', to: '/settings/events'
           },
           {
+            label: 'Actions', icon: 'pi pi-fw pi-play', to: '/actions'
+          },
+          {
             label: 'Settings', icon: 'pi pi-fw pi-cog', to: '/server/settings', visible: false
           }]
         }

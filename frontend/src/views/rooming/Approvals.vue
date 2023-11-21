@@ -10,7 +10,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get } from '@/lib/rest'
+import { get } from '../../lib/rest'
 import Approval from './Approval.vue'
 
 export default {

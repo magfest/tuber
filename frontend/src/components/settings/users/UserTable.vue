@@ -41,7 +41,7 @@
 import UserForm from './UserForm.vue'
 import TuberTable from '../../TuberTable.vue'
 import { FilterMatchMode } from 'primevue/api'
-import { post, patch } from '@/lib/rest'
+import { post, patch } from '../../../lib/rest'
 
 export default {
   name: 'UserTable',

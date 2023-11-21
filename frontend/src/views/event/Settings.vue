@@ -30,7 +30,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, patch } from '@/lib/rest'
+import { get, patch } from '../../lib/rest'
 
 export default {
   name: 'EventSettings',

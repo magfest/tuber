@@ -51,8 +51,8 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, post, patch } from '@/lib/rest'
-import { ModelActionTypes } from '@/store/modules/models/actions'
+import { get, post, patch } from '../../lib/rest'
+import { ModelActionTypes } from '../../store/modules/models/actions'
 import { FilterMatchMode } from 'primevue/api'
 import TuberTable from '../../components/TuberTable.vue'
 

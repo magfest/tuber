@@ -14,7 +14,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, post, patch } from '@/lib/rest'
+import { get, post, patch } from '../../../lib/rest'
 
 export default {
   name: 'RoomBlockForm',

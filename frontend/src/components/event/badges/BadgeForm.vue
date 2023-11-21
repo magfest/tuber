@@ -47,7 +47,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, patch, post } from '@/lib/rest'
+import { get, patch, post } from '../../../lib/rest'
 
 export default {
   name: 'BadgeForm',

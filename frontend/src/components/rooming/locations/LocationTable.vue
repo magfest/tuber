@@ -29,7 +29,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, del } from '@/lib/rest'
+import { get, del } from '../../../lib/rest'
 import LocationForm from './LocationForm.vue'
 
 export default {

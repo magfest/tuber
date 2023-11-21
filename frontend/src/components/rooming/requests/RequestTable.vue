@@ -40,7 +40,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, patch } from '@/lib/rest'
+import { get, patch } from '../../../lib/rest'
 import RequestShortForm from './RequestShortForm.vue'
 import TuberTable from '../../TuberTable.vue'
 import { FilterMatchMode } from 'primevue/api'

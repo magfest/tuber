@@ -103,10 +103,10 @@ app.use(VueCookieNext)
 app.use(store)
 app.use(router)
 
-if ('SENTRY_DSN' in process.env) {
+if ('SENTRY_DSN' in import.meta.env) {
   Sentry.init({
     app,
-    dsn: process.env.SENTRY_DSN,
+    dsn: import.meta.env.SENTRY_DSN,
     integrations: [
       new Integrations.BrowserTracing({
         routingInstrumentation: Sentry.vueRouterInstrumentation(router),

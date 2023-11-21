@@ -35,7 +35,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, post } from '@/lib/rest'
+import { get, post } from '../../lib/rest'
 
 export default {
   name: 'RoomApproval',
