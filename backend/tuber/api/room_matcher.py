@@ -200,8 +200,6 @@ def load_staffers(db, event, hotel_block):
         ~HotelRoomRequest.room_night_assignments.any(), HotelRoomRequest.hotel_block == hotel_block).all()
     staffers = []
     for request, badge in requests:
-        if not request.approved:
-            continue
         staffer = HashNS()
 
         approved = set()
@@ -260,9 +258,6 @@ def clear_hotel_block(db, event, hotel_block):
     for room in rooms:
         roommates.extend(room.roommates)
         db.delete(room)
-    for roommate in roommates:
-        roommate.hotel_room_request[0].assigned = False
-        db.add(roommate)
     db.commit()
 
 
@@ -323,7 +318,6 @@ def rematch_hotel_block(db, event, hotel_block):
                 assoc = RoomNightAssignment(
                     event=event, badge=roommate.id, hotel_room=hotel_room.id, room_night=room_night)
                 db.add(assoc)
-            roommate.request.assigned = True
             db.add(roommate.request)
     db.commit()
     print(unmapped)
