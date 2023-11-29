@@ -20,7 +20,6 @@ def remove_roommates(event, hotel_block, room_id):
                                          RoomNightAssignment.hotel_room == room_id, RoomNightAssignment.badge.in_(g.data['roommates'])).delete()
     reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event ==
                                              event, HotelRoomRequest.badge.in_(g.data['roommates'])).all()
-    update_room_request_props(db, reqs, assigned=False)
     for req in reqs:
         db.add(req)
     db.commit()
@@ -54,7 +53,6 @@ def add_roommates(event, hotel_block, room_id):
             if assign:
                 db.add(RoomNightAssignment(event=event, badge=req.badge,
                        room_night=night.room_night, hotel_room=room_id))
-    update_room_request_props(db, reqs, assigned=True)
     for req in reqs:
         db.add(req)
     db.commit()
@@ -429,7 +427,6 @@ def hotel_approve(event, department):
             db.add(approval)
         hotel_room_request = db.query(HotelRoomRequest).filter(
             HotelRoomRequest.badge == room_night_request.badge).one()
-        update_room_request_props(db, [hotel_room_request, ])
         db.add(room_night_request)
         db.commit()
         return "null", 200
@@ -477,7 +474,7 @@ def hotel_request_single_api(event, request_id):
         requested = db.query(RoomNightRequest, HotelRoomNight).join(HotelRoomNight, RoomNightRequest.room_night ==
                                                                     HotelRoomNight.id).filter(RoomNightRequest.badge == hotel_request.badge).all()
         for req, night in requested:
-            if not night.hidden:
+            if check_permission("rooming.*.manage", event=event) or not night.hidden:
                 room_nights.append({
                     "id": night.id,
                     "requested": req.requested,
@@ -493,7 +490,7 @@ def hotel_request_single_api(event, request_id):
                 if existing['id'] == room_night.id:
                     break
             else:
-                if not room_night.hidden:
+                if check_permission("rooming.*.manage", event=event) or not room_night.hidden:
                     room_nights.append({
                         "id": room_night.id,
                         "requested": False,
@@ -558,7 +555,6 @@ def hotel_request_single_api(event, request_id):
                 requested_night = RoomNightRequest(
                     event=event, badge=hotel_request.badge, requested=room_night_request['requested'], room_night=room_night_request['id'])
                 db.add(requested_night)
-        update_room_request_props(db, [hotel_request, ])
         db.commit()
         return "null", 200
 
