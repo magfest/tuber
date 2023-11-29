@@ -15,6 +15,22 @@ headers = {
     'X-Auth-Token': config.uber_api_token
 }
 
+@app.route("/api/import_shifts", methods=["POST"])
+def import_shifts():
+    event = config.uber_event
+    depts = db.query(Department).filter(Department.event == event).all()
+    for dept in depts:
+        req = {
+            "method": "shifts.lookup",
+            "params": {
+                "department_id": dept.uber_id
+            }
+        }
+        print(req)
+        shifts = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
+        print(len(shifts))
+    return "null", 200
+
 @app.route("/api/uber_department")
 def get_uber_department():
     event = config.uber_event
@@ -106,6 +122,7 @@ def department_sync():
                     print("WARNING: ATTENDEE REQUESTED ROOM NIGHTS")
                 #db.delete(badgelookup[attendee])
         else:
+            print("  not deferred")
             if not attendee in badgelookup:
                 print(f"Missing attendee: {attendee}")
                 new_badge = create_attendee(uber_model, event)
@@ -113,6 +130,7 @@ def department_sync():
 
             badge = badgelookup[attendee]
             for dept_name in uber_model['assigned_depts_labels']:
+                print(f"  {dept_name}")
                 if not dept_name in dept_names and dept_name in uber_depts_names:
                     new_dept = Department(uber_id=uber_depts_names[dept_name], event=event, name=dept_name)
                     dept_names[dept_name] = new_dept
@@ -122,6 +140,7 @@ def department_sync():
                     badge.departments.append(dept_names[dept_name])
                     print(f"Adding {badge.public_name} to {dept_name}")
 
+            print("  Removing depts")
             to_remove = []
             for dept in badge.departments:
                 if not dept.name in uber_model['assigned_depts_labels']:
@@ -130,8 +149,9 @@ def department_sync():
                 print(f"Removing {badge.public_name} from {dept.name}")
                 badge.departments.remove(dept)
             db.add(badge)
-        
-    db.commit()
+        print("End loop")
+        db.commit()
+    print("done")
     return "", 200
 
 @app.route("/api/uber_login", methods=["POST"])

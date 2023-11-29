@@ -4,43 +4,13 @@ from flask import send_file, request, jsonify, Response, stream_with_context
 from tuber.models import *
 from tuber.permissions import *
 from tuber.database import db
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_, not_, func
 from sqlalchemy.orm import joinedload, selectinload
 import datetime
 import os
 from tuber.api.util import *
 from .room_matcher import rematch_hotel_block, clear_hotel_block
 import time
-
-
-def update_room_request_props(db, reqs, assigned=None, requested=None, approved=None):
-    if not reqs:
-        return
-    room_nights = db.query(HotelRoomNight).filter(
-        HotelRoomNight.event == reqs[0].event).order_by(HotelRoomNight.date).all()
-    room_night_lookup = {x.id: x for x in room_nights}
-    for req in reqs:
-        req.requested = False
-        req.approved = False
-        if not req.declined:
-            for rnr in req.room_night_requests:
-                if rnr.requested:
-                    req.requested = True
-                    if not room_night_lookup[rnr.room_night].restricted:
-                        req.approved = True
-                    else:
-                        for rna in req.room_night_approvals:
-                            if rna.room_night == rnr.room_night and rna.approved:
-                                req.approved = True
-
-        req.assigned = bool(req.room_night_assignments)
-        if not assigned is None:
-            req.assigned = assigned
-        if not requested is None:
-            req.requested = requested
-        if not approved is None:
-            req.approved = approved
-
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/room/<int:room_id>/remove_roommates", methods=["POST"])
 def remove_roommates(event, hotel_block, room_id):
@@ -306,11 +276,15 @@ def room_search(event):
 def request_search(event, hotel_block):
     if not check_permission("hotel_block.*.read"):
         return "", 403
+    
+    assigned_nights = db.query(RoomNightRequest.id).filter(RoomNightRequest.requested).join(
+        RoomNightAssignment, and_(RoomNightAssignment.badge == RoomNightRequest.badge,
+                                  RoomNightAssignment.room_night == RoomNightRequest.room_night)
+    ).subquery()
     reqs = db.query(HotelRoomRequest).filter(
         HotelRoomRequest.event == event,
         HotelRoomRequest.hotel_block == hotel_block,
-        HotelRoomRequest.approved == True,
-        HotelRoomRequest.assigned == False
+        HotelRoomRequest.room_night_requests.any(and_(RoomNightRequest.requested, not_(RoomNightRequest.id.in_(assigned_nights))))
     ).join(Badge, Badge.id == HotelRoomRequest.badge).filter(
         or_(Badge.search_name.contains(g.data['search_term'].lower()), func.lower(
             HotelRoomRequest.notes).contains(g.data['search_term'].lower()))
@@ -318,8 +292,7 @@ def request_search(event, hotel_block):
     count = db.query(HotelRoomRequest).filter(
         HotelRoomRequest.event == event,
         HotelRoomRequest.hotel_block == hotel_block,
-        HotelRoomRequest.approved == True,
-        HotelRoomRequest.assigned == False
+        HotelRoomRequest.room_night_requests.any(and_(RoomNightRequest.requested, not_(RoomNightRequest.id.in_(assigned_nights))))
     ).join(Badge, Badge.id == HotelRoomRequest.badge).filter(
         or_(Badge.search_name.contains(g.data['search_term'].lower()), func.lower(
             HotelRoomRequest.notes).contains(g.data['search_term'].lower()))
@@ -666,112 +639,3 @@ def export_passkey(event):
         "Content-Disposition": "attachment; filename=rooms.csv",
     }
     return Response(result, headers=headers)
-
-
-@app.route("/api/event/<int:event>/hotel/update_requests", methods=["POST"])
-def update_requests(event):
-    if not check_permission("rooming.*.admin"):
-        return "", 403
-    updates = {
-        "requests": {},
-        "badges": {}
-    }
-    badges = db.query(Badge).filter(Badge.event == event).all()
-    for badge in badges:
-        if not badge.public_name and badge.printed_name:
-            badge.public_name = badge.printed_name
-            updates['badges'][badge.id] = badge.public_name
-            db.add(badge)
-    badgeLookup = {x.id: x for x in badges}
-
-    room_nights = db.query(HotelRoomNight).filter(
-        HotelRoomNight.event == event).order_by(HotelRoomNight.date).all()
-    room_night_lookup = {x.id: x for x in room_nights}
-    block = db.query(HotelRoomBlock).filter(
-        HotelRoomBlock.event == event).first()
-
-    reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == event).options(
-        joinedload(HotelRoomRequest.room_night_requests)).all()
-    for req in reqs:
-        req.requested = False
-        req.approved = False
-        if not req.declined:
-            for rnr in req.room_night_requests:
-                if rnr.requested:
-                    req.requested = True
-                    if not room_night_lookup[rnr.room_night].restricted:
-                        req.approved = True
-                    else:
-                        for rna in req.room_night_approvals:
-                            if rna.room_night == rnr.room_night and rna.approved:
-                                req.approved = True
-
-        req.assigned = bool(req.room_night_assignments)
-        updates['requests'][req.id] = {
-            "requested": req.requested,
-            "approved": req.approved,
-            "assigned": req.assigned
-        }
-
-        badge_name = " "
-        badge = badgeLookup[req.badge]
-        if badge.public_name:
-            badge_name = badge.public_name
-        elif badge.search_name:
-            badge_name = " ".join([x.capitalize()
-                                  for x in badge.search_name.split(" ")])
-        elif badge.legal_name:
-            badge_name = badge.legal_name
-        elif badge.printed_name:
-            badge_name = badge.printed_name
-
-        badge_first_name = badge.first_name
-        if not badge_first_name:
-            badge_first_name = badge_name.split(" ")[0]
-
-        badge_last_name = badge.last_name
-        if not badge_last_name:
-            badge_last_name = badge_name.split(" ", 1)[1]
-
-        if not req.first_name:
-            if badge_first_name:
-                req.first_name = badge_first_name
-                updates['requests'][req.id]['first_name'] = req.first_name
-        if not req.last_name:
-            if badge_last_name:
-                req.last_name = badge_last_name
-                updates['requests'][req.id]['last_name'] = req.last_name
-
-        if not req.hotel_block:
-            req.hotel_block = block.id
-        db.add(req)
-
-    db.commit()
-    return jsonify(updates), 200
-
-
-@HotelRoom.onchange
-@RoomNightRequest.onchange
-@RoomNightAssignment.onchange
-@RoomNightApproval.onchange
-@HotelRoomRequest.onchange
-@HotelRoomNight.onchange
-def update_room_request(db, instance, deleted=None):
-    reqs = []
-    if request.method == "DELETE" and type(instance) is HotelRoom:
-        print(f"Deleting hotel room {deleted['name']}")
-        print(deleted)
-        reqs = db.query(HotelRoomRequest).filter(
-            HotelRoomRequest.badge.in_(deleted['roommates'])).all()
-    elif type(instance) is RoomNightRequest or type(instance) is RoomNightAssignment or type(instance) is RoomNightApproval:
-        reqs = db.query(HotelRoomRequest).filter(
-            HotelRoomRequest.badge == instance.badge).all()
-    elif type(instance) is HotelRoomRequest:
-        reqs = [instance]
-    elif type(instance) is HotelRoomNight:
-        reqs = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == instance.event).options(joinedload(HotelRoomRequest.room_night_requests)).options(
-            joinedload(HotelRoomRequest.room_night_approvals)).options(joinedload(HotelRoomRequest.room_night_assignments)).all()
-    update_room_request_props(db, reqs)
-    if not type(instance) is HotelRoomRequest:
-        for req in reqs:
-            db.add(req)

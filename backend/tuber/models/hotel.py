@@ -63,12 +63,6 @@ class HotelRoomRequest(Base):
     first_name = Column(String(), nullable=True)
     last_name = Column(String(), nullable=True)
     declined = Column(Boolean, nullable=True)
-    # At least one night has been requested
-    requested = Column(Boolean, nullable=True)
-    # At least one night is assigned to a room
-    assigned = Column(Boolean, nullable=True)
-    # At least one night is requested and approved (inclusive of default nights)
-    approved = Column(Boolean, nullable=True)
     prefer_department = Column(Boolean, nullable=True)
     preferred_department = Column(
         Integer, ForeignKey('department.id', ondelete="SET NULL"), nullable=True)
