@@ -7,12 +7,12 @@
 
             <template #controls>
               <Toolbar class="mb-1 toolbar">
-                <template #left>
+                <template #start>
                   <Button class="p-button-success mr-2" @click="rematchAll($event)">Rematch All</Button>
                   <Button class="p-button-info mr-2" @click="clearAutoMatches($event)">Reset Auto Matches</Button>
                   <Button class="p-button-info" @click="downloadAssignments($event)">Download Assignments</Button>
                 </template>
-                <template #right>
+                <template #end>
                   <span class="field-checkbox">
                       <Checkbox id="hideCompleted" class="pt-2" v-model="hideCompleted" :binary="true" />
                       <label for="hideCompleted" class="checklabel">Hide Completed</label>

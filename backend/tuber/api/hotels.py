@@ -218,15 +218,14 @@ def matching_roommates(event):
     if not check_permission("hotel_block.*.read"):
         return "", 403
 
-    room = db.query(HotelRoom).filter(
-        HotelRoom.id == int(g.data['hotel_room'])).one()
-
     room_nights = db.query(HotelRoomNight).filter(
         HotelRoomNight.event == event).order_by(HotelRoomNight.date).all()
     room_nights = {x.id: x for x in room_nights}
 
-    badges = db.query(Badge).filter(Badge.event == event,
-                                    Badge.search_name.contains(g.data.get('search', "").lower())).order_by(Badge.public_name).limit(10).all()
+    badges = db.query(Badge).join(HotelRoomRequest, HotelRoomRequest.badge == Badge.id).filter(
+        or_(HotelRoomRequest.declined == False, HotelRoomRequest.declined == None)
+    ).filter(Badge.event == event, Badge.search_name.contains(g.data.get('search', "").lower())).order_by(Badge.public_name).limit(20).all()
+
     results = []
     for badge in badges:
         missing = []
@@ -246,13 +245,14 @@ def matching_roommates(event):
                     break
             if assign:
                 missing.append(night.room_night)
-        results.append({
-            "missing_nights": missing,
-            "id": badge.id,
-            "name": badge.public_name,
-        })
+        if missing:
+            results.append({
+                "missing_nights": missing,
+                "id": badge.id,
+                "name": badge.public_name,
+            })
 
-    return jsonify(results)
+    return jsonify(results[:10])
 
 
 @app.route("/api/event/<int:event>/hotel/room_search", methods=["GET"])
@@ -279,23 +279,20 @@ def request_search(event, hotel_block):
         RoomNightAssignment, and_(RoomNightAssignment.badge == RoomNightRequest.badge,
                                   RoomNightAssignment.room_night == RoomNightRequest.room_night)
     ).subquery()
+
     reqs = db.query(HotelRoomRequest).filter(
         HotelRoomRequest.event == event,
         HotelRoomRequest.hotel_block == hotel_block,
-        HotelRoomRequest.declined != True,
+        or_(HotelRoomRequest.declined == False, HotelRoomRequest.declined == None),
         HotelRoomRequest.room_night_requests.any(and_(RoomNightRequest.requested, not_(RoomNightRequest.id.in_(assigned_nights))))
-    ).join(Badge, Badge.id == HotelRoomRequest.badge).filter(
-        or_(Badge.search_name.contains(g.data['search_term'].lower()), func.lower(
-            HotelRoomRequest.notes).contains(g.data['search_term'].lower()))
-    ).order_by(g.data['sort']).offset(int(g.data['offset'])).limit(int(g.data['limit'])).all()
-    count = db.query(HotelRoomRequest).filter(
-        HotelRoomRequest.event == event,
-        HotelRoomRequest.hotel_block == hotel_block,
-        HotelRoomRequest.room_night_requests.any(and_(RoomNightRequest.requested, not_(RoomNightRequest.id.in_(assigned_nights))))
-    ).join(Badge, Badge.id == HotelRoomRequest.badge).filter(
-        or_(Badge.search_name.contains(g.data['search_term'].lower()), func.lower(
-            HotelRoomRequest.notes).contains(g.data['search_term'].lower()))
-    ).count()
+    ).join(Badge, Badge.id == HotelRoomRequest.badge)
+    if g.data['search_term']:
+        reqs = reqs.filter(
+            or_(Badge.search_name.contains(g.data['search_term'].lower()), func.lower(
+                HotelRoomRequest.notes).contains(g.data['search_term'].lower()))
+        )
+    count = reqs.count()
+    reqs = reqs.order_by(g.data['sort']).offset(int(g.data['offset'])).limit(int(g.data['limit'])).all()
     return jsonify(requests=HotelRoomRequest.serialize(reqs, serialize_relationships=True, deep=True), count=count), 200
 
 

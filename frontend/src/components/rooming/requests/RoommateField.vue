@@ -14,7 +14,7 @@ import { PropType } from 'vue'
 import AutoComplete from 'primevue/autocomplete'
 import { Badge } from '../../../lib/interfaces'
 
-@Options({
+export default {
   name: 'roommate-field',
   props: {
     modelValue: Object,
@@ -77,6 +77,5 @@ import { Badge } from '../../../lib/interfaces'
       })
     }
   }
-})
-export default class RoommateField extends Vue {}
+}
 </script>

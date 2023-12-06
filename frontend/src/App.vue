@@ -37,7 +37,7 @@ import { AppActionTypes } from './store/modules/app/actions'
 type ColorMode = 'dark' | 'light'
 type LayoutMode = 'static' | 'overlay'
 
-@Options({
+export default {
   data () {
     return {
       layoutMode: 'static',
@@ -289,8 +289,7 @@ type LayoutMode = 'static' | 'overlay'
     InitialSetup: InitialSetup,
     Login: Login
   }
-})
-export default class App extends Vue { }
+}
 </script>
 
 <style lang="scss">
