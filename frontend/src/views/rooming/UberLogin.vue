@@ -17,7 +17,7 @@ import { mapGetters } from 'vuex'
 import { post } from '../../lib/rest'
 import { AppActionTypes } from '../../store/modules/app/actions'
 
-@Options({
+export default {
   name: 'uber-login',
   components: {
   },
@@ -57,6 +57,5 @@ import { AppActionTypes } from '../../store/modules/app/actions'
       })
     }
   }
-})
-export default class RoommateField extends Vue {}
+}
 </script>

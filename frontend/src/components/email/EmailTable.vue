@@ -67,7 +67,7 @@ import EmailForm from './EmailForm.vue'
 import TuberTable from '../TuberTable.vue'
 import { FilterMatchMode } from 'primevue/api'
 import { mapGetters } from 'vuex'
-import { post } from '@/lib/rest'
+import { post } from '../../lib/rest'
 import { VueCookieNext } from 'vue-cookie-next'
 
 export default {

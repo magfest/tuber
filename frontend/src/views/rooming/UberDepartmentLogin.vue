@@ -16,7 +16,7 @@ import { mapGetters } from 'vuex'
 import { post, get } from '../../lib/rest'
 import { AppActionTypes } from '../../store/modules/app/actions'
 
-@Options({
+export default {
   name: 'uber-department-login',
   components: {
   },
@@ -66,6 +66,5 @@ import { AppActionTypes } from '../../store/modules/app/actions'
       })
     }
   }
-})
-export default class UberDepartmentLogin extends Vue {}
+}
 </script>

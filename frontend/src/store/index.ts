@@ -3,7 +3,7 @@ import { createStore } from 'vuex'
 import { store as app, AppStore, State as AppState } from './modules/app'
 import { store as model, ModelStore, State as ModelState } from './modules/models'
 
-const debug = process.env.NODE_ENV !== 'production'
+const debug = import.meta.env.NODE_ENV !== 'production'
 
 export type RootState = {
   app: AppState;

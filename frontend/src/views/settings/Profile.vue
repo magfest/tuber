@@ -18,7 +18,7 @@
 </style>
 
 <script>
-import { get, patch } from '@/lib/rest'
+import { get, patch } from '../../lib/rest'
 
 export default {
   name: 'Profile',

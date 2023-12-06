@@ -44,7 +44,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, patch, del, post } from '@/lib/rest'
+import { get, patch, del, post } from '../lib/rest'
 
 export default {
   name: 'TuberTable',

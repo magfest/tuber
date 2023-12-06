@@ -26,6 +26,15 @@
           <Column field="notes" filterField="notes" header="Notes" :sortable="true"></Column>
         </template>
 
+        <template #actions="props">
+          <Column header="Actions" style="width: 10rem">
+            <template #body="slotProps">
+              <Button @click="loadmodel(props.edit, slotProps.data)" icon="pi pi-cog" class="p-button-info" />
+              <Button @click="props.remove($event, slotProps.data)" icon="pi pi-times" class="p-button-danger ml-2" />
+            </template>
+          </Column>
+        </template>
+
         <template #form="props">
           <request-short-form :modelValue="props.modelValue" />
         </template>
@@ -40,7 +49,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, patch } from '@/lib/rest'
+import { get, patch } from '../../../lib/rest'
 import RequestShortForm from './RequestShortForm.vue'
 import TuberTable from '../../TuberTable.vue'
 import { FilterMatchMode } from 'primevue/api'
@@ -58,7 +67,8 @@ export default {
     filters: {
       first_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
       last_name: { value: null, matchMode: FilterMatchMode.CONTAINS }
-    }
+    },
+    editedID: null,
   }),
   computed: {
     ...mapGetters([
@@ -81,6 +91,11 @@ export default {
     }
   },
   methods: {
+    async loadmodel (edit, model) {
+      this.editedID = model.id
+      const editmodel = await get('/api/event/' + this.event.id + '/hotel/request/' + model.id);
+      edit(editmodel)
+    },
     async load () {
       this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' })
       this.hotelBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block', { sort: 'name' })
@@ -90,17 +105,8 @@ export default {
     },
     async save (props) {
       try {
-        const request = {}
-        Object.assign(request, props.edited)
-        request.requested_roommates = []
-        for (const roommate of request.roommate_requests) {
-          request.requested_roommates.push(roommate.id)
-        }
-        request.antirequested_roommates = []
-        for (const roommate of request.roommate_anti_requests) {
-          request.antirequested_roommates.push(roommate.id)
-        }
-        await patch('/api/event/' + this.event.id + '/hotel/request/' + request.id, request)
+        console.log(props)
+        await patch('/api/event/' + this.event.id + '/hotel/request/' + this.editedID, props.edited)
         props.cancel()
         this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: 'Your request has been saved. You may continue editing it until the deadline.', life: 3000 })
       } catch (error) {

@@ -16,8 +16,5 @@
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component'
 
-@Options({
-  name: 'SetupWelcome'
-})
 export default class SetupWelcome extends Vue {}
 </script>

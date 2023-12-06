@@ -27,7 +27,7 @@
 import { Options, Vue } from 'vue-class-component'
 import { AppActionTypes } from '../store/modules/app/actions'
 
-@Options({
+export default {
   name: 'Login',
   components: {
   },
@@ -48,6 +48,5 @@ import { AppActionTypes } from '../store/modules/app/actions'
       })
     }
   }
-})
-export default class Login extends Vue {}
+}
 </script>

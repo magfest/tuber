@@ -46,7 +46,7 @@ import { Options, Vue } from 'vue-class-component'
 import { mapGetters } from 'vuex'
 import { AppActionTypes } from './store/modules/app/actions'
 
-@Options({
+export default {
   data: (): {} => ({
     userMenuItems: [
       {
@@ -108,6 +108,5 @@ import { AppActionTypes } from './store/modules/app/actions'
   },
   mounted () {
   }
-})
-export default class AppTopBar extends Vue { }
+}
 </script>

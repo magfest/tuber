@@ -18,6 +18,7 @@ import Events from './views/settings/Events.vue'
 import Badges from './views/event/Badges.vue'
 import EventSettings from './views/event/Settings.vue'
 
+import Actions from './views/Actions.vue'
 import Login from './views/Login.vue'
 import Logout from './views/Logout.vue'
 
@@ -111,6 +112,11 @@ const routes = [
     path: '/settings',
     name: 'eventsettings',
     component: EventSettings
+  },
+  {
+    path: '/actions',
+    name: 'actions',
+    component: Actions
   },
   {
     path: '/settings/users',

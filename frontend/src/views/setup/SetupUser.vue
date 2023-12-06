@@ -37,7 +37,7 @@ import { Options, Vue } from 'vue-class-component'
 import { post } from '../../lib/rest'
 import { AppActionTypes } from '../../store/modules/app/actions'
 
-@Options({
+export default {
   name: 'SetupUser',
   data: () => ({
     user: {
@@ -59,6 +59,5 @@ import { AppActionTypes } from '../../store/modules/app/actions'
       }
     }
   }
-})
-export default class SetupUser extends Vue {}
+}
 </script>

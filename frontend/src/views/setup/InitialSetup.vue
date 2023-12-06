@@ -18,7 +18,7 @@
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component'
 
-@Options({
+export default {
   name: 'InitialSetup',
   components: {
   },
@@ -50,6 +50,5 @@ import { Options, Vue } from 'vue-class-component'
       this.$toast.add({ severity: 'success', summary: 'Order submitted', detail: 'Success!' })
     }
   }
-})
-export default class InitialSetup extends Vue {}
+}
 </script>

@@ -1,12 +1,12 @@
 import { ActionTree, ActionContext } from 'vuex'
 
-import { RootState } from '@/store'
+import { RootState } from '../../../store'
 
 import { State } from './state'
 import { Mutations, ModelMutationTypes } from './mutations'
 
-import { Badge, Department, BadgeType } from '@/lib/interfaces'
-import { get } from '@/lib/rest'
+import { Badge, Department, BadgeType } from '../../../lib/interfaces'
+import { get } from '../../../lib/rest'
 
 export enum ModelActionTypes {
   LOAD_DEPARTMENTS = 'LOAD_DEPARTMENTS',

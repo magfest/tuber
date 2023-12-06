@@ -1,12 +1,12 @@
 import { ActionTree, ActionContext } from 'vuex'
 
-import { RootState } from '@/store'
+import { RootState } from '../../../store'
 
 import { state, State } from './state'
 import { Mutations, AppMutationTypes } from './mutations'
 
-import { Event, UserSession } from '@/lib/interfaces'
-import { get, post } from '@/lib/rest'
+import { Event, UserSession } from '../../../lib/interfaces'
+import { get, post } from '../../../lib/rest'
 
 export enum AppActionTypes {
   GET_INITIAL_SETUP = 'GET_INITIAL_SETUP',

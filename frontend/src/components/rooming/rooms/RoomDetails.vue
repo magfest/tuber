@@ -59,7 +59,7 @@
 </template>
 
 <script>
-import { get, post, del } from '@/lib/rest'
+import { get, post, del } from '../../../lib/rest'
 import { mapGetters } from 'vuex'
 
 export default {

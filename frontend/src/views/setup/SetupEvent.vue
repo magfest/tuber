@@ -31,7 +31,7 @@ import { Options, Vue } from 'vue-class-component'
 import { post } from '../../lib/rest'
 import { AppActionTypes } from '../../store/modules/app/actions'
 
-@Options({
+export default {
   name: 'SetupEvent',
   data: () => ({
     event: {
@@ -52,6 +52,5 @@ import { AppActionTypes } from '../../store/modules/app/actions'
       }
     }
   }
-})
-export default class SetupUser extends Vue {}
+}
 </script>

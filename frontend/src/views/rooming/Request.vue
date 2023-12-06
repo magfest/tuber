@@ -134,10 +134,10 @@
 </style>
 
 <script>
-import { get, post, patch } from '@/lib/rest'
+import { get, post, patch } from '../../lib/rest'
 import { mapGetters } from 'vuex'
 import { RoommateField } from '../../components/rooming'
-import { ModelActionTypes } from '@/store/modules/models/actions'
+import { ModelActionTypes } from '../../store/modules/models/actions'
 
 export default {
   name: 'RoomRequest',
