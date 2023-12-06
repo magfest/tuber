@@ -100,3 +100,24 @@ def get_nights():
         newdate = newdate.strftime("%Y-%m-%d")
         lookup[newdate] = str(result['order'][idx])
     return lookup
+
+def get_departments():
+    req = {
+        "method": "dept.list"
+    }
+    return requests.post(UBER_URL, headers=headers, json=req).json()['result']
+
+def get_shifts():
+    departments = get_departments()
+    shifts = {}
+    for dept_id, dept_name in departments.items():
+        print(f"Loading shifts from {dept_name}")
+        req = {
+            "method": "shifts.lookup",
+            "params": {
+                "department_id": dept_id
+            }
+        }
+        shifts[dept_id] = requests.post(UBER_URL, headers=headers, json=req).json()['result']
+        print(f"  Got {len(shifts[dept_id])} shifts")
+    return shifts
