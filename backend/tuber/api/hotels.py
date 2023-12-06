@@ -282,6 +282,7 @@ def request_search(event, hotel_block):
     reqs = db.query(HotelRoomRequest).filter(
         HotelRoomRequest.event == event,
         HotelRoomRequest.hotel_block == hotel_block,
+        HotelRoomRequest.declined != True,
         HotelRoomRequest.room_night_requests.any(and_(RoomNightRequest.requested, not_(RoomNightRequest.id.in_(assigned_nights))))
     ).join(Badge, Badge.id == HotelRoomRequest.badge).filter(
         or_(Badge.search_name.contains(g.data['search_term'].lower()), func.lower(
