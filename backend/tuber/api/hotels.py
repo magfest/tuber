@@ -292,7 +292,14 @@ def request_search(event, hotel_block):
                 HotelRoomRequest.notes).contains(g.data['search_term'].lower()))
         )
     count = reqs.count()
-    reqs = reqs.order_by(g.data['sort']).offset(int(g.data['offset'])).limit(int(g.data['limit'])).all()
+    
+    if g.data['sort'] == "notes":
+        sort = HotelRoomRequest.notes
+    else:
+        sort = Badge.search_name
+    if g.data['order'] == "desc":
+        sort = sort.desc()
+    reqs = reqs.order_by(sort).offset(int(g.data['offset'])).limit(int(g.data['limit'])).all()
     return jsonify(requests=HotelRoomRequest.serialize(reqs, serialize_relationships=True, deep=True), count=count), 200
 
 
