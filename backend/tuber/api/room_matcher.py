@@ -1,6 +1,7 @@
 from tuber.models import *
 import tuber.config
 from types import SimpleNamespace
+from sqlalchemy import or_
 import multiprocessing
 import itertools
 import datetime
@@ -197,7 +198,7 @@ def load_staffers(db, event, hotel_block):
     room_nights = db.query(HotelRoomNight).filter(
         HotelRoomNight.event == event).all()
     requests = db.query(HotelRoomRequest, Badge).join(Badge, Badge.id == HotelRoomRequest.badge).filter(
-        ~HotelRoomRequest.room_night_assignments.any(), HotelRoomRequest.hotel_block == hotel_block).all()
+        ~HotelRoomRequest.room_night_assignments.any(), HotelRoomRequest.hotel_block == hotel_block, or_(HotelRoomRequest.declined == None, HotelRoomRequest.declined == False).all()
     staffers = []
     for request, badge in requests:
         staffer = HashNS()
