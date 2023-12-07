@@ -322,7 +322,7 @@ export default {
           this.roomCount = result.count
           this.rooms = result.hotel_rooms
         } else {
-          let query = { full: true, limit: 25, offset: this.roomOffset, completed: false, sort: 'modified', order: 'desc', count: true };
+          let query = { full: true, limit: 25, offset: this.roomOffset, sort: 'modified', order: 'desc', count: true };
           if (this.block != null) {
             query.hotel_block = this.block;
           }
