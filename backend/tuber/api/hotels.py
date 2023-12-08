@@ -588,7 +588,7 @@ def export_passkey(event):
         return "", 403
 
     fields = [
-            'First Name', 'Last Name', 'Guest Email Address for confirmation purposes', 'Special Requests',
+            'Block', 'First Name', 'Last Name', 'Guest Email Address for confirmation purposes', 'Special Requests',
             'Arrival', 'Departure', 'City', 'State', 'Zip', 'GUEST COUNTRY', 'Telephone',
             'Payment Type', 'Card #', 'Exp.',
             'BILLING ADDRESS', 'BILLING CITY', 'BILLING STATE', 'BILLING ZIP CODE', 'BILLING COUNTRY',
@@ -601,6 +601,8 @@ def export_passkey(event):
     room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
     room_nights = {x.id: x for x in room_nights}
     completed_rooms = db.query(HotelRoom).filter(HotelRoom.completed == True, HotelRoom.event == event).all()
+    hotel_blocks = db.query(HotelRoomBlock).filter(HotelRoomBlock.event == event).all()
+    hotel_blocks = {x.id: x for x in hotel_blocks}
 
     result = ",".join(fields)+"\n"
     for room in completed_rooms:
@@ -633,7 +635,7 @@ def export_passkey(event):
                 lnames[idx] = roommate.last_name
             emails.append(roommate.email)
         notes = room.notes
-        result += f'"{fnames[0]}","{lnames[0]}","{emails[0]}",,"{arrival.strftime("%m/%d/%Y")}","{departure.strftime("%m/%d/%Y")}",,,,,,,,,,,,,,"{fnames[1]}","{lnames[1]}","{fnames[2]}","{lnames[2]}","{fnames[3]}","{lnames[3]}","{notes}","{",".join(emails)}"\n'
+        result += f'"{hotel_blocks[room.hotel_block].name}","{fnames[0]}","{lnames[0]}","{emails[0]}",,"{arrival.strftime("%m/%d/%Y")}","{departure.strftime("%m/%d/%Y")}",,,,,,,,,,,,,,"{fnames[1]}","{lnames[1]}","{fnames[2]}","{lnames[2]}","{fnames[3]}","{lnames[3]}","{notes}","{",".join(emails)}"\n'
 
     headers = {
         "Content-Type": "text/csv",
