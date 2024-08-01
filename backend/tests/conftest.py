@@ -8,10 +8,7 @@ import sys
 import os
 
 def csrf(client):
-    for cookie in client.cookie_jar:
-        if cookie.name == "csrf_token":
-            return cookie.value
-    return ""
+    return client.get_cookie("csrf_token") or ""
 
 @pytest.fixture(params=[False, True])
 def tuber(postgresql, redis=False):
