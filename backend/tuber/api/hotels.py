@@ -41,7 +41,7 @@ def add_roommates(event, hotel_block, room_id):
             if night.requested:
                 if room_nights[night.room_night].restricted:
                     for approval in req.room_night_approvals:
-                        if approval.room_night == night.room_night and approval.approved:
+                        if approval.room_night == night.room_night:
                             assign = True
                             break
                 else:
