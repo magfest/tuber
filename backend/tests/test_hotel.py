@@ -32,7 +32,7 @@ def test_clear_matches(client):
         hotel_room.roommates.append(b)
         db.add(rna)
 
-        hrr = HotelRoomRequest(event=1, badge=b.id, assigned=False)
+        hrr = HotelRoomRequest(event=1, badge=b.id)
         db.add(hrr)
 
     db.add(hotel_room)
