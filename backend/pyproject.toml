@@ -35,7 +35,7 @@ test = [
     "pytest-postgresql",
     "psycopg",
     "coverage[toml]",
-    "fakeredis"
+    "fakeredis[lua]"
 ]
 
 [project.urls]
