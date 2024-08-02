@@ -39,13 +39,7 @@ def add_roommates(event, hotel_block, room_id):
         for night in req.room_night_requests:
             assign = False
             if night.requested:
-                if room_nights[night.room_night].restricted:
-                    for approval in req.room_night_approvals:
-                        if approval.room_night == night.room_night:
-                            assign = True
-                            break
-                else:
-                    assign = True
+                assign = True
             for assignment in req.room_night_assignments:
                 if assignment.room_night == night.room_night:
                     assign = False
