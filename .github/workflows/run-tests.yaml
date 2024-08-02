@@ -38,9 +38,3 @@ jobs:
           "coverage run --data-file=/cov/.coverage -m pytest tests/ && coverage xml --data-file=/cov/.coverage -o /cov/coverage.xml"
         env:
           REPO_NAME: ${{ steps.lowercase-repo-name.outputs.lowercase }}
-      - name: Upload Coverage Report
-        uses: codecov/codecov-action@v3
-        with:
-          files: cov/coverage.xml
-          fail_ci_if_error: true
-          verbose: true
