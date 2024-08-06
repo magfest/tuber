@@ -164,11 +164,11 @@ def room_details(event):
         nights = set()
         for night_request in request.room_night_requests:
             if night_request.requested:
-                if room_nights[night_request.room_night].restricted:
-                    for approval in request.room_night_approvals:
-                        if approval.room_night == night_request.room_night and approval.approved:
-                            nights.add(night_request.room_night)
-                else:
+                #if room_nights[night_request.room_night].restricted:
+                #    for approval in request.room_night_approvals:
+                #        if approval.room_night == night_request.room_night and approval.approved:
+                #            nights.add(night_request.room_night)
+                #else:
                     nights.add(night_request.room_night)
         assigned_nights = [x.room_night for x in rnas_by_badge[request.badge]]
         missing_nights = nights.difference(set(assigned_nights))
@@ -226,12 +226,12 @@ def matching_roommates(event):
         for night in badge.room_night_requests:
             assign = False
             if night.requested:
-                if room_nights[night.room_night].restricted:
-                    for approval in badge.room_night_approvals:
-                        if approval.room_night == night.room_night and approval.approved:
-                            assign = True
-                            break
-                else:
+                #if room_nights[night.room_night].restricted:
+                #    for approval in badge.room_night_approvals:
+                #        if approval.room_night == night.room_night and approval.approved:
+                #            assign = True
+                #            break
+                #else:
                     assign = True
             for assignment in badge.room_night_assignments:
                 if assignment.room_night == night.room_night:

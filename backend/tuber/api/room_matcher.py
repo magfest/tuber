@@ -204,10 +204,10 @@ def load_staffers(db, event, hotel_block):
     for request, badge in requests:
         staffer = HashNS()
 
-        approved = set()
-        for approval in request.room_night_approvals:
-            if approval.approved:
-                approved.add(approval.room_night)
+        #approved = set()
+        #for approval in request.room_night_approvals:
+        #    if approval.approved:
+        #        approved.add(approval.room_night)
 
         requested = set()
         for night_request in request.room_night_requests:
@@ -217,7 +217,7 @@ def load_staffers(db, event, hotel_block):
         assigned = set()
         for room_night in room_nights:
             if room_night.id in requested:
-                if not room_night.restricted or room_night.id in approved:
+                #if not room_night.restricted or room_night.id in approved:
                     assigned.add(room_night.id)
 
         if assigned:
