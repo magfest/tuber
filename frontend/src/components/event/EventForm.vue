@@ -29,10 +29,6 @@
             <Checkbox id="readonly" v-model="data.readonly" :binary="true" />
             <label for="readonly">Read-Only</label>
         </div>
-
-        <div>
-          <p>The Uber login URL for this event is <pre>{{ location.origin }}/api/event/{{ data.id }}/uber/login</pre></p>
-        </div>
     </form>
 </template>
 
