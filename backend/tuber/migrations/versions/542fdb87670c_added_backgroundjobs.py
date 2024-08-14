@@ -24,6 +24,8 @@ def upgrade():
     sa.Column('uuid', sa.String(), nullable=False),
     sa.Column('progress', sa.JSON(), nullable=True),
     sa.Column('result', sa.JSON(), nullable=True),
+    sa.Column('created', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.Column('modified', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.ForeignKeyConstraint(['session'], ['session.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

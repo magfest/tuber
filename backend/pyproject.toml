@@ -46,7 +46,7 @@ tuber = "tuber.__main__:main"
 
 
 [tool.setuptools.package-data]
-mypkg = [
+tuber = [
     "alembic.ini",
     "migrations/*",
     "migrations/**/*",

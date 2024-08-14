@@ -24,12 +24,6 @@ def upgrade():
         batch_op.add_column(sa.Column('modified', sa.DateTime(
         ), server_default=sa.text('now()'), nullable=True))
 
-    with op.batch_alter_table('background_job', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('created', sa.DateTime(
-        ), server_default=sa.text('now()'), nullable=True))
-        batch_op.add_column(sa.Column('modified', sa.DateTime(
-        ), server_default=sa.text('now()'), nullable=True))
-
     with op.batch_alter_table('badge', schema=None) as batch_op:
         batch_op.add_column(sa.Column('created', sa.DateTime(
         ), server_default=sa.text('now()'), nullable=True))
@@ -412,10 +406,6 @@ def downgrade():
         batch_op.drop_column('created')
 
     with op.batch_alter_table('badge', schema=None) as batch_op:
-        batch_op.drop_column('modified')
-        batch_op.drop_column('created')
-
-    with op.batch_alter_table('background_job', schema=None) as batch_op:
         batch_op.drop_column('modified')
         batch_op.drop_column('created')
 
