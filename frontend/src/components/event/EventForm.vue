@@ -7,17 +7,22 @@
 
         <div class="field">
             <label for="description">Description</label><br />
-            <InputText v-model="data.description" id="description" type="text" placeholder="Describe this email" />
+            <InputText v-model="data.description" id="description" type="text" placeholder="Describe this event" />
         </div>
 
         <div class="field">
             <label for="description">Uber Server URL</label><br />
-            <InputText v-model="data.uber_url" id="description" type="text" placeholder="Describe this email" />
+            <InputText v-model="data.uber_url" id="url" type="text" placeholder="https://event2035.reg.magfest.org/jsonrpc/" />
         </div>
 
         <div class="field">
             <label for="description">Uber API Key</label><br />
-            <InputText v-model="data.uber_apikey" id="description" type="text" placeholder="Describe this email" />
+            <InputText v-model="data.uber_apikey" id="apikey" type="text" placeholder="API key with Read/Write permissions" />
+        </div>
+
+        <div class="field">
+            <label for="description">Uber Event Slug</label><br />
+            <InputText v-model="data.uber_slug" id="slug" type="text" placeholder="event2035" />
         </div>
 
         <div class="field-checkbox">

@@ -48,25 +48,28 @@ def test_clear_matches(client):
 @patch('tuber.api.uber.requests.post')
 def test_staffer_auth(mock_post, client):
     """Make sure the staffer login system is able to authenticate against uber"""
+    from tuber.database import db
+    from tuber.models import Event, Badge
+    event = Event(name="MAGWest 2024", description="West Event", uber_url="https://west2024.test.com", uber_apikey="123456", uber_slug="west2024")
+    db.add(event)
+    db.commit()
     results = [{"result": []}, {"result": ["234"]},{"result": [{"id": "234", "email": "test1@test.com", "assigned_depts_labels": [], "badge_status_label": "", "staffing": True, "badge_num": "", "badge_printed_name": "", "full_name": "", "first_name": "", "last_name": "", "legal_name": "", "ec_name": "", "ec_phone": "", "cellphone": ""}]}]
     mock_post.return_value.json = results.pop
-    rv = client.post('/api/uber_login', json={"token": "234"})
+    rv = client.post('/api/uber/west2024/login', json={"token": "234"})
     assert(rv.status_code == 200)
 
-    from tuber.database import db
-    from tuber.models import Badge
     badge = Badge(email="test@magfest.com", uber_id="123")
     db.add(badge)
     db.commit()
 
     results = [{"result": []}, {"result": ["123"]},{"result": [{"id": "123", "email": "test2@test.com", "assigned_depts_labels": [], "badge_status_label": "", "staffing": True, "badge_num": "", "badge_printed_name": "", "full_name": "", "first_name": "", "last_name": "", "legal_name": "", "ec_name": "", "ec_phone": "", "cellphone": ""}]}]
     mock_post.return_value.json = results.pop
-    rv = client.post('/api/uber_login', json={"token": "123"})
+    rv = client.post('/api/uber/west2024/login', json={"token": "123"})
     assert(rv.status_code == 200)
 
     results = [{"result": []}, {"result": ["234"]},{"result": [{"id": "456", "email": "test3@test.com", "assigned_depts_labels": [], "badge_status_label": "", "staffing": True, "badge_num": "", "badge_printed_name": "", "full_name": "", "first_name": "", "last_name": "", "legal_name": "", "ec_name": "", "ec_phone": "", "cellphone": ""}]}]
     mock_post.return_value.json = results.pop
-    rv = client.post('/api/uber_login', json={"token": "456"})
+    rv = client.post('/api/uber/west2024/login', json={"token": "456"})
     assert(rv.status_code != 200)
 
 def test_requests(client):

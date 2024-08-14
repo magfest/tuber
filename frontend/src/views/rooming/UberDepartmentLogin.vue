@@ -37,6 +37,14 @@ export default {
         return null
       }
     },
+    eventID () {
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.has('event')) {
+        return urlParams.get('event')
+      } else {
+        return null
+      }
+    },
     uberDepartment () {
       const urlParams = new URLSearchParams(window.location.search)
       if (urlParams.has('department')) {
@@ -56,7 +64,7 @@ export default {
   },
   methods: {
     uberlogin () {
-      post('/api/uber_login', { token: this.uberID }).then((session) => {
+      post('/api/uber/' + this.eventID + '/login', { token: this.uberID }).then((session) => {
         this.$store.dispatch(AppActionTypes.GET_LOGGED_IN)
         get('/api/uber_department', { uber_id: this.uberDepartment }).then((departmentID) => {
           this.$router.push({ name: 'roomapproval', params: { departmentID: departmentID.id } })

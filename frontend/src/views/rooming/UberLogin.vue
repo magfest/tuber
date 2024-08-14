@@ -37,6 +37,14 @@ export default {
       } else {
         return null
       }
+    },
+    eventID () {
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.has('event')) {
+        return urlParams.get('event')
+      } else {
+        return null
+      }
     }
   },
   watch: {
@@ -49,7 +57,7 @@ export default {
   },
   methods: {
     uberlogin () {
-      post('/api/uber_login', { token: this.uberID }).then((session) => {
+      post('/api/uber/' + this.eventID + '/login', { token: this.uberID }).then((session) => {
         this.$store.dispatch(AppActionTypes.GET_LOGGED_IN)
         this.$router.push('/rooming/request')
       }).catch((e) => {
