@@ -90,7 +90,7 @@ def assign_roommate(url, headers, room_id="", attendee_id=""):
     return requests.post(url, headers=headers, json=req).json()['result']
 
 @app.route("/api/event/<int:event>/uber/export_rooms", methods=["POST"])
-def import_shifts(event):
+def export_rooms(event):
     event_obj = db.query(Event).filter(Event.id == event).one()
     headers = {
         'X-Auth-Token': event_obj.uber_apikey
