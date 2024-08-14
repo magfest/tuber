@@ -35,6 +35,7 @@ def get_email_context(badge, tables):
         hotel_rooms.append({
             "roommates": roommates, 
             "hotel_block": room.hotel_block,
+            "hotel_block_name": tables['HotelRoomBlock'].get(room.hotel_block).name if room.hotel_block in tables['HotelRoomBlock'] else "unknown",
             "messages": room.messages,
             "completed": room.completed,
             "start_night": start_night,
@@ -91,6 +92,7 @@ def generate_emails(email):
         "HotelRoom": {x.id: x for x in db.query(HotelRoom).filter(HotelRoom.event == email.event)
             .options(joinedload(HotelRoom.room_night_assignments))
             .options(joinedload(HotelRoom.roommates)).all()},
+        "HotelRoomBlock": {x.id: x for x in db.query(HotelRoomBlock).filter(HotelRoomBlock.event == email.event).all()},
         "Event": event,
     }
     
