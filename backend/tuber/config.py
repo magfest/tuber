@@ -29,7 +29,7 @@ for i in ["verbose", "enable_circuitbreaker"]:
     if isinstance(conf[i], str):
         conf[i] = conf[i].lower() == "true"
 
-for i in ["session_duration", "circuitbreaker_threads", "uber_event"]:
+for i in ["session_duration", "circuitbreaker_threads"]:
     if isinstance(conf[i], str):
         conf[i] = int(conf[i])
 
