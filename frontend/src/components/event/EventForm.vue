@@ -10,9 +10,23 @@
             <InputText v-model="data.description" id="description" type="text" placeholder="Describe this email" />
         </div>
 
+        <div class="field">
+            <label for="description">Uber Server URL</label><br />
+            <InputText v-model="data.uber_url" id="description" type="text" placeholder="Describe this email" />
+        </div>
+
+        <div class="field">
+            <label for="description">Uber API Key</label><br />
+            <InputText v-model="data.uber_apikey" id="description" type="text" placeholder="Describe this email" />
+        </div>
+
         <div class="field-checkbox">
             <Checkbox id="readonly" v-model="data.readonly" :binary="true" />
             <label for="readonly">Read-Only</label>
+        </div>
+
+        <div>
+          <p>The Uber login URL for this event is <pre>{{ location.origin }}/api/event/{{ data.id }}/uber/login</pre></p>
         </div>
     </form>
 </template>

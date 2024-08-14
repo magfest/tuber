@@ -9,3 +9,5 @@ class Event(Base):
     name = Column(String(), unique=True)
     description = Column(String())
     readonly = Column(Boolean, default=False)
+    uber_url = Column(String())
+    uber_apikey = Column(String())

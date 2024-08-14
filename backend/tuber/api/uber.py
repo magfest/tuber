@@ -11,13 +11,12 @@ from tuber.api import *
 import requests
 
 
-headers = {
-    'X-Auth-Token': config.uber_api_token
-}
-
-@app.route("/api/import_shifts", methods=["POST"])
-def import_shifts():
-    event = config.uber_event
+@app.route("/api/event/<int:event>/uber/import_shifts", methods=["POST"])
+def import_shifts(event):
+    event_obj = db.query(Event).filter(Event.id == event).one()
+    headers = {
+        'X-Auth-Token': event_obj.uber_apikey
+    }
     depts = db.query(Department).filter(Department.event == event).all()
     for dept in depts:
         req = {
@@ -26,20 +25,155 @@ def import_shifts():
                 "department_id": dept.uber_id
             }
         }
-        print(req)
-        shifts = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
-        print(len(shifts))
+        shifts = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
     return "null", 200
 
-@app.route("/api/uber_department")
-def get_uber_department():
-    event = config.uber_event
-    if not 'uber_id' in g.data:
-        return "You must provide an uber_id", 406
-    dept = db.query(Department).filter(Department.uber_id == g.data['uber_id']).one_or_none()
-    if dept:
-        return Department.serialize(dept)
-    return "", 404
+def get_nights(url, headers):
+    req = {
+        "method": "hotel.nights"
+    }
+    result = requests.post(url, headers=headers,
+                           json=req).json()['result']
+    dates = {key.lower(): value for key, value in result['dates'].items()}
+    lookup = {}
+    for idx, name in enumerate(result['names']):
+        if not name in dates:
+            continue
+        newdate = datetime.datetime.strptime(
+            dates[name], "%Y-%m-%d") + datetime.timedelta(days=1)
+        newdate = newdate.strftime("%Y-%m-%d")
+        lookup[newdate] = str(result['order'][idx])
+    return lookup
+
+def create_room(url, headers, notes="", message="", locked_in="", nights=None):
+    req = {
+        "method": "hotel.update_room",
+        "params": {
+            "notes": notes,
+            "message": message,
+            "locked_in": locked_in
+        }
+    }
+    if nights != None:
+        req['params']['nights'] = ",".join(nights)
+    res = requests.post(url, headers=headers, json=req).json()
+    return res['result']
+
+def create_request(url, headers, id=None, attendee_id="", nights=None, wanted_roommates="", unwanted_roommates="", special_needs="", approved=True):
+    req = {
+        "method": "hotel.update_request",
+        "params": {
+            "attendee_id": attendee_id,
+            "wanted_roommates": wanted_roommates,
+            "unwanted_roommates": unwanted_roommates,
+            "special_needs": special_needs,
+            "approved": approved
+        }
+    }
+    if id != None:
+        req['params']['id'] = id
+    if nights != None:
+        req['params']['nights'] = ",".join(nights)
+    res = requests.post(url, headers=headers, json=req).json()['result']
+    print(res)
+    return res
+
+
+def assign_roommate(url, headers, room_id="", attendee_id=""):
+    req = {
+        "method": "hotel.update_assignment",
+        "params": {
+            "attendee_id": attendee_id,
+            "room_id": room_id
+        }
+    }
+    return requests.post(url, headers=headers, json=req).json()['result']
+
+@app.route("/api/event/<int:event>/uber/export_rooms", methods=["POST"])
+def import_shifts(event):
+    event_obj = db.query(Event).filter(Event.id == event).one()
+    headers = {
+        'X-Auth-Token': event_obj.uber_apikey
+    }
+
+    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
+    uber_room_nights = get_nights(event_obj.uber_url, headers)
+    room_nights_lookup = {}
+    for room_night in room_nights:
+        if room_night.date in uber_room_nights.keys():
+            room_nights_lookup[room_night['id']
+                            ] = uber_room_nights[room_night['date']]
+        else:
+            print(f"Could not find uber entry for {room_night['name']}")
+    print(room_nights_lookup)
+
+    rooms = db.query(HotelRoom).filter(HotelRoom.event == event).all()
+    assignments = db.query(RoomNightAssignment).filter(RoomNightAssignment.event == event).all()
+    badges = db.query(Badge).filter(Badge.event == event).all()
+
+    badges = {x.id: x for x in badges}
+
+    hrr = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == event).all()
+    #hrr = get(f"{BASE_URL}/hotel_room_request?full=true&deep=true")
+    hrr = {x.badge: x for x in hrr}
+    reqs = {}
+
+    for room in rooms:
+        nights = []
+        assign = []
+        assigned = []
+        for ass in assignments:
+            if ass.hotel_room == room.id:
+                assign.append(ass)
+        for ass in assign:
+            if not ass.room_night in nights:
+                nights.append(ass.room_night)
+        ubernights = [room_nights_lookup[x]
+                    for x in nights if x in room_nights_lookup]
+        uber_room = create_room(
+            event_obj.uber_url,
+            headers,
+            notes=room.notes,
+            message=room.messages,
+            locked_in=room.completed,
+            nights=ubernights
+        )
+        for ass in assign:
+            badge = ass.badge
+            if not badge in reqs.keys():
+                req = hrr[badge]
+                reqs[badge] = req
+                requested_nights = [x.room_night
+                                    for x in req.room_night_requests if x.requested]
+                req_nights = [room_nights_lookup[x]
+                            for x in nights if x in room_nights_lookup and x in requested_nights]
+                request = create_request(
+                    event_obj.uber_url,
+                    headers,
+                    hrr[badge].uber_id,
+                    attendee_id=badges[badge].uber_id,
+                    special_needs=hrr[badge].notes,
+                    approved=True,
+                    nights=req_nights
+                )
+                hrr.uber_id = request['id']
+                db.add(hrr)
+                print(request)
+            if not badge in assigned:
+                assigned.append(badge)
+                try:
+                    assignment = assign_roommate(
+                        event_obj.uber_url,
+                        headers,
+                        room_id=uber_room['id'],
+                        attendee_id=badges[badge].uber_id
+                    )
+                    print(assignment)
+                except:
+                    print(
+                        f"Failed to assign roommate {badges[badge].uber_id} ({badges[badge].search_name})")
+    db.commit()
+    return "null", 200
 
 def create_attendee(uber_model, event, hotel_eligible=True):
     staff_badge_type = db.query(BadgeType).filter(BadgeType.name == "Staff", BadgeType.event == event).one_or_none()
@@ -70,15 +204,18 @@ def create_attendee(uber_model, event, hotel_eligible=True):
         db.flush()
     return badge
 
-@app.route("/api/uber_department_sync", methods=["POST"])
-def department_sync():
-    if not check_permission("department.*.sync"):
+@app.route("/api/event/<int:event>/uber/sync_attendees", methods=["POST"])
+def sync_attendees(event):
+    event_obj = db.query(Event).filter(Event.id == event).one()
+    headers = {
+        'X-Auth-Token': event_obj.uber_apikey
+    }
+    if not check_permission("attendee.*.sync"):
         return "", 403
-    event = config.uber_event
     req = {"method": "hotel.eligible_attendees"}
-    eligible = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
+    eligible = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
     req = {"method": "dept.list"}
-    uber_depts = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
+    uber_depts = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
     uber_depts_names = {}
     for dept_id in uber_depts:
         uber_depts_names[uber_depts[dept_id]] = dept_id
@@ -100,7 +237,7 @@ def department_sync():
                 "full"
             ]
         }
-        uber_model = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
+        uber_model = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
         if uber_model:
             uber_model = uber_model[0]
         else:
@@ -154,11 +291,11 @@ def department_sync():
     print("done")
     return "", 200
 
-@app.route("/api/uber_login", methods=["POST"])
-def staffer_auth():
+@app.route("/api/event/<int:event>/uber/login", methods=["POST"])
+def staffer_auth(event):
+    event_obj = db.query(Event).filter(Event.id == event).one()
     if not User.query.first():
         return "You must set up this server before using this method to log in.", 403
-    event = config.uber_event
     req = {
         "method": "attendee.search",
         "params": [
@@ -166,7 +303,10 @@ def staffer_auth():
             "full"
         ]
     }
-    results = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
+    headers = {
+        'X-Auth-Token': event_obj.uber_apikey
+    }
+    results = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
     if len(results) == 0:
         return "no result", 403
     result = results[0]
@@ -184,7 +324,7 @@ def staffer_auth():
         hotel_request = db.query(HotelRoomRequest).filter(HotelRoomRequest.badge == badge.id).one_or_none()
     if not hotel_request or not badge:
         req = {"method": "hotel.eligible_attendees"}
-        eligible = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
+        eligible = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
         if len(eligible) == 0:
             return "Failed to load eligible attendees", 403
         if not uber_id in eligible:
@@ -215,7 +355,7 @@ def staffer_auth():
             "method": "dept.list",
             "params": []
         }
-        uber_depts = requests.post(config.uber_api_url, headers=headers, json=req).json()['result']
+        uber_depts = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
         uber_depts_names = {}
         for dept_id in uber_depts:
             uber_depts_names[uber_depts[dept_id]] = dept_id
@@ -265,7 +405,7 @@ def staffer_auth():
                 "department_id": department.uber_id
             }
         }
-        result = requests.post(config.uber_api_url, headers=headers, json=req).json()
+        result = requests.post(event_obj.uber_url, headers=headers, json=req).json()
         if 'error' in result:
             print(f"Could not locate {department.name} ({department.uber_id})")
             continue

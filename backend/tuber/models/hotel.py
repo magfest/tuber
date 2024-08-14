@@ -60,6 +60,7 @@ class HotelRoomRequest(Base):
     id = Column(Integer, primary_key=True)
     event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     badge = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
+    uber_id = Column(String(), nullable=True)
     first_name = Column(String(), nullable=True)
     last_name = Column(String(), nullable=True)
     declined = Column(Boolean, nullable=True)
