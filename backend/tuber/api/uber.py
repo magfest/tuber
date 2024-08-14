@@ -291,7 +291,7 @@ def sync_attendees(event):
     print("done")
     return "", 200
 
-@app.route("/api/uber/<str:slug>/login", methods=["POST"])
+@app.route("/api/uber/<string:slug>/login", methods=["POST"])
 def staffer_auth(slug):
     event_obj = db.query(Event).filter(Event.uber_slug == slug).one()
     if not User.query.first():
