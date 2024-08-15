@@ -32,9 +32,7 @@ def upgrade():
         batch_op.drop_column('requested')
         batch_op.drop_column('assigned')
 
-    with op.batch_alter_table('permission', schema=None) as batch_op:
-        batch_op.drop_constraint('permission_operation_key', type_='unique')
-
+    op.execute("ALTER TABLE permission DROP CONSTRAINT IF EXISTS permission_operation_key")
     # ### end Alembic commands ###
 
 
