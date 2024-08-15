@@ -23,8 +23,8 @@ def upgrade():
         batch_op.add_column(sa.Column('uber_apikey', sa.String(), nullable=True))
         batch_op.add_column(sa.Column('uber_slug', sa.String(), nullable=True))
 
-    with op.batch_alter_table('hotel_location', schema=None) as batch_op:
-        batch_op.drop_constraint('event_fk', type_='foreignkey')
+    op.execute("ALTER TABLE hotel_location DROP CONSTRAINT IF EXISTS event_fk")
+
 
     with op.batch_alter_table('hotel_room_request', schema=None) as batch_op:
         batch_op.add_column(sa.Column('uber_id', sa.String(), nullable=True))
