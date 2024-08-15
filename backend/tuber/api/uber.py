@@ -220,6 +220,17 @@ def sync_attendees(event):
     for dept_id in uber_depts:
         uber_depts_names[uber_depts[dept_id]] = dept_id
 
+    changed = False
+    for dept in uber_depts.keys():
+        department = db.query(Department).filter(Department.uber_id == dept).one_or_none()
+        if department:
+            if department.name != uber_depts[dept]:
+                department.name = uber_depts[dept]
+                db.add(department)
+                changed = True
+    if changed:
+        db.commit()
+
     departments = db.query(Department).filter(Department.event == event).all()
     dept_names = {}
     for dept in departments:
