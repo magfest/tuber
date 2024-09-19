@@ -614,10 +614,11 @@ resource "random_password" "tuber_db" {
 }
 
 resource "aws_db_instance" "tuber" {
-  allocated_storage      = 10
+  identifier             = "tuber"
+  allocated_storage      = 20
   db_name                = "tuber"
   engine                 = "postgres"
-  instance_class         = "db.t3.micro"
+  instance_class         = "db.t4g.micro"
   username               = "tuber"
   password               = random_password.tuber_db.result
   skip_final_snapshot    = true
