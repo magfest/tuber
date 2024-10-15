@@ -27,7 +27,7 @@ dependencies = [
     'redis',
     'lupa',
     'jinja2',
-    'psycopg2-binary'
+    'psycopg[binary]'
 ]
 
 [project.optional-dependencies]
