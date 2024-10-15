@@ -426,7 +426,7 @@ resource "aws_ecs_task_definition" "tuber" {
       },
       {
         "name": "ENABLE_CIRCUITBREAKER",
-        "value": "false"
+        "value": "true"
       },
       {
         "name": "DATABASE_URL",
