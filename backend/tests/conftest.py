@@ -14,14 +14,14 @@ def csrf(client):
 def tuber(postgresql, redis=False):
     os.environ['FLASK_DEBUG'] = "true"
     os.environ['REDIS_URL'] = ""
-    os.environ['DATABASE_URL'] = f"postgresql://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
+    os.environ['DATABASE_URL'] = f"postgresql+psycopg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
     os.environ['CIRCUITBREAKER_TIMEOUT'] = "5"
     os.environ['ENABLE_CIRCUITBREAKER'] = "true"
     mod = importlib.import_module('tuber')
     tuber.backgroundjobs = importlib.import_module('tuber.backgroundjobs')
     settings_override = {
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': f"postgresql://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
+        'SQLALCHEMY_DATABASE_URI': f"postgresql+psycopg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
     }
     mod.app.config.update(settings_override)
     if redis:
@@ -123,7 +123,7 @@ def client(tuber):
 @pytest.fixture
 def prod_client(postgresql):
     os.environ['REDIS_URL'] = ""
-    os.environ['DATABASE_URL'] = f"postgresql://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
+    os.environ['DATABASE_URL'] = f"postgresql+psycopg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
     os.environ['CIRCUITBREAKER_TIMEOUT'] = "5"
     os.environ['FLASK_DEBUG'] = "false"
     tuber = importlib.import_module('tuber')

@@ -430,7 +430,7 @@ resource "aws_ecs_task_definition" "tuber" {
       },
       {
         "name": "DATABASE_URL",
-        "value": "postgresql://tuber:${random_password.tuber_db.result}@${aws_db_instance.tuber.endpoint}/tuber"
+        "value": "postgresql+psycopg://tuber:${random_password.tuber_db.result}@${aws_db_instance.tuber.endpoint}/tuber"
       },
       {
         "name": "GENDER_MAP",
