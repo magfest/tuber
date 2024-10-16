@@ -239,7 +239,7 @@ def sync_attendees(event):
     badges = db.query(Badge).filter(Badge.event == event).options(joinedload(Badge.departments)).all()
     badgelookup = {badge.uber_id: badge for badge in badges}
 
-    for attendee in eligible:
+    for idx, attendee in enumerate(eligible):
         print(f"Importing {attendee}")
         req = {
             "method": "attendee.search",
@@ -254,6 +254,7 @@ def sync_attendees(event):
         else:
             print(f"Skipping attendee {attendee} since I couldn't find it in Uber")
             continue
+        g.progress(idx / len(eligible), status=f"Checking attendee {uber_model['full_name']}")
         if attendee in badgelookup:
             badge = badgelookup[attendee]
             if uber_model['full_name'] != badge.public_name:
@@ -297,7 +298,6 @@ def sync_attendees(event):
                 print(f"Removing {badge.public_name} from {dept.name}")
                 badge.departments.remove(dept)
             db.add(badge)
-        print("End loop")
         db.commit()
     print("done")
     return "", 200
