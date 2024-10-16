@@ -40,9 +40,9 @@ def paginate(query, model, event=None, department=None):
                 f"User is not able to read any values in {model.__tablename__}")
         filters.append(model.id.in_(ids))
     if event:
-        filters.append(model.event == event)
+        filters.append(model.event == int(event))
     if department:
-        filters.append(model.department == department)
+        filters.append(model.department == int(department))
     if search_field:
         if hasattr(model, search_field):
             columns, relationships = model.get_fields()
