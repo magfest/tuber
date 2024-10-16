@@ -7,6 +7,51 @@ from sqlalchemy import func
 READ_PERMS = {"read", "write", "*", "searchname"}
 WRITE_PERMS = {"write", "*"}
 
+def search_to_filter(model, search_field, search, search_mode, search_case_sensitive):
+    filters = []
+    if hasattr(model, search_field):
+        columns, relationships = model.get_fields()
+        relationships = {x.key: x for x in relationships}
+        if search_field in relationships:
+            search_model = getattr(model, search_field)
+            model.get_modelclasses()
+            rel_model = model.modelclasses[relationships[search_field].target.name]
+            search = [int(x) for x in search.split(",")]
+            filters.append(search_model.any(rel_model.id.in_(search)))
+        elif search_field in columns:
+            col = columns[search_field]
+            search_model = getattr(model, search_field)
+            if isinstance(col.type, Boolean):
+                search = search.lower() in ["true", "yes", "1"]
+                assert search_mode in ["equals", "notEquals"]
+            elif isinstance(col.type, String):
+                if not search_case_sensitive:
+                    search_model = func.lower(
+                        getattr(model, search_field))
+                    search = search.lower()
+            elif isinstance(col.type, Integer):
+                search = int(search)
+                assert search_mode in ["equals", "notEquals"]
+            else:
+                raise AttributeError(
+                    f"Searching {type(col.type)} is unsupported.")
+            if search_mode == "contains":
+                filters.append(search_model.contains(
+                    search, autoescape=True))
+            elif search_mode == "startswith":
+                filters.append(search_model.startswith(
+                    search, autoescape=True))
+            elif search_mode == "endswith":
+                filters.append(search_model.endswith(
+                    search, autoescape=True))
+            elif search_mode == "equals":
+                filters.append(search_model == search)
+            elif search_mode == "notEquals":
+                filters.append(search_model != search)
+        else:
+            raise AttributeError(
+                f"Could not locate search_field {search_field} in model {model.__name__}")
+    return filters
 
 def paginate(query, model, event=None, department=None):
     count = request.args.get(
@@ -44,51 +89,9 @@ def paginate(query, model, event=None, department=None):
     if department:
         filters.append(model.department == int(department))
     if search_field:
-        if hasattr(model, search_field):
-            columns, relationships = model.get_fields()
-            relationships = {x.key: x for x in relationships}
-            if search_field in relationships:
-                search_model = getattr(model, search_field)
-                model.get_modelclasses()
-                rel_model = model.modelclasses[relationships[search_field].target.name]
-                search = [int(x) for x in search.split(",")]
-                filters.append(search_model.any(rel_model.id.in_(search)))
-            elif search_field in columns:
-                col = columns[search_field]
-                search_model = getattr(model, search_field)
-                if isinstance(col.type, Boolean):
-                    search = search.lower() in ["true", "yes", "1"]
-                    assert search_mode in ["equals", "notEquals"]
-                elif isinstance(col.type, String):
-                    if not search_case_sensitive:
-                        search_model = func.lower(
-                            getattr(model, search_field))
-                        search = search.lower()
-                elif isinstance(col.type, Integer):
-                    search = int(search)
-                    assert search_mode in ["equals", "notEquals"]
-                else:
-                    raise AttributeError(
-                        f"Searching {type(col.type)} is unsupported.")
-                if search_mode == "contains":
-                    filters.append(search_model.contains(
-                        search, autoescape=True))
-                elif search_mode == "startswith":
-                    filters.append(search_model.startswith(
-                        search, autoescape=True))
-                elif search_mode == "endswith":
-                    filters.append(search_model.endswith(
-                        search, autoescape=True))
-                elif search_mode == "equals":
-                    filters.append(search_model == search)
-                elif search_mode == "notEquals":
-                    filters.append(search_model != search)
-            else:
-                raise AttributeError(
-                    f"Could not locate search_field {search_field} in model {model.__name__}")
-    for key, val in request.args.items():
-        if hasattr(model, key):
-            filters.append(getattr(model, key) == val)
+        filters.extend(search_to_filter(model, search_field, search, search_mode, search_case_sensitive))
+    for search_field, search in request.args.items():
+        filters.extend(search_to_filter(model, search_field, search, "equals", True))
     rows = query.filter(*filters)
     if full:
         columns, relationships = model.get_fields()
