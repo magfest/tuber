@@ -239,6 +239,7 @@ def sync_attendees(event):
     badges = db.query(Badge).filter(Badge.event == event).options(joinedload(Badge.departments)).all()
     badgelookup = {badge.uber_id: badge for badge in badges}
 
+    counter = 0
     for idx, attendee in enumerate(eligible):
         print(f"Importing {attendee}")
         req = {
@@ -254,8 +255,9 @@ def sync_attendees(event):
         else:
             print(f"Skipping attendee {attendee} since I couldn't find it in Uber")
             continue
-        if idx % 100 == 0:
+        if counter % 100 == 0:
             g.progress(idx / len(eligible), status=f"Checking attendee {uber_model['full_name']}")
+        counter += 1
         if attendee in badgelookup:
             badge = badgelookup[attendee]
             if uber_model['full_name'] != badge.public_name:
@@ -375,6 +377,7 @@ def staffer_auth(slug):
             new_dept = Department(uber_id=dept_uber_id, event=event_obj.id, name=dept_name)
             db.add(new_dept)
             badge.departments.append(new_dept)
+            dept_by_uber_id[dept_uber_id] = new_dept
         else:
             dept = dept_by_uber_id[dept_uber_id]
             if dept.name != dept_name:
