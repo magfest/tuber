@@ -308,7 +308,7 @@ def staffer_auth(slug):
     if not User.query.first():
         return "You must set up this server before using this method to log in.", 403
     req = {
-        "method": "attendee.search",
+        "method": "attendee.export",
         "params": [
             request.json['token'],
             "full"
@@ -317,7 +317,7 @@ def staffer_auth(slug):
     headers = {
         'X-Auth-Token': event_obj.uber_apikey
     }
-    results = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
+    results = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']['attendees']
     if len(results) == 0:
         return "no result", 403
     result = results[0]
@@ -350,10 +350,11 @@ def staffer_auth(slug):
             badge_type=staff_badge_type.id,
             printed_number=result['badge_num'],
             printed_name=result['badge_printed_name'],
-            public_name=result['full_name'],
-            search_name=result['full_name'].lower(),
+            public_name=f"{result['first_name']} {result{'last_name'}}",
+            search_name=f"{result['first_name']} {result{'last_name'}}".lower(),
             first_name=result['first_name'],
             last_name=result['last_name'],
+            legal_name=result['legal_name'],
             legal_name_matches=(not result['legal_name']),
             emergency_contact_name=result['ec_name'],
             emergency_contact_phone=result['ec_phone'],
@@ -366,25 +367,24 @@ def staffer_auth(slug):
             "method": "dept.list",
             "params": []
         }
-        uber_depts = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
-        uber_depts_names = {}
-        for dept_id in uber_depts:
-            uber_depts_names[uber_depts[dept_id]] = dept_id
 
-        departments = db.query(Department).filter(Department.event == event_obj.id).all()
-        dept_names = {}
-        for dept in departments:
-            dept_names[dept.name] = dept
+    departments = db.query(Department).filter(Department.event == event_obj.id).all()
+    dept_by_uber_id = {x.uber_id: x for x in departments}
 
-        for dept_name in result['assigned_depts_labels']:
-            if not dept_name in dept_names and dept_name in uber_depts_names:
-                new_dept = Department(uber_id=uber_depts_names[dept_name], event=event_obj.id, name=dept_name)
-                db.add(new_dept)
-                badge.departments.append(new_dept)
-            elif dept_name in dept_names:
-                badge.departments.append(dept_names[dept_name])
-        db.add(badge)
-        db.flush()
+    for dept_uber_id, dept_name in result['assigned_depts'].items():
+        if not dept_uber_id in dept_by_uber_id:
+            new_dept = Department(uber_id=dept_uber_id, event=event_obj.id, name=dept_name)
+            db.add(new_dept)
+            badge.departments.append(new_dept)
+        else:
+            dept = dept_by_uber_id[dept_uber_id]
+            if dept.name != dept_name:
+                dept.name = dept_name
+                db.add(dept)
+            badge.departments.append(dept_by_uber_id[dept_uber_id])
+    db.add(badge)
+    db.flush()
+
     if not hotel_request:
         hotel_request = HotelRoomRequest(event=event_obj.id, badge=badge.id)
         db.add(hotel_request)
@@ -406,29 +406,16 @@ def staffer_auth(slug):
                 "department.*.read"
             ]
         },
-        "department": {}
+        "department": {
+            str(event_obj.id): {}
+        }
     }
 
-    for department in badge.departments:
-        req = {
-            "method": "dept.members",
-            "params": {
-                "department_id": department.uber_id
-            }
-        }
-        result = requests.post(event_obj.uber_url, headers=headers, json=req).json()
-        if 'error' in result:
-            print(f"Could not locate {department.name} ({department.uber_id})")
-            continue
-        uber_dept_members = result['result']
-        for attendee in uber_dept_members['checklist_admins']:
-            if attendee['id'] == badge.uber_id:
-                if not str(event_obj.id) in permissions["department"]:
-                    permissions["department"][str(event_obj.id)] = {}
-                permissions["department"][str(event_obj.id)][str(department.id)] = [
-                    f"department.*.checklist_admin",
-                    "hotel_request.*.approve"
-                ]
+    for dept_uber_id in result['checklist_admin_depts'].keys():
+        permissions["department"][str(event_obj.id)][str(dept_by_uber_id[dept_uber_id].id)] = [
+            "department.*.checklist_admin",
+            "hotel_request.*.approve"
+        ]
 
     session = Session(badge=badge.id, secret=str(uuid.uuid4()), permissions=json.dumps(permissions), last_active=datetime.datetime.now())
     db.add(session)
