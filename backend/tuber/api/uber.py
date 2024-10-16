@@ -254,7 +254,8 @@ def sync_attendees(event):
         else:
             print(f"Skipping attendee {attendee} since I couldn't find it in Uber")
             continue
-        g.progress(idx / len(eligible), status=f"Checking attendee {uber_model['full_name']}")
+        if idx % 100 == 0:
+            g.progress(idx / len(eligible), status=f"Checking attendee {uber_model['full_name']}")
         if attendee in badgelookup:
             badge = badgelookup[attendee]
             if uber_model['full_name'] != badge.public_name:
