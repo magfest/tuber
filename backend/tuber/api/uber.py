@@ -350,8 +350,8 @@ def staffer_auth(slug):
             badge_type=staff_badge_type.id,
             printed_number=result['badge_num'],
             printed_name=result['badge_printed_name'],
-            public_name=f"{result['first_name']} {result{'last_name'}}",
-            search_name=f"{result['first_name']} {result{'last_name'}}".lower(),
+            public_name=f"{result['first_name']} {result['last_name']}",
+            search_name=f"{result['first_name']} {result['last_name']}".lower(),
             first_name=result['first_name'],
             last_name=result['last_name'],
             legal_name=result['legal_name'],
@@ -362,11 +362,6 @@ def staffer_auth(slug):
             email=result['email'],
             uber_id=result['id']
         )
-
-        req = {
-            "method": "dept.list",
-            "params": []
-        }
 
     departments = db.query(Department).filter(Department.event == event_obj.id).all()
     dept_by_uber_id = {x.uber_id: x for x in departments}
