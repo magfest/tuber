@@ -10,5 +10,8 @@ class Event(Base):
     description = Column(String())
     readonly = Column(Boolean, default=False)
     uber_url = Column(String(), nullable=True)
+    uber_url.allow_r = {"admin"}
     uber_apikey = Column(String(), nullable=True)
+    uber_apikey.allow_r = {"admin"}
     uber_slug = Column(String(), nullable=True)
+    uber_slug.allow_r = {"admin"}
