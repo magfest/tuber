@@ -105,7 +105,6 @@ export default {
     },
     async save (props) {
       try {
-        console.log(props)
         await patch('/api/event/' + this.event.id + '/hotel/request/' + this.editedID, props.edited)
         props.cancel()
         this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: 'Your request has been saved. You may continue editing it until the deadline.', life: 3000 })

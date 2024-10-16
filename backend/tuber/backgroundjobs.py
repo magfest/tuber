@@ -68,7 +68,10 @@ class AsyncMiddleware(object):
                     start_response("404 Not Found", [])
                     return [bytes()]
                 if not progress['complete']:
-                    start_response("202 Accepted", [("Content-Type", "application/json")])
+                    headers = [("Content-Type", "application/json")]
+                    if config.circuitbreaker_refresh:
+                        headers.append(("Refresh", str(config.circuitbreaker_refresh)))
+                    start_response("202 Accepted", headers)
                     return [json.dumps(progress).encode()]
                 data = r.get(f"{job_id}/data")
                 context = json.loads(r.get(f"{job_id}/context"))
@@ -117,7 +120,7 @@ class AsyncMiddleware(object):
                     traceback.print_exc()
                     return ["Backend error".encode('UTF-8')]
             request_context['state'] = "deferred"
-            progress = json.dumps({"complete": False, "amount": 0, "messages": "", "status": ""})
+            progress = environ.get("TUBER_JOB_PROGRESS", '{"complete": false, "amount": 0, "status": "", "messages": ""}')
             if r:
                 r.set(f"{job_id}/progress", progress)
             else:
@@ -138,6 +141,7 @@ class AsyncMiddleware(object):
     def _store_response(self, job_id, iterable):
         if isinstance(iterable, Exception):
             iterable = traceback.format_exception(None, iterable, iterable.__traceback__)
+            print("".join(iterable))
             self.context[job_id]['status'] = "500 INTERNAL SERVER ERROR"
         with self.lock:
             if self.context[job_id]['state'] == "pending":
@@ -176,10 +180,15 @@ class AsyncMiddleware(object):
                 db.commit()
 
     def progress(self, amount, status=""):
-        job_id = request.environ.get("TUBER_JOB_ID", "")
-        if not job_id:
-            return
         with self.lock:
+            job_id = request.environ.get("TUBER_JOB_ID", "")
+            if not job_id:
+                prior_progress = json.loads(request.environ.get("TUBER_JOB_PROGRESS", '{"complete": false, "amount": 0, "status": "", "messages": ""}'))
+                prior_progress['amount'] = amount
+                prior_progress['status'] = status
+                prior_progress['messages'] += status + "\n"
+                request.environ["TUBER_JOB_PROGRESS"] = json.dumps(prior_progress)
+                return
             if r:
                 progress = json.loads(r.get(f"{job_id}/progress"))
                 progress['amount'] = amount

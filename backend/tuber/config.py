@@ -12,6 +12,7 @@ conf = {
     "enable_circuitbreaker": False,
     "circuitbreaker_timeout": 1,
     "circuitbreaker_threads": 10,
+    "circuitbreaker_refresh": 1,
     "redis_url": "",
     "static_path": os.path.join(tuber.__path__[0], "static"),
     "gender_map": "{}"
@@ -33,7 +34,7 @@ for i in ["session_duration", "circuitbreaker_threads"]:
     if isinstance(conf[i], str):
         conf[i] = int(conf[i])
 
-for i in ["circuitbreaker_timeout"]:
+for i in ["circuitbreaker_timeout", "circuitbreaker_refresh"]:
     if isinstance(conf[i], str):
         conf[i] = float(conf[i])
 

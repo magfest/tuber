@@ -1,5 +1,10 @@
 import { VueCookieNext } from 'vue-cookie-next'
 
+interface ProgressTracker {
+  update: (job: String, progress: Progress) => null,
+  stop_job: (job: String) => null
+}
+
 interface Progress {
   amount: number,
   status: string,
@@ -13,21 +18,23 @@ interface OptProgress {
   status?: string,
   messages?: string,
   active?: boolean,
-  definite?: boolean
+  definite?: boolean,
+  name?: string
 }
 
 async function wait (ms: number): Promise<null> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-function setProgress (progress?: (n: Progress) => any, current?: OptProgress) {
+function setProgress (job: String, progress?: ProgressTracker, current?: OptProgress) {
   if (progress) {
     const defaultProgress = {
       amount: 0,
       status: '',
       messages: '',
       active: true,
-      definite: false
+      definite: false,
+      name: ''
     }
     if (current) {
       Object.assign(defaultProgress, current)
@@ -35,38 +42,47 @@ function setProgress (progress?: (n: Progress) => any, current?: OptProgress) {
     if (defaultProgress.amount) {
       defaultProgress.definite = true
     }
-    progress(defaultProgress)
+    progress.update(job, defaultProgress)
   }
 }
 
-async function pollJob (response: Response, progressCB?: (n: Progress) => any): Promise<Response> {
+async function pollJob (response: Response, jobid: String, progressTracker?: ProgressTracker, name?: string): Promise<Response> {
   let delay = 100
   const url = response.headers.get('location')
   if (!url) {
     throw new Error('Could not find job id.')
   }
   let currentAmount = 0
-  setProgress(progressCB)
+  setProgress(jobid, progressTracker, {name: name})
   let job = await fetch(url)
   while (job.status === 202) {
     const progress = await job.json()
     if (currentAmount === progress.amount) {
       delay = delay * 1.5
     }
+    let refresh = job.headers.get('Refresh')
+    if (refresh !== null) {
+      delay = parseFloat(refresh) * 1000
+      delay = Math.max(100, delay)
+    }
     currentAmount = progress.amount
-    setProgress(progressCB, progress)
+    progress.name = name
+    setProgress(jobid, progressTracker, progress)
     await wait(delay)
     job = await fetch(url)
   }
-  setProgress(progressCB, { active: false })
+  if (job.status > 202) {
+    setProgress(jobid, progressTracker, {amount: 1, status: "Failed ("+job.status+")", messages: await job.text(), name: name})
+  }
   return job
 }
 
-async function restFetch (method: string, url: string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
+async function restFetch (method: string, url: string, data?: any, progressTracker?: ProgressTracker, name?: string): Promise<any> {
   if (!data) {
     data = {}
   }
-  setProgress(progressCB, { active: true })
+  let jobid = new Array(5).join().replace(/(.|$)/g, function(){return ((Math.random()*36)|0).toString(36);})
+  setProgress(jobid, progressTracker, {name: name})
 
   const headers: { [key: string]: string } = {
     Accept: 'application/json',
@@ -88,31 +104,35 @@ async function restFetch (method: string, url: string, data?: any, progressCB?: 
   })
 
   if (response.status === 200) {
-    setProgress(progressCB, { active: false })
+    if (progressTracker) {
+      progressTracker.stop_job(jobid)
+    }
     return await response.json()
   } else if (response.status === 202) {
-    const job = await pollJob(response, progressCB)
-    return await job.json()
+    const job = await pollJob(response, jobid, progressTracker, name)
+    let result = await job.json()
+    progressTracker?.stop_job(jobid)
+    return result
   } else {
     const msg = await response.text()
     throw new Error(msg)
   }
 }
 
-async function get (url: string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
-  return await restFetch('GET', url, data, progressCB)
+async function get (url: string, data?: any, progressTracker?: ProgressTracker, name?: string): Promise<any> {
+  return await restFetch('GET', url, data, progressTracker, name)
 }
 
-async function post (url: string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
-  return await restFetch('POST', url, data, progressCB)
+async function post (url: string, data?: any, progressTracker?: ProgressTracker, name?: string): Promise<any> {
+  return await restFetch('POST', url, data, progressTracker, name)
 }
 
-async function patch (url: string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
-  return await restFetch('PATCH', url, data, progressCB)
+async function patch (url: string, data?: any, progressTracker?: ProgressTracker, name?: string): Promise<any> {
+  return await restFetch('PATCH', url, data, progressTracker, name)
 }
 
-async function del (url: string, data?: any, progressCB?: (n: Progress) => any): Promise<any> {
-  return await restFetch('DELETE', url, data, progressCB)
+async function del (url: string, data?: any, progressTracker?: ProgressTracker, name?: string): Promise<any> {
+  return await restFetch('DELETE', url, data, progressTracker, name)
 }
 
 export {

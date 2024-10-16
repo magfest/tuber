@@ -9,7 +9,7 @@
       <div class="layout-main">
         <div class="card">
           <login
-            v-if="(loggedIn === false) & (initialSetup === false) & !($route.name === 'uberlogin') & !($route.name === 'uberdepartmentlogin')" />
+            v-if="(loggedIn === false) && (initialSetup === false) && !($route.name === 'uberlogin') && !($route.name === 'uberdepartmentlogin')" />
           <router-view v-else />
         </div>
       </div>

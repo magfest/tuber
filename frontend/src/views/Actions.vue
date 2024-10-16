@@ -5,6 +5,7 @@
         <Button @click="import_shifts" label="Import Shifts"></Button><br /><br />
         <Button @click="sync_attendees" label="Sync Attendees"></Button><br /><br />
         <Button @click="export_rooms" label="Export Rooms to Uber"></Button><br /><br />
+        <Progress ref="progress" />
     </div>
 </template>
 
@@ -15,9 +16,13 @@
 <script>
 import { post } from '@/lib/rest'
 import { mapGetters } from 'vuex'
+import Progress from '../components/Progress.vue'
 
 export default {
   name: 'Actions',
+  components: {
+    Progress: Progress
+  },
   computed: {
     ...mapGetters([
         'event'
@@ -25,9 +30,8 @@ export default {
   },
   methods: {
     async import_shifts () {
-        console.log(this.event);
         try {
-            await post('/api/event/' + this.event.id + '/uber/import_shifts')
+            await post('/api/event/' + this.event.id + '/uber/import_shifts', null, this.$refs.progress, "Importing Shifts")
             this.$toast.add({ severity: 'success', summary: 'Shifts Imported', life: 1000 })
         } catch {
             this.$toast.add({ severity: 'error', summary: 'Failed to import shifts', detail: 'Please contact your server administrator for assistance.', life: 3000 })
@@ -35,7 +39,7 @@ export default {
     },
     async sync_attendees () {
         try {
-            await post('/api/event/' + this.event.id + '/uber/sync_attendees')
+            await post('/api/event/' + this.event.id + '/uber/sync_attendees', null, this.$refs.progress, "Syncing Attendees")
             this.$toast.add({ severity: 'success', summary: 'Attendees Synced', life: 1000 })
         } catch {
             this.$toast.add({ severity: 'error', summary: 'Failed to sync attendees', detail: 'Please contact your server administrator for assistance.', life: 3000 })
@@ -43,7 +47,7 @@ export default {
     },
     async export_rooms () {
         try {
-            await post('/api/event/' + this.event.id + '/uber/export_rooms')
+            await post('/api/event/' + this.event.id + '/uber/export_rooms', null, this.$refs.progress, "Exporting Rooms")
             this.$toast.add({ severity: 'success', summary: 'Rooms Exported', life: 1000 })
         } catch {
             this.$toast.add({ severity: 'error', summary: 'Failed to export rooms', detail: 'Please contact your server administrator for assistance.', life: 3000 })

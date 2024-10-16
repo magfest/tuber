@@ -18,7 +18,8 @@ def import_shifts(event):
         'X-Auth-Token': event_obj.uber_apikey
     }
     depts = db.query(Department).filter(Department.event == event).all()
-    for dept in depts:
+    for idx, dept in enumerate(depts):
+        g.progress(idx / len(depts), status=f"Importing shifts from {dept.name}")
         req = {
             "method": "shifts.lookup",
             "params": {
@@ -118,7 +119,8 @@ def export_rooms(event):
     hrr = {x.badge: x for x in hrr}
     reqs = {}
 
-    for room in rooms:
+    for idx, room in enumerate(rooms):
+        g.progress(idx / len(rooms), status=f"Exporting Room {room.name}")
         nights = []
         assign = []
         assigned = []
@@ -255,7 +257,7 @@ def sync_attendees(event):
         else:
             print(f"Skipping attendee {attendee} since I couldn't find it in Uber")
             continue
-        if counter % 100 == 0:
+        if counter % 10 == 0:
             g.progress(idx / len(eligible), status=f"Checking attendee {uber_model['full_name']}")
         counter += 1
         if attendee in badgelookup:
