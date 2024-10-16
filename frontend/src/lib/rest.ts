@@ -115,6 +115,7 @@ async function restFetch (method: string, url: string, data?: any, progressTrack
     return result
   } else {
     const msg = await response.text()
+    setProgress(jobid, progressTracker, {amount: 1, status: "Failed ("+response.status+")", messages: msg, name: name})
     throw new Error(msg)
   }
 }

@@ -1,7 +1,7 @@
 <template>
     <div>
         <Accordion v-if="Object.keys(jobs).length > 0">
-            <AccordionTab :header="job.name + ' - ' + job.status" v-for="job in jobs">
+            <AccordionTab :header="job.status.length > 0 ? job.name + ' - ' + job.status : job.name" v-for="job in jobs">
                 <ProgressBar :value="Math.round(job.amount * 100)" :mode="job.definite ? 'determinate' : 'indeterminate'"></ProgressBar>
                 <pre>{{ job.messages }}</pre>
             </AccordionTab>
@@ -19,11 +19,9 @@ export default {
     },
     methods: {
         update (job, progress) {
-            console.log("Updating job", job, progress)
             this.jobs[job] = progress
         },
         stop_job (job) {
-            console.log("Stopping job", job)
             delete this.jobs[job]
         }
     }
