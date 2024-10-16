@@ -14,8 +14,8 @@ COPY pyproject.toml pyproject.toml
 #    pip3 install lupa==1.14.1 --global-option="--with-cython"
 
 
-COPY tuber tuber
 RUN pip install .
+COPY tuber tuber
 
 ENV DATABASE_URL=sqlite:///database.db
 ENV FLASK_DEBUG=false

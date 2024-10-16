@@ -317,10 +317,8 @@ def staffer_auth(slug):
     headers = {
         'X-Auth-Token': event_obj.uber_apikey
     }
-    results = requests.post(event_obj.uber_url, headers=headers, json=req).json()['results']
-    if len(results) == 0:
-        return "no result", 403
-    result = results[0]['result']['attendees']
+    results = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
+    result = results['attendees']
     if len(result) == 0:
         return "no attendee found", 403
     if len(result) > 1:
