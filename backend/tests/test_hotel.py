@@ -122,7 +122,8 @@ def test_staffer_auth(mock_post, client):
             ]
         }
     ]
-    mock_post.return_value.json = results.shift
+    results.reverse()
+    mock_post.return_value.json = results.pop
     rv = client.post('/api/uber/west2024/login', json={"token": "234"})
     assert(rv.status_code == 200)
 
@@ -199,7 +200,8 @@ def test_staffer_auth(mock_post, client):
             ]
         }
     ]
-    mock_post.return_value.json = results.shift
+    results.reverse()
+    mock_post.return_value.json = results.pop
     rv = client.post('/api/uber/west2024/login', json={"token": "123"})
     assert(rv.status_code == 200)
 
@@ -272,7 +274,8 @@ def test_staffer_auth(mock_post, client):
             ]
         }
     ]
-    mock_post.return_value.json = results.shift
+    results.reverse()
+    mock_post.return_value.json = results.pop
     rv = client.post('/api/uber/west2024/login', json={"token": "456"})
     assert(rv.status_code != 200)
 
