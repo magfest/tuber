@@ -267,6 +267,8 @@ def sync_attendees(event):
                 badge.first_name = uber_model['first_name']
                 badge.last_name = uber_model['last_name']
                 badge.public_name = uber_model['full_name']
+                badge.legal_name = uber_model['legal_name']
+                badge.search_name = f"{uber_model['first_name']} {uber_model['last_name']}".lower(),
                 db.add(badge)
         if uber_model['badge_status_label'] == "Deferred":
             if attendee in badgelookup:
