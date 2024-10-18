@@ -262,7 +262,7 @@ def sync_attendees(event):
         counter += 1
         if attendee in badgelookup:
             badge = badgelookup[attendee]
-            if uber_model['full_name'] != badge.public_name:
+            if uber_model['full_name'] != badge.public_name or uber_model['legal_name'] != badge.legal_name or uber_model['first_name'] != badge.first_name or uber_model['last_name'] != badge.last_name:
                 print(f"Updating public name from {badge.public_name} to {uber_model['full_name']}")
                 badge.first_name = uber_model['first_name']
                 badge.last_name = uber_model['last_name']

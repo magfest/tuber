@@ -26,7 +26,7 @@ services:
       - postgres
       - redis
     environment:
-      DATABASE_URL: postgresql://tuber:tuber@postgres/tuber
+      DATABASE_URL: postgresql+psycopg://tuber:tuber@postgres/tuber
       REDIS_URL: redis://redis:6379/0
       VERBOSE: "true"
       FLASK_DEBUG: 1
