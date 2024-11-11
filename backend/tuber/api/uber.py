@@ -102,10 +102,10 @@ def export_rooms(event):
     room_nights_lookup = {}
     for room_night in room_nights:
         if room_night.date in uber_room_nights.keys():
-            room_nights_lookup[room_night['id']
-                            ] = uber_room_nights[room_night['date']]
+            room_nights_lookup[room_night.id
+                            ] = uber_room_nights[room_night.date]
         else:
-            print(f"Could not find uber entry for {room_night['name']}")
+            print(f"Could not find uber entry for {room_night.name}")
     print(room_nights_lookup)
 
     rooms = db.query(HotelRoom).filter(HotelRoom.event == event).all()
@@ -187,10 +187,10 @@ def export_requests(event, hotel_room_requests):
     room_nights_lookup = {}
     for room_night in room_nights:
         if room_night.date in uber_room_nights.keys():
-            room_nights_lookup[room_night['id']
-                            ] = uber_room_nights[room_night['date']]
+            room_nights_lookup[room_night.id
+                            ] = uber_room_nights[room_night.date]
         else:
-            print(f"Could not find uber entry for {room_night['name']}")
+            print(f"Could not find uber entry for {room_night.name}")
 
     badges = db.query(Badge).filter(Badge.event == event).all()
 
