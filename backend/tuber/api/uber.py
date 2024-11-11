@@ -115,7 +115,6 @@ def export_rooms(event):
     badges = {x.id: x for x in badges}
 
     hrr = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == event).all()
-    #hrr = get(f"{BASE_URL}/hotel_room_request?full=true&deep=true")
     hrr = {x.badge: x for x in hrr}
     reqs = {}
 
@@ -175,6 +174,60 @@ def export_rooms(event):
                     print(
                         f"Failed to assign roommate {badges[badge].uber_id} ({badges[badge].search_name})")
     db.commit()
+    return "null", 200
+
+def export_requests(event, hotel_room_requests):
+    event_obj = db.query(Event).filter(Event.id == event).one()
+    headers = {
+        'X-Auth-Token': event_obj.uber_apikey
+    }
+
+    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
+    uber_room_nights = get_nights(event_obj.uber_url, headers)
+    room_nights_lookup = {}
+    for room_night in room_nights:
+        if room_night.date in uber_room_nights.keys():
+            room_nights_lookup[room_night['id']
+                            ] = uber_room_nights[room_night['date']]
+        else:
+            print(f"Could not find uber entry for {room_night['name']}")
+
+    badges = db.query(Badge).filter(Badge.event == event).all()
+
+    badges = {x.id: x for x in badges}
+
+    hrr = {x.badge: x for x in hotel_room_requests}
+
+    for idx, badge in enumerate(hrr.keys()):
+        g.progress(idx / len(hrr), status=f"Exporting Request {badge.public_name}")
+        req = hrr[badge]
+        if req.declined:
+            continue
+        requested_nights = [x.room_night
+                            for x in req.room_night_requests if x.requested]
+        if not requested_nights:
+            continue
+        req_nights = [room_nights_lookup[x]
+                    for x in requested_nights if x in room_nights_lookup]
+        request = create_request(
+            event_obj.uber_url,
+            headers,
+            hrr[badge].uber_id,
+            attendee_id=badges[badge].uber_id,
+            special_needs=hrr[badge].notes,
+            approved=True,
+            nights=req_nights
+        )
+        hrr.uber_id = request['id']
+        db.add(hrr)
+
+    db.commit()
+    return "null", 200
+
+@app.route("/api/event/<int:event>/uber/export_requests", methods=["POST"])
+def export_requests_api(event):
+    hrr = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == event).all()
+    export_requests(event, hrr)
     return "null", 200
 
 def create_attendee(uber_model, event, hotel_eligible=True):

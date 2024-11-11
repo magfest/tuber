@@ -10,6 +10,7 @@ import datetime
 import os
 from tuber.api.util import *
 from .room_matcher import rematch_hotel_block, clear_hotel_block
+from .uber import export_requests
 import time
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/room/<int:room_id>/remove_roommates", methods=["POST"])
@@ -554,7 +555,10 @@ def hotel_request_single_api(event, request_id):
                 requested_night = RoomNightRequest(
                     event=event, badge=hotel_request.badge, requested=room_night_request['requested'], room_night=room_night_request['id'])
                 db.add(requested_night)
+                
         db.commit()
+        
+        export_requests(event, [hotel_request,])
         return "null", 200
 
 
