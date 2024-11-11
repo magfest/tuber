@@ -199,7 +199,7 @@ def export_requests(event, hotel_room_requests):
     hrr = {x.badge: x for x in hotel_room_requests}
 
     for idx, badge in enumerate(hrr.keys()):
-        g.progress(idx / len(hrr), status=f"Exporting Request {badge.public_name}")
+        g.progress(idx / len(hrr), status=f"Exporting Request {badges[badge].public_name}")
         req = hrr[badge]
         if req.declined:
             continue
