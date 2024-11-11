@@ -218,8 +218,8 @@ def export_requests(event, hotel_room_requests):
             approved=True,
             nights=req_nights
         )
-        hrr.uber_id = request['id']
-        db.add(hrr)
+        req.uber_id = request['id']
+        db.add(req)
 
     db.commit()
     return "null", 200
