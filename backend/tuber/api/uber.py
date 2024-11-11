@@ -186,9 +186,9 @@ def export_requests(event, hotel_room_requests):
     uber_room_nights = get_nights(event_obj.uber_url, headers)
     room_nights_lookup = {}
     for room_night in room_nights:
-        if room_night.date in uber_room_nights.keys():
+        if room_night.date.strftime("%Y-%m-%d") in uber_room_nights.keys():
             room_nights_lookup[room_night.id
-                            ] = uber_room_nights[room_night.date]
+                            ] = uber_room_nights[room_night.date.strftime("%Y-%m-%d")]
         else:
             print(f"Could not find uber entry for {room_night.name}")
 
