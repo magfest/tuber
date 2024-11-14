@@ -53,6 +53,7 @@
           <Textarea v-model="request.room_night_justification" @input="blah" v-if="justification_required"
             :disabled="request.declined" :autoResize="true" rows="5" cols="50"
             placeholder="I'm helping with setup in <department>." maxlength="512"></Textarea>
+          <p v-if="justification_required">{{ request.room_night_justification.length }} / 200</p>
           <br><br>
 
           <h4>Who would you like to room with?</h4>
