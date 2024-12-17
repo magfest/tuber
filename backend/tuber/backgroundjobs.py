@@ -4,6 +4,7 @@ import traceback
 import json
 import uuid
 import time
+from werkzeug.routing import RequestRedirect
 from tuber import config
 from tuber.database import db, r
 from tuber.models import *
@@ -59,7 +60,31 @@ class AsyncMiddleware(object):
         self.pool.close()
         self.pool.terminate()
 
+    def get_view_function(self, path, method):
+        adapter = self.application.url_map.bind('localhost')
+
+        try:
+            match = adapter.match(path, method=method)
+        except RequestRedirect as e:
+            # recursively match redirects
+            return self.get_view_function(e.new_url, method)
+        except:
+            # no match
+            return None
+
+        try:
+            # return the view function and arguments
+            return app.view_functions[match[0]], match[1]
+        except KeyError:
+            # no view is associated with the endpoint
+            return None
+
     def __call__(self, environ, start_response):
+        # If the function says it's a generator then we just return it immediately
+        func, args = self.get_view_function(environ['PATH_INFO'], environ['REQUEST_METHOD'])
+        if func and hasattr(func, "generator") and getattr(func, "generator"):
+            return self.application(environ, start_response)
+        
         if environ['PATH_INFO'].startswith("/api/job/"):
             job_id = environ['PATH_INFO'].split("/api/job/")[1]
             if r:

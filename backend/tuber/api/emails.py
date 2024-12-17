@@ -121,6 +121,7 @@ def email_csv(event, email):
         "Content-Disposition": "attachment; filename=emails.csv",
     }
     return Response(stream_with_context(stream_emails()), headers=headers)
+email_csv.generator = True
 
 @app.route('/api/event/<int:event>/email/<int:email>/trigger', methods=['POST'])
 def api_email_trigger(event, email):
@@ -159,3 +160,4 @@ def api_email_trigger(event, email):
         "Content-Disposition": "attachment; filename=emails.json",
     }
     return Response(stream_with_context(stream_emails()), headers=headers)
+api_email_trigger.generator = True
