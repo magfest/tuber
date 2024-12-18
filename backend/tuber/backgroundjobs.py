@@ -74,14 +74,14 @@ class AsyncMiddleware(object):
 
         try:
             # return the view function and arguments
-            return app.view_functions[match[0]], match[1]
+            return app.view_functions[match[0]]
         except KeyError:
             # no view is associated with the endpoint
             return None
 
     def __call__(self, environ, start_response):
         # If the function says it's a generator then we just return it immediately
-        func, args = self.get_view_function(environ['PATH_INFO'], environ['REQUEST_METHOD'])
+        func = self.get_view_function(environ['PATH_INFO'], environ['REQUEST_METHOD'])
         if func and hasattr(func, "generator") and getattr(func, "generator"):
             return self.application(environ, start_response)
         
