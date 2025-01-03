@@ -157,8 +157,8 @@ def export_rooms(event):
                     approved=True,
                     nights=req_nights
                 )
-                hrr.uber_id = request['id']
-                db.add(hrr)
+                hrr[badge].uber_id = request['id']
+                db.add(hrr[badge])
                 print(request)
             if not badge in assigned:
                 assigned.append(badge)
