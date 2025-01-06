@@ -75,6 +75,7 @@ def create_request(url, headers, id=None, attendee_id="", nights=None, wanted_ro
         req['params']['id'] = id
     if nights != None:
         req['params']['nights'] = ",".join(nights)
+        print(nights, req['params']['nights'])
     res = requests.post(url, headers=headers, json=req).json()['result']
     print(res)
     return res
@@ -101,12 +102,11 @@ def export_rooms(event):
     uber_room_nights = get_nights(event_obj.uber_url, headers)
     room_nights_lookup = {}
     for room_night in room_nights:
-        if room_night.date in uber_room_nights.keys():
+        if str(room_night.date) in uber_room_nights.keys():
             room_nights_lookup[room_night.id
-                            ] = uber_room_nights[room_night.date]
+                            ] = uber_room_nights[str(room_night.date)]
         else:
             print(f"Could not find uber entry for {room_night.name}")
-    print(room_nights_lookup)
 
     rooms = db.query(HotelRoom).filter(HotelRoom.event == event).all()
     assignments = db.query(RoomNightAssignment).filter(RoomNightAssignment.event == event).all()
@@ -159,7 +159,6 @@ def export_rooms(event):
                 )
                 hrr[badge].uber_id = request['id']
                 db.add(hrr[badge])
-                print(request)
             if not badge in assigned:
                 assigned.append(badge)
                 try:
@@ -169,7 +168,6 @@ def export_rooms(event):
                         room_id=uber_room['id'],
                         attendee_id=badges[badge].uber_id
                     )
-                    print(assignment)
                 except:
                     print(
                         f"Failed to assign roommate {badges[badge].uber_id} ({badges[badge].search_name})")
