@@ -161,9 +161,6 @@ class Model_Base(object):
             if not hasattr(cls, key):
                 raise MalformedRequest(f"Table {name} has no field {key}")
             field = getattr(cls, key)
-            if hasattr(field, "hidden") and field.hidden:
-                raise PermissionDenied(
-                    f"User is not permitted to write {name}.{key}")
             if hasattr(field, "allow_rw"):
                 if not instance_perms.intersection(field.allow_rw.union({"write", "*"})):
                     if existing and getattr(existing, key) == instance[key]:
