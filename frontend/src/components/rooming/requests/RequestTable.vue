@@ -1,10 +1,10 @@
 <template>
     <div>
-      <tuber-table tableTitle="Hotel Room Requests" formTitle="Hotel Room Request" url="/api/event/<event>/hotel_room_request"
-        :parameters="parameters" :format="format" :autoload="false" ref="table" :filters="filters">
+      <tuber-table tableTitle="Hotel Room Requests" formTitle="Hotel Room Request" url="/api/event/<event>/hotel/list_requests"
+        :parameters="parameters" :autoload="false" ref="table" :filters="filters">
 
         <template #controls>
-          <Dropdown :options="hotelBlocks" optionLabel="name" optionValue="id" v-model="hotelBlock" />
+          <Dropdown :options="hotelBlocks" optionLabel="name" optionValue="id" v-model="hotelBlock" showClear />
         </template>
 
         <template #columns>
@@ -20,7 +20,7 @@
           </Column>
           <Column header="Room Nights">
             <template #body="slotProps">
-              <Tag v-for="night in roomNights" :key="slotProps.data.id + '_' + night.id" :value="night.name.slice(0,2)" :severity="slotProps.data.nights[night.id] ? 'primary': (slotProps.data.nights_requested[night.id] ? 'warning' : 'danger')" class="mr-1" style="width: 18px" />
+              <Tag v-for="night in roomNights" :key="slotProps.data.id + '_' + night.id" :value="night.name.slice(0,2)" :severity="slotProps.data.approved_nights[night.id] ? 'primary': (slotProps.data.requested_nights[night.id] ? 'warning' : 'danger')" class="mr-1" style="width: 18px" />
             </template>
           </Column>
           <Column field="notes" filterField="notes" header="Notes" :sortable="true"></Column>
@@ -75,10 +75,7 @@ export default {
       'event'
     ]),
     parameters () {
-      const params = {
-        full: true,
-        deep: true
-      }
+      const params = {}
       if (this.hotelBlock) {
         params.hotel_block = this.hotelBlock
       }
@@ -111,46 +108,6 @@ export default {
       } catch (error) {
         this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
       }
-    },
-    async format (requests) {
-      const filtered = []
-      for (const req of requests) {
-        const item = {}
-        Object.assign(item, req)
-        item.room_nights = []
-        item.nights = {}
-        item.nights_requested = {}
-        for (const rn of this.roomNights) {
-          const night = {
-            name: rn.name,
-            id: rn.id
-          }
-          let requested = false
-          let approved = false
-          for (const nightreq of item.room_night_requests) {
-            if (nightreq.room_night === rn.id && nightreq.requested) {
-              requested = true
-              break
-            }
-          }
-          if (rn.restricted && requested) {
-            for (const nightapp of item.room_night_approvals) {
-              if (nightapp.room_night === rn.id && nightapp.approved) {
-                approved = true
-                break
-              }
-            }
-          } else {
-            approved = requested
-          }
-          night.requested = requested
-          item.nights[rn.id] = approved
-          item.nights_requested[rn.id] = requested
-          item.room_nights.push(night)
-        }
-        filtered.push(item)
-      }
-      return filtered
     }
   },
   watch: {

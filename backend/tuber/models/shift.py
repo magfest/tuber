@@ -103,7 +103,7 @@ class Shift(Base):
     slots = Column(Integer)
     filledslots = Column(Integer)
     weighting = Column(Float)
-
+    assignments = relationship("ShiftAssignment", back_populates="shift_obj")
 
 class ShiftAssignment(Base):
     """A ShiftAssignment connect badges to shifts that they will work. They store the current state,
@@ -115,6 +115,8 @@ class ShiftAssignment(Base):
     event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     badge = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
     shift = Column(Integer, ForeignKey('shift.id', ondelete="CASCADE"))
+    badge_obj = relationship("Badge", back_populates="shift_assignments")
+    shift_obj = relationship("Shift", back_populates="assignments")
 
 
 class ShiftSignup(Base):

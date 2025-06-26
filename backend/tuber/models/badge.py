@@ -1,6 +1,7 @@
 from tuber.models import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, cast, and_, Interval, union
+from sqlalchemy.orm import relationship, object_session
+from sqlalchemy.sql import select, func
 
 
 class BadgeToDepartment(Base):
@@ -45,13 +46,13 @@ class DepartmentRole(Base):
     grants = relationship(
         DepartmentGrant, cascade="all, delete", passive_deletes=True)
 
-
 class Badge(Base):
     __tablename__ = "badge"
     __url__ = "/api/event/<int:event>/badge"
     id = Column(Integer, primary_key=True)
     id.allow_r = {"searchname"}
-    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    event = Column('event', Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    event_obj = relationship("Event", back_populates="badges")
     badge_type = Column(Integer, ForeignKey(
         'badge_type.id', ondelete="SET NULL"), nullable=True)
     printed_number = Column(String())
@@ -79,11 +80,51 @@ class Badge(Base):
         "RoomNightRequest", cascade="all, delete", passive_deletes=True)
     room_night_assignments = relationship(
         "RoomNightAssignment", cascade="all, delete", passive_deletes=True)
-    room_night_approvals = relationship(
-        "RoomNightApproval", cascade="all, delete", passive_deletes=True)
+
     hotel_room_request = relationship(
         "HotelRoomRequest", cascade="all, delete", passive_deletes=True)
+    shift_assignments = relationship("ShiftAssignment", viewonly=True)
+    shifts = relationship("Shift", secondary="shift_assignment", viewonly=True)
+    
+    # --- 1. RELATIONSHIP for Shift Overlaps ---
+    shift_overlap_nights = relationship(
+        "HotelRoomNight",
+        secondary="join(ShiftAssignment, Shift, ShiftAssignment.shift == Shift.id)",
+        primaryjoin="Badge.id == ShiftAssignment.badge",
+        secondaryjoin="""and_(
+            Shift.event == HotelRoomNight.event,
+            Shift.starttime < HotelRoomNight.shift_endtime,
+            (Shift.starttime + func.make_interval(0, 0, 0, 0, 0, 0, Shift.duration)) > HotelRoomNight.shift_starttime
+        )""",
+        viewonly=True,
+        doc="Hotel nights that overlap with this badge's assigned shifts."
+    )
 
+    # --- 2. RELATIONSHIP for Manual Approvals ---
+    manually_approved_nights = relationship(
+        "HotelRoomNight",
+        secondary="room_night_approval",
+        primaryjoin="Badge.id == RoomNightApproval.badge",
+        secondaryjoin="""and_(
+            RoomNightApproval.room_night == HotelRoomNight.id,
+            RoomNightApproval.approved == True
+        )""",
+        viewonly=True,
+        doc="Hotel nights manually approved for this badge."
+    )
+    
+    @property
+    def approved_hotel_nights(self):
+        """
+        Returns a distinct, sorted list of all approved hotel nights
+        by combining results from the underlying relationships.
+        """
+        all_nights = set()
+        all_nights.update(self.shift_overlap_nights)
+        all_nights.update(self.manually_approved_nights)
+        all_nights.update(self.event_obj.unrestricted_nights)
+        
+        return list(all_nights)
 
 class Department(Base):
     __tablename__ = "department"

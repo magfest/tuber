@@ -87,7 +87,7 @@ export default {
       for (const [roomNight] of Object.entries(request.room_nights)) {
         request.room_nights[roomNight].approved = true
         requests.push(post('/api/event/' + this.event.id + '/hotel/approve/' + this.departmentID, {
-          room_night: roomNight,
+          room_night: parseInt(roomNight),
           badge: request.id,
           approved: true
         }))

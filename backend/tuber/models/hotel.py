@@ -1,6 +1,6 @@
 from tuber.models import Base
 from .badge import Badge
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Date, Table
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Date, Table, DateTime
 from sqlalchemy.orm import relationship
 
 
@@ -60,6 +60,7 @@ class HotelRoomRequest(Base):
     id = Column(Integer, primary_key=True)
     event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     badge = Column(Integer, ForeignKey('badge.id', ondelete="CASCADE"))
+    badge_obj = relationship("Badge", viewonly=True)
     uber_id = Column(String(), nullable=True)
     first_name = Column(String(), nullable=True)
     last_name = Column(String(), nullable=True)
@@ -136,6 +137,8 @@ class HotelRoomNight(Base):
     date = Column(Date)
     name = Column(String())
     restricted = Column(Boolean, default=False)
+    shift_starttime = Column(DateTime(), nullable=True)
+    shift_endtime = Column(DateTime(), nullable=True)
     restriction_type = Column(String(), nullable=True)
     hidden = Column(Boolean, default=False)
     requests = relationship(

@@ -44,10 +44,9 @@
                 iconPos="right" />
             </template>
           </Column>
-          <Column header="Name" field="first_name" filterField="first_name" :sortable="true">
+          <Column header="Name" field="search_name" filterField="search_name" :sortable="true">
             <template #body="slotProps">
-              {{ badgeLookup[slotProps.data.badge] != undefined ? badgeLookup[slotProps.data.badge].public_name :
-                "loading" }}
+              {{ slotProps.data.public_name }}
             </template>
             <template #filter="{ filterModel, filterCallback }">
               <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter"
@@ -57,7 +56,7 @@
           <Column style="width: 25%">
             <template #body="slotProps">
               <Tag v-for="night in roomNights" :key="'rn' + night.id" :value="night.name.slice(0, 2)"
-                :severity="slotProps.data.nights[night.id] ? 'primary' : (slotProps.data.nights_requested[night.id] ? 'warning' : 'danger')"
+                :severity="slotProps.data.approved_nights[night.id] ? 'primary' : (slotProps.data.requested_nights[night.id] ? 'warning' : 'danger')"
                 class="mr-1" style="width: 18px" />
             </template>
           </Column>
@@ -220,7 +219,7 @@ export default {
     requestFilters: {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
       notes: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      first_name: { value: null, matchMode: FilterMatchMode.CONTAINS }
+      search_name: { value: null, matchMode: FilterMatchMode.CONTAINS }
     },
     roomFilters: {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -286,7 +285,7 @@ export default {
     this.lazyParams = {
       first: 0,
       rows: this.$refs.dt.rows,
-      sortField: 'first_name',
+      sortField: 'search_name',
       sortOrder: 1,
       filters: this.requestFilters
     }
@@ -349,7 +348,7 @@ export default {
         const searchRes = await get('/api/event/' + this.event.id + '/hotel/' + this.block + '/request_search', {
           approved: true,
           assigned: false,
-          search_term: this.lazyParams.filters.first_name.value != null ? this.lazyParams.filters.first_name.value : "",
+          search_term: this.lazyParams.filters.search_name.value != null ? this.lazyParams.filters.search_name.value : "",
           full: true,
           deep: true,
           offset: this.lazyParams.first,
@@ -359,43 +358,7 @@ export default {
         })
         requests = searchRes.requests
         this.totalRequests = searchRes.count
-
-        const filtered = []
-        for (const req of requests) {
-          req.room_nights = []
-          req.nights = {}
-          req.nights_requested = {}
-          for (const rn of this.roomNights) {
-            const night = {
-              name: rn.name,
-              id: rn.id,
-            }
-            let requested = false
-            let approved = false
-            for (const nightreq of req.room_night_requests) {
-              if (nightreq.room_night === rn.id && nightreq.requested) {
-                requested = true
-                break
-              }
-            }
-            if (rn.restricted && requested) {
-              for (const nightapp of req.room_night_approvals) {
-                if (nightapp.room_night === rn.id && nightapp.approved) {
-                  approved = true
-                  break
-                }
-              }
-            } else {
-              approved = requested
-            }
-            night.requested = requested;
-            req.nights[rn.id] = approved
-            req.nights_requested[rn.id] = requested
-            req.room_nights.push(night)
-          }
-          filtered.push(req)
-        }
-        this.filteredRequests = reactive(filtered)
+        this.filteredRequests = reactive(requests)
       } catch (error) {
         this.filteredRequests = []
         this.totalRequests = 0

@@ -29,6 +29,11 @@
             <Checkbox id="readonly" v-model="data.readonly" :binary="true" />
             <label for="readonly">Read-Only</label>
         </div>
+
+        <div class="field">
+          <label for="timezone">Time Zone</label><br>
+          <Dropdown id="timezone" v-model="data.timezone" :options="timezones" placeholder="Select a time zone" />
+        </div>
     </form>
 </template>
 
@@ -46,7 +51,8 @@ export default {
   ],
   data () {
     return {
-      data: this.modelValue
+      data: this.modelValue,
+      timezones: Intl.supportedValuesOf('timeZone')
     }
   }
 }

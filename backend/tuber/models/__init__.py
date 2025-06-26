@@ -1,4 +1,4 @@
-
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy.inspection
 from sqlalchemy.types import JSON
@@ -10,6 +10,37 @@ from flask import g
 import datetime
 import json
 
+
+class TimeZone(sqlalchemy.types.TypeDecorator):
+    """
+    Stores and retrieves timezone-aware datetimes as string objects.
+
+    In the database, the timezone is stored as a string (e.g., 'America/New_York').
+    In the Python application, it's represented as a `zoneinfo.ZoneInfo` object.
+    """
+    impl = sqlalchemy.types.String(100)
+    cache_ok = True # The type is immutable, so it's safe to cache
+
+    def process_bind_param(self, value: ZoneInfo | None, dialect) -> str | None:
+        """
+        Takes a ZoneInfo object from the app and converts it to a string for the DB.
+        """
+        if value is None:
+            return None
+        if not isinstance(value, ZoneInfo):
+            raise TypeError("TimeZone column requires a zoneinfo.ZoneInfo object")
+        return value.key
+
+    def process_result_value(self, value: str | None, dialect) -> ZoneInfo | None:
+        """
+        Takes a string from the DB and converts it to a ZoneInfo object for the app.
+        """
+        if value is None:
+            return None
+        try:
+            return ZoneInfo(value)
+        except ZoneInfoNotFoundError:
+            raise ValueError(f"Invalid timezone '{value}' found in database")
 
 def model_permissions(name):
     """
@@ -69,8 +100,12 @@ class Model_Base(object):
             def transform(inst, column): return json.loads(
                 getattr(inst, column.name) or "{}")
         elif type(column.type) is Date:
-            def transform(inst, calumn): return getattr(
+            def transform(inst, column): return getattr(
                 inst, column.name).strftime("%Y-%m-%d")
+        elif type(column.type) is TimeZone:
+            def transform(inst, column): return str(getattr(
+                inst, column.name
+            ))
         for i in range(len(instances)):
             data[i][column.name] = transform(instances[i], column)
 
@@ -173,10 +208,16 @@ class Model_Base(object):
                 key = column.name
                 val = instance[key]
                 if type(column.type) is DateTime:
-                    instance[key] = datetime.datetime.strptime(
-                        val, '%Y-%m-%dT%H:%M:%S.%f')
+                    if val.endswith("Z"):
+                        instance[key] = datetime.datetime.strptime(
+                            val, '%Y-%m-%dT%H:%M:%S.%fZ', ).replace(tzinfo=datetime.timezone.utc)
+                    else:
+                        instance[key] = datetime.datetime.strptime(
+                            val, '%Y-%m-%dT%H:%M:%S.%f')
                 elif type(column.type) is JSON:
                     instance[key] = json.dumps(val)
+                elif type(column.type) is TimeZone:
+                    instance[key] = ZoneInfo(val)
         for relation in relations:
             #     new = []
             if relation.key in instance:

@@ -26,7 +26,42 @@ def import_shifts(event):
                 "department_id": dept.uber_id
             }
         }
-        shifts = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
+        jobs = requests.post(event_obj.uber_url, headers=headers, json=req).json()['result']
+        db.query(Job).filter(Job.department == dept.id, Job.event == event).delete()
+        for job in jobs:
+            job_obj = Job(
+                name=job["name"],
+                description=job["description"],
+                department=dept.id,
+                event=event
+            )
+            db.add(job_obj)
+            db.flush()
+            start_time = datetime.datetime.strptime(job["start_time"], "%Y-%m-%d %H:%M:%S.%f")
+            end_time = datetime.datetime.strptime(job["end_time"], "%Y-%m-%d %H:%M:%S.%f")
+            shift_obj = Shift(
+                event=event,
+                job=job_obj.id,
+                starttime=start_time,
+                duration=(end_time-start_time).seconds,
+                slots=job["slots"],
+                filledslots=job["slots_taken"],
+                weighting=1.0
+            )
+            db.add(shift_obj)
+            db.flush()
+            for shift in job["shifts"]:
+                try:
+                    badge = db.query(Badge).filter(Badge.event==event, Badge.uber_id==shift["attendee"]["id"]).one()
+                    assignment = ShiftAssignment(
+                        event=event,
+                        badge=badge.id,
+                        shift=shift_obj.id
+                    )
+                    db.add(assignment)
+                except sqlalchemy.exc.NoResultFound:
+                    print(f"Failed to find attendee for {shift['attendee']['id']} (Not hotel elligible?)")
+    db.commit()
     return "null", 200
 
 def get_nights(url, headers):
