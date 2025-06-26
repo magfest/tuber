@@ -171,8 +171,12 @@ class Model_Base(object):
                         getattr(instance, relation.key), parents=new_parents)
             elif serialize_relationships:
                 for relation in visible_relationships:
-                    inst_ser[relation.key] = [
-                        getattr(x, 'id') for x in getattr(instance, relation.key)]
+                    try:
+                        inst_ser[relation.key] = [
+                            getattr(x, 'id') for x in getattr(instance, relation.key)
+                        ]
+                    except TypeError:
+                        inst_ser[relation.key] = getattr(instance, relation.key).id
             data.append(inst_ser)
 
         for column in visible_columns:
