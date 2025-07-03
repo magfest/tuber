@@ -280,16 +280,18 @@ def list_requests(event):
     
     room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
     
-    return [
-        {
-            "first_name": x.badge_obj.first_name,
-            "last_name": x.badge_obj.last_name,
-            "notes": x.notes,
-            "id": x.id,
-            "approved_nights": {y.id: y in x.badge_obj.approved_hotel_nights for y in room_nights},
-            "requested_nights": {z.id: z.id in [y.room_night for y in x.room_night_requests if y.requested] for z in room_nights}
-        } for x in requests
-    ]
+    result = []
+    for req in requests:
+        requested_nights = {z.id: z.id in [y.room_night for y in req.room_night_requests if y.requested] for z in room_nights}
+        result.append({
+            "first_name": req.badge_obj.first_name,
+            "last_name": req.badge_obj.last_name,
+            "notes": req.notes,
+            "id": req.id,
+            "approved_nights": {y.id: y in req.badge_obj.approved_hotel_nights and requested_nights[y.id] for y in room_nights},
+            "requested_nights": requested_nights
+        })
+    return result
 
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/request_search", methods=["GET"])
