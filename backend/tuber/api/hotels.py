@@ -332,7 +332,7 @@ def request_search(event, hotel_block):
     
     results = [{
         "id": req.id,
-        "approved_nights": {x.id: x in req.badge_obj.approved_hotel_nights for x in room_nights},
+        "approved_nights": {x.id: x in req.badge_obj.approved_hotel_nights and x.id in [y.room_night for y in req.room_night_requests if y.requested] for x in room_nights},
         "requested_nights": {x.id: x.id in [y.room_night for y in req.room_night_requests if y.requested] for x in room_nights},
         "notes": req.notes,
         "first_name": req.first_name,
