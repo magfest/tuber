@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy.inspection
 from sqlalchemy.types import JSON
 from sqlalchemy.sql import func
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column, Date, DateTime
 from tuber.errors import *
 from tuber.database import db
 from flask import g
@@ -220,6 +220,12 @@ class Model_Base(object):
                     else:
                         instance[key] = datetime.datetime.strptime(
                             val, '%Y-%m-%dT%H:%M:%S.%f')
+                elif type(column.type) is Date:
+                    if not val:
+                        instance[key] = None
+                    else:
+                        instance[key] = datetime.datetime.strptime(
+                            val, '%Y-%m-%d').date()
                 elif type(column.type) is JSON:
                     instance[key] = json.dumps(val)
                 elif type(column.type) is TimeZone:

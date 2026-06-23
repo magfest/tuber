@@ -118,15 +118,15 @@ export default {
     save () {
       if (this.id) {
         return patch(this.url, this.roomNight).then(() => {
-          this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
+          this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 3000 })
         }).catch(() => {
-          this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })
+          this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
         })
       } else {
         return post(this.url, this.roomNight).then(() => {
-          this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
+          this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 3000 })
         }).catch(() => {
-          this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })
+          this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
         })
       }
     }
