@@ -7,7 +7,7 @@
 
         <div class="field">
             <label for="date">Date</label><br>
-            <Calendar id="date" v-model="roomNight.date" dateFormat="yy-mm-dd" />
+            <input type="date" id="date" v-model="roomNight.date" />
         </div><br>
 
         <div class="field-checkbox">
@@ -28,12 +28,12 @@
         <p>For restricted nights, the shift start and end times define the time window over which an overlapping shift will approve this night.</p>
         <div class="field">
           <label for="shift_starttime">Shift Start Time</label><br>
-          <Calendar id="shift_starttime" v-model="roomNight.shift_starttime" showTime dateFormat="yy-mm-dd" :disabled="!roomNight.restricted"></Calendar>
+          <input type="datetime-local" id="shift_starttime" v-model="shiftStarttimeLocal" :disabled="!roomNight.restricted" />
         </div>
-        
+
         <div class="field">
           <label for="shift_endtime">Shift End Time</label><br>
-          <Calendar id="shift_endtime" v-model="roomNight.shift_endtime" showTime dateFormat="yy-mm-dd" :disabled="!roomNight.restricted"></Calendar>
+          <input type="datetime-local" id="shift_endtime" v-model="shiftEndtimeLocal" :disabled="!roomNight.restricted" />
         </div>
     </form>
 </template>
@@ -67,12 +67,47 @@ export default {
         return '/api/event/' + this.event.id + '/hotel_room_night/' + this.id
       }
       return '/api/event/' + this.event.id + '/hotel_room_night'
+    },
+    // The backend stores shift times in UTC. The native datetime-local picker
+    // works in the browser's local time, so we convert on read/write.
+    shiftStarttimeLocal: {
+      get () { return this.utcToLocalInput(this.roomNight.shift_starttime) },
+      set (val) { this.roomNight.shift_starttime = this.localInputToUtc(val) }
+    },
+    shiftEndtimeLocal: {
+      get () { return this.utcToLocalInput(this.roomNight.shift_endtime) },
+      set (val) { this.roomNight.shift_endtime = this.localInputToUtc(val) }
     }
   },
   mounted () {
     this.load()
   },
   methods: {
+    // Convert a UTC value from the backend into the "YYYY-MM-DDTHH:mm" string
+    // expected by <input type="datetime-local">, rendered in local time.
+    utcToLocalInput (value) {
+      if (!value) {
+        return ''
+      }
+      const d = new Date(value)
+      if (isNaN(d.getTime())) {
+        return ''
+      }
+      const pad = (n) => String(n).padStart(2, '0')
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+    },
+    // Convert a local "YYYY-MM-DDTHH:mm" picker value into a UTC ISO string for
+    // the backend (which expects a trailing "Z").
+    localInputToUtc (value) {
+      if (!value) {
+        return null
+      }
+      const d = new Date(value)
+      if (isNaN(d.getTime())) {
+        return null
+      }
+      return d.toISOString()
+    },
     load () {
       if (this.id) {
         get(this.url, { sort: 'date' }).then((roomNight) => {

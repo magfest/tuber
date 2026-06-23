@@ -212,7 +212,9 @@ class Model_Base(object):
                 key = column.name
                 val = instance[key]
                 if type(column.type) is DateTime:
-                    if val.endswith("Z"):
+                    if val is None:
+                        instance[key] = None
+                    elif val.endswith("Z"):
                         instance[key] = datetime.datetime.strptime(
                             val, '%Y-%m-%dT%H:%M:%S.%fZ', ).replace(tzinfo=datetime.timezone.utc)
                     else:
