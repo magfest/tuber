@@ -6,5 +6,6 @@ test.db
 tuber.egg-info/
 venv/
 *.sh
+!scripts/check-crlf.sh
 scripts/cache/
 cov/
