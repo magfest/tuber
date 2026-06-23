@@ -1,3 +1,4 @@
+---
 name: Backend - Run Tests
 
 on:
@@ -13,19 +14,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v1
-      - id: lowercase-repo-name
-        uses: ASzc/change-string-case-action@v5
-        with:
-          string: ${{ github.repository }}
+        uses: actions/checkout@v4
 
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v2
+      - name: Check for CRLF endings
+        run: ./scripts/check-crlf.sh
+
+      - name: Lowercase repo name
+        id: repo
+        run: echo "name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Test Image
+        uses: docker/build-push-action@v6
         with:
           context: "./backend"
           target: test
           load: true
-          tags: ghcr.io/${{ steps.lowercase-repo-name.outputs.lowercase }}-backend:latest
+          tags: ghcr.io/${{ steps.repo.outputs.name }}-backend:latest
+
       - name: Run Tests
         run: |
           mkdir -p $GITHUB_WORKSPACE/cov
@@ -37,4 +42,4 @@ jobs:
           backend sh -c \
           "coverage run --data-file=/cov/.coverage -m pytest tests/ && coverage xml --data-file=/cov/.coverage -o /cov/coverage.xml"
         env:
-          REPO_NAME: ${{ steps.lowercase-repo-name.outputs.lowercase }}
+          REPO_NAME: ${{ steps.repo.outputs.name }}
