@@ -8,6 +8,7 @@ from tuber.errors import *
 from tuber.database import db
 from flask import g
 import datetime
+import email.utils
 import json
 
 
@@ -217,6 +218,10 @@ class Model_Base(object):
                     elif val.endswith("Z"):
                         instance[key] = datetime.datetime.strptime(
                             val, '%Y-%m-%dT%H:%M:%S.%fZ', ).replace(tzinfo=datetime.timezone.utc)
+                    elif val.endswith("GMT"):
+                        # RFC 1123 / HTTP-date — the format datetimes serialize to,
+                        # echoed back unchanged when a record is saved unedited.
+                        instance[key] = email.utils.parsedate_to_datetime(val)
                     else:
                         instance[key] = datetime.datetime.strptime(
                             val, '%Y-%m-%dT%H:%M:%S.%f')
