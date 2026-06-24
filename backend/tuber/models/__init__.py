@@ -8,7 +8,9 @@ from tuber.errors import *
 from tuber.database import db
 from flask import g
 import datetime
-import email.utils
+# NB: import the function directly — `import email` would be shadowed by the
+# local `tuber.models.email` submodule via the star-imports at the bottom.
+from email.utils import parsedate_to_datetime
 import json
 
 
@@ -221,7 +223,7 @@ class Model_Base(object):
                     elif val.endswith("GMT"):
                         # RFC 1123 / HTTP-date — the format datetimes serialize to,
                         # echoed back unchanged when a record is saved unedited.
-                        instance[key] = email.utils.parsedate_to_datetime(val)
+                        instance[key] = parsedate_to_datetime(val)
                     else:
                         instance[key] = datetime.datetime.strptime(
                             val, '%Y-%m-%dT%H:%M:%S.%f')
