@@ -43,7 +43,7 @@ def import_shifts(event):
                 event=event,
                 job=job_obj.id,
                 starttime=start_time,
-                duration=(end_time-start_time).seconds,
+                duration=int((end_time-start_time).total_seconds()),
                 slots=job["slots"],
                 filledslots=job["slots_taken"],
                 weighting=1.0

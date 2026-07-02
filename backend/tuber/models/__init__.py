@@ -216,17 +216,25 @@ class Model_Base(object):
                 val = instance[key]
                 if type(column.type) is DateTime:
                     if val is None:
-                        instance[key] = None
+                        parsed = None
                     elif val.endswith("Z"):
-                        instance[key] = datetime.datetime.strptime(
+                        parsed = datetime.datetime.strptime(
                             val, '%Y-%m-%dT%H:%M:%S.%fZ', ).replace(tzinfo=datetime.timezone.utc)
                     elif val.endswith("GMT"):
                         # RFC 1123 / HTTP-date — the format datetimes serialize to,
                         # echoed back unchanged when a record is saved unedited.
-                        instance[key] = parsedate_to_datetime(val)
+                        parsed = parsedate_to_datetime(val)
                     else:
-                        instance[key] = datetime.datetime.strptime(
+                        parsed = datetime.datetime.strptime(
                             val, '%Y-%m-%dT%H:%M:%S.%f')
+                    # DateTime columns are TIMESTAMP WITHOUT TIME ZONE and other
+                    # datetimes in the system (e.g. shifts imported from Uber) are
+                    # naive UTC. Normalize to naive UTC so stored values compare
+                    # correctly and don't depend on the DB session timezone.
+                    if parsed is not None and parsed.tzinfo is not None:
+                        parsed = parsed.astimezone(
+                            datetime.timezone.utc).replace(tzinfo=None)
+                    instance[key] = parsed
                 elif type(column.type) is Date:
                     if not val:
                         instance[key] = None

@@ -23,7 +23,8 @@ interface Badge {
 interface Event {
     id: number,
     name: string,
-    description: string
+    description: string,
+    timezone?: string
 }
 
 interface User {
