@@ -42,6 +42,7 @@
 <script>
 import { mapGetters } from 'vuex'
 import { get, post, patch } from '../../../lib/rest'
+import { resolveTimeZone, utcToZoneInput, zoneInputToUtc } from '../../../lib/eventtime'
 
 export default {
   name: 'RoomNightForm',
@@ -73,81 +74,21 @@ export default {
     // are also UTC. Staff may be anywhere, so the picker works in the event's
     // time zone rather than the browser's — everyone sees the same wall time.
     eventTimeZone () {
-      const tz = this.event ? this.event.timezone : null
-      if (tz) {
-        try {
-          Intl.DateTimeFormat('en-US', { timeZone: tz })
-          return tz
-        } catch (e) {
-          // fall through to the browser's zone if the event's is unusable
-        }
-      }
-      return Intl.DateTimeFormat().resolvedOptions().timeZone
+      return resolveTimeZone(this.event ? this.event.timezone : null)
     },
     shiftStarttimeInput: {
-      get () { return this.utcToEventInput(this.roomNight.shift_starttime) },
-      set (val) { this.roomNight.shift_starttime = this.eventInputToUtc(val) }
+      get () { return utcToZoneInput(this.roomNight.shift_starttime, this.eventTimeZone) },
+      set (val) { this.roomNight.shift_starttime = zoneInputToUtc(val, this.eventTimeZone) }
     },
     shiftEndtimeInput: {
-      get () { return this.utcToEventInput(this.roomNight.shift_endtime) },
-      set (val) { this.roomNight.shift_endtime = this.eventInputToUtc(val) }
+      get () { return utcToZoneInput(this.roomNight.shift_endtime, this.eventTimeZone) },
+      set (val) { this.roomNight.shift_endtime = zoneInputToUtc(val, this.eventTimeZone) }
     }
   },
   mounted () {
     this.load()
   },
   methods: {
-    // Wall-clock reading of a UTC instant in a time zone, encoded as a fake-UTC
-    // millisecond timestamp so the parts can be read back with the getUTC* APIs.
-    wallTimeInZone (ts, timeZone) {
-      const dtf = new Intl.DateTimeFormat('en-US', {
-        timeZone,
-        hourCycle: 'h23',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      })
-      const p = {}
-      for (const part of dtf.formatToParts(new Date(ts))) {
-        p[part.type] = part.value
-      }
-      return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second)
-    },
-    // Convert a UTC value from the backend into the "YYYY-MM-DDTHH:mm" string
-    // expected by <input type="datetime-local">, rendered in the event's zone.
-    utcToEventInput (value) {
-      if (!value) {
-        return ''
-      }
-      const d = new Date(value)
-      if (isNaN(d.getTime())) {
-        return ''
-      }
-      const wall = new Date(this.wallTimeInZone(d.getTime(), this.eventTimeZone))
-      const pad = (n) => String(n).padStart(2, '0')
-      return `${wall.getUTCFullYear()}-${pad(wall.getUTCMonth() + 1)}-${pad(wall.getUTCDate())}T${pad(wall.getUTCHours())}:${pad(wall.getUTCMinutes())}`
-    },
-    // Convert a "YYYY-MM-DDTHH:mm" picker value (event-zone wall time) into a
-    // UTC ISO string for the backend (which expects a trailing "Z").
-    eventInputToUtc (value) {
-      if (!value) {
-        return null
-      }
-      const m = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
-      if (!m) {
-        return null
-      }
-      const wallAsUtc = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])
-      const tz = this.eventTimeZone
-      // The zone offset depends on the instant (DST), which is what we are
-      // solving for — iterate once to converge across DST boundaries.
-      let ts = wallAsUtc - (this.wallTimeInZone(wallAsUtc, tz) - wallAsUtc)
-      ts = wallAsUtc - (this.wallTimeInZone(ts, tz) - ts)
-      return new Date(ts).toISOString()
-    },
     load () {
       if (this.id) {
         get(this.url, { sort: 'date' }).then((roomNight) => {

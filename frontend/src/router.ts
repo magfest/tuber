@@ -6,6 +6,7 @@ import RoomApprovals from './views/rooming/Approvals.vue'
 import RoomSettings from './views/rooming/Settings.vue'
 import RoomBlocks from './views/rooming/Blocks.vue'
 import RoomAssignments from './views/rooming/Assignments.vue'
+import RoomMissingShifts from './views/rooming/MissingShifts.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
 
@@ -62,6 +63,11 @@ const routes = [
     path: '/rooming/assignments',
     name: 'roomassignments',
     component: RoomAssignments
+  },
+  {
+    path: '/rooming/missing_shifts',
+    name: 'roommissingshifts',
+    component: RoomMissingShifts
   },
   {
     path: '/rooming/settings',

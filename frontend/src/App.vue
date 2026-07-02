@@ -97,6 +97,9 @@ export default {
                 label: 'Assignments', icon: 'pi pi-fw pi-sign-in', to: '/rooming/assignments'
               },
               {
+                label: 'Missing Shifts', icon: 'pi pi-fw pi-exclamation-triangle', to: '/rooming/missing_shifts', permission: 'rooming.*.manage'
+              },
+              {
                 label: 'Rooms', icon: 'pi pi-fw pi-list', to: '/rooming/rooms'
               },
               {
