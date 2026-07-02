@@ -71,12 +71,47 @@ def test_missing_shifts(client):
     flagged = [x for x in res if x["name"] == "No Shifts"][0]
     assert flagged["email"] == "noshifts@example.com"
     assert flagged["departments"] == ["Arcade"]
+    assert flagged["requested_nights"] == 2
+    assert flagged["assigned_nights"] == 0
     assert [n["name"] for n in flagged["missing_nights"]] == ["Wednesday"]
     missing = flagged["missing_nights"][0]
     assert missing["restriction_type"] == "Setup"
     assert missing["requested"] is True
     assert missing["approved"] is False
     assert missing["assigned"] is False
+
+
+def test_missing_shifts_filters(client):
+    """The filter modes control who is included in the list."""
+    import tuber.models as models
+    from tuber.database import db
+
+    night, slacker = _seed(db, models)
+    # An extra badge with no requests or assignments at all.
+    bystander = models.Badge(event=1, public_name="By Stander",
+                             first_name="By", last_name="Stander",
+                             email="bystander@example.com")
+    db.add(bystander)
+    db.commit()
+
+    def names(mode):
+        rv = client.get("/api/event/1/hotel/missing_shifts", query_string={"filter": mode})
+        assert rv.status_code == 200
+        return {x["name"] for x in rv.json}
+
+    assert names("missing") == {"No Shifts"}
+    # Both the worker and the slacker requested nights.
+    assert names("requested") == {"No Shifts", "Setup Worker"}
+    assert names("assigned") == set()
+    all_names = names("all")
+    assert {"No Shifts", "Setup Worker", "By Stander"}.issubset(all_names)
+
+    client.post("/api/event/1/hotel/missing_shifts/assign",
+                json={"badge": slacker.id, "room_night": night.id, "assigned": True})
+    assert names("assigned") == {"No Shifts"}
+
+    rv = client.get("/api/event/1/hotel/missing_shifts", query_string={"filter": "bogus"})
+    assert rv.status_code == 400
 
 
 def test_missing_shifts_toggles(client):
@@ -118,6 +153,31 @@ def test_missing_shifts_toggles(client):
         models.RoomNightApproval.badge == badge_id).count() == 0
     assert db.query(models.RoomNightAssignment).filter(
         models.RoomNightAssignment.badge == badge_id).count() == 0
+
+
+def test_missing_shifts_request_toggle(client):
+    """The requested flag can be toggled; un-requesting removes the row."""
+    import tuber.models as models
+    from tuber.database import db
+
+    night, slacker = _seed(db, models)
+    night_id, badge_id = night.id, slacker.id
+
+    rv = client.post("/api/event/1/hotel/missing_shifts/request",
+                     json={"badge": badge_id, "room_night": night_id, "requested": False})
+    assert rv.status_code == 200 and rv.json["requested"] is False
+    night_request = db.query(models.RoomNightRequest).filter(
+        models.RoomNightRequest.badge == badge_id,
+        models.RoomNightRequest.room_night == night_id).one()
+    assert night_request.requested is False
+    rv = client.get("/api/event/1/hotel/missing_shifts")
+    assert badge_id not in [x["id"] for x in rv.json]
+
+    rv = client.post("/api/event/1/hotel/missing_shifts/request",
+                     json={"badge": badge_id, "room_night": night_id, "requested": True})
+    assert rv.status_code == 200 and rv.json["requested"] is True
+    rv = client.get("/api/event/1/hotel/missing_shifts")
+    assert badge_id in [x["id"] for x in rv.json]
 
 
 def test_missing_shifts_export(client):

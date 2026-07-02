@@ -2,24 +2,26 @@
   <div class="card">
     <h3>Missing Shifts</h3>
     <p>
-      These people have requested a restricted room night but do not have a shift
-      overlapping that night's shift time window. They will not be approved
-      automatically. From here you can manually approve or assign the night anyway,
-      or export the list to ask people to sign up for more shifts.
+      People with restricted room nights are approved automatically only when a shift
+      overlaps the night's shift window. Use the details view to inspect someone's
+      schedule and change their nights, or export the missing list to ask people to
+      sign up for more shifts.
     </p>
     <DataTable :value="rows" :loading="loading" :paginator="rows.length > 25" :rows="25"
-               v-model:filters="filters" :globalFilterFields="['name', 'departments', 'night.name']">
+               v-model:filters="filters" :globalFilterFields="['name', 'departments']">
       <template #header>
         <div class="table-header">
+          <SelectButton v-model="mode" :options="modes" optionLabel="label" optionValue="value"
+                        :allowEmpty="false" @change="load" />
           <span class="p-input-icon-left">
             <i class="pi pi-search" />
             <InputText v-model="filters['global'].value" placeholder="Search" />
           </span>
-          <Button label="Export CSV" icon="pi pi-download" @click="exportCsv" />
+          <Button label="Export Missing (CSV)" icon="pi pi-download" @click="exportCsv" />
         </div>
       </template>
       <template #empty>
-        Nobody is missing a shift for the nights they requested.
+        {{ mode === 'missing' ? 'Nobody is missing a shift for the nights they requested.' : 'No results.' }}
       </template>
       <Column field="name" header="Name" :sortable="true"></Column>
       <Column field="departments" header="Departments">
@@ -27,28 +29,13 @@
           {{ slotProps.data.departments.join(', ') }}
         </template>
       </Column>
-      <Column field="night.date" header="Night" :sortable="true">
+      <Column field="requested_nights" header="Nights Requested" :sortable="true"></Column>
+      <Column field="assigned_nights" header="Nights Assigned" :sortable="true"></Column>
+      <Column header="Missing Shifts">
         <template #body="slotProps">
-          {{ slotProps.data.night.name }} ({{ slotProps.data.night.date }})
-          <Tag v-if="slotProps.data.night.restriction_type" :value="slotProps.data.night.restriction_type"
-               severity="warning" class="ml-2" />
-        </template>
-      </Column>
-      <Column header="Requested">
-        <template #body="slotProps">
-          <i class="pi" :class="slotProps.data.night.requested ? 'pi-check flag-on' : 'pi-times flag-off'" />
-        </template>
-      </Column>
-      <Column header="Approved">
-        <template #body="slotProps">
-          <InputSwitch :modelValue="slotProps.data.night.approved" :disabled="slotProps.data.busy"
-                       @update:modelValue="toggleApproval(slotProps.data, $event)" />
-        </template>
-      </Column>
-      <Column header="Assigned">
-        <template #body="slotProps">
-          <InputSwitch :modelValue="slotProps.data.night.assigned" :disabled="slotProps.data.busy"
-                       @update:modelValue="toggleAssignment(slotProps.data, $event)" />
+          <Tag v-for="night in slotProps.data.missing_nights" :key="night.id"
+               :severity="night.approved || night.assigned ? 'success' : 'warning'"
+               :value="nightLabel(night)" class="mr-2 mb-1" />
         </template>
       </Column>
       <Column header="Details">
@@ -59,7 +46,8 @@
       </Column>
     </DataTable>
 
-    <missing-shift-details v-model:visible="detailsVisible" :badge-id="detailsBadge" />
+    <missing-shift-details v-model:visible="detailsVisible" :badge-id="detailsBadge"
+                           @changed="dirty = true" />
   </div>
 </template>
 
@@ -68,22 +56,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
-.flag-on { color: var(--green-600, #16a34a); }
-.flag-off { color: var(--surface-400, #ced4da); }
 </style>
 
 <script>
 import { mapGetters } from 'vuex'
 import { FilterMatchMode } from 'primevue/api'
-import InputSwitch from 'primevue/inputswitch'
-import { get, post } from '../../lib/rest'
+import SelectButton from 'primevue/selectbutton'
+import { get } from '../../lib/rest'
 import MissingShiftDetails from '../../components/rooming/missing/MissingShiftDetails.vue'
 
 export default {
   name: 'RoomMissingShifts',
   components: {
-    InputSwitch,
+    SelectButton,
     MissingShiftDetails
   },
   data: () => ({
@@ -91,6 +79,14 @@ export default {
     loading: false,
     detailsVisible: false,
     detailsBadge: null,
+    dirty: false,
+    mode: 'missing',
+    modes: [
+      { label: 'Missing Shifts', value: 'missing' },
+      { label: 'With Requests', value: 'requested' },
+      { label: 'With Rooms', value: 'assigned' },
+      { label: 'Everyone', value: 'all' }
+    ],
     filters: {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     }
@@ -106,43 +102,25 @@ export default {
   methods: {
     async load () {
       this.loading = true
-      const badges = await get('/api/event/' + this.event.id + '/hotel/missing_shifts')
-      // One row per person and missing night, so each night can be
-      // approved/assigned independently.
-      this.rows = badges.flatMap((badge) => badge.missing_nights.map((night) => ({
-        badgeId: badge.id,
-        name: badge.name,
-        email: badge.email,
-        departments: badge.departments,
-        night,
-        busy: false
-      })))
+      this.rows = await get('/api/event/' + this.event.id + '/hotel/missing_shifts',
+        { filter: this.mode })
       this.loading = false
     },
-    async toggleApproval (row, value) {
-      row.busy = true
-      try {
-        const res = await post('/api/event/' + this.event.id + '/hotel/missing_shifts/approve',
-          { badge: row.badgeId, room_night: row.night.id, approved: value })
-        row.night.approved = res.approved
-      } catch (e) {
-        this.$toast.add({ severity: 'error', summary: 'Update Failed', detail: 'Could not update approval.', life: 3000 })
+    nightLabel (night) {
+      let label = night.name
+      if (night.date) {
+        label += ' (' + night.date + ')'
       }
-      row.busy = false
-    },
-    async toggleAssignment (row, value) {
-      row.busy = true
-      try {
-        const res = await post('/api/event/' + this.event.id + '/hotel/missing_shifts/assign',
-          { badge: row.badgeId, room_night: row.night.id, assigned: value })
-        row.night.assigned = res.assigned
-      } catch (e) {
-        this.$toast.add({ severity: 'error', summary: 'Update Failed', detail: 'Could not update assignment.', life: 3000 })
+      if (night.approved) {
+        label += ' — approved'
       }
-      row.busy = false
+      if (night.assigned) {
+        label += ' — assigned'
+      }
+      return label
     },
     showDetails (row) {
-      this.detailsBadge = row.badgeId
+      this.detailsBadge = row.id
       this.detailsVisible = true
     },
     async exportCsv () {
@@ -163,6 +141,14 @@ export default {
   watch: {
     event () {
       this.load()
+    },
+    detailsVisible (val) {
+      // Changes made in the modal affect the flags (and possibly which rows
+      // still qualify), so refresh the table once the modal closes.
+      if (!val && this.dirty) {
+        this.dirty = false
+        this.load()
+      }
     }
   }
 }

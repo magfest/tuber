@@ -21,24 +21,30 @@
       </blockquote>
       <p v-else-if="details.room_request">No justification given for restricted nights.</p>
       <p v-else>This person has not started a room request.</p>
+      <p class="hint">Click the icons to change whether a night is requested, approved, or assigned.
+         Hover a night to highlight its shift window in the timeline below.</p>
 
       <div class="night-grid">
         <div v-for="night in details.nights" :key="night.id"
-             :class="['night-card', { 'night-missing': isMissing(night) }]">
+             :class="['night-card', { 'night-missing': isMissing(night), 'night-hover': hoverNight === night.id }]"
+             @mouseenter="hoverNight = night.id" @mouseleave="hoverNight = null">
           <div class="night-title">
             {{ night.name }}<br>
             <small>{{ night.date }}</small>
           </div>
           <div class="night-flags">
-            <i class="pi" :class="night.requested ? 'pi-check-circle flag-on' : 'pi-minus-circle flag-off'"
-               :title="night.requested ? 'Requested' : 'Not requested'" />
+            <i class="pi flag-btn" :class="night.requested ? 'pi-check-circle flag-on' : 'pi-minus-circle flag-off'"
+               :title="(night.requested ? 'Requested' : 'Not requested') + ' — click to change'"
+               role="button" @click="toggleRequested(night)" />
             <i v-if="night.restricted" class="pi pi-briefcase"
                :class="night.has_shift ? 'flag-on' : 'flag-bad'"
                :title="night.has_shift ? 'Has an overlapping shift' : 'No overlapping shift'" />
-            <i class="pi pi-thumbs-up" :class="night.approved ? 'flag-on' : 'flag-off'"
-               :title="night.approved ? 'Manually approved' : 'Not manually approved'" />
-            <i class="pi pi-home" :class="night.assigned ? 'flag-on' : 'flag-off'"
-               :title="night.assigned ? 'Assigned to the night' : 'Not assigned'" />
+            <i class="pi pi-thumbs-up flag-btn" :class="night.approved ? 'flag-on' : 'flag-off'"
+               :title="(night.approved ? 'Manually approved' : 'Not manually approved') + ' — click to change'"
+               role="button" @click="toggleApproved(night)" />
+            <i class="pi pi-home flag-btn" :class="night.assigned ? 'flag-on' : 'flag-off'"
+               :title="(night.assigned ? 'Assigned to the night' : 'Not assigned') + ' — click to change'"
+               role="button" @click="toggleAssigned(night)" />
           </div>
           <small v-if="night.restricted" class="night-type">{{ night.restriction_type }}</small>
         </div>
@@ -57,10 +63,12 @@
         <div v-for="day in timelineDays" :key="day.key" class="tl-row">
           <span class="tl-daylabel">{{ day.label }}</span>
           <div class="tl-track">
-            <div v-for="(seg, i) in day.windows" :key="'w' + i" class="tl-window"
-                 :style="segStyle(seg)" :title="seg.title"></div>
+            <div v-for="(seg, i) in day.windows" :key="'w' + i"
+                 :class="['tl-window', segHighlight(seg.nightIds)]"
+                 :style="segStyle(seg)" :title="seg.title"
+                 @mouseenter="hoverNight = seg.nightIds[0]" @mouseleave="hoverNight = null"></div>
             <div v-for="(seg, i) in day.shifts" :key="'s' + i"
-                 :class="['tl-shift', seg.overlaps ? 'tl-good' : 'tl-neutral']"
+                 :class="['tl-shift', seg.overlaps ? 'tl-good' : 'tl-neutral', segHighlight(seg.nightIds)]"
                  :style="segStyle(seg)" :title="seg.title"></div>
           </div>
         </div>
@@ -92,6 +100,10 @@
   padding: 0.25rem 0.75rem;
   font-style: italic;
 }
+.hint {
+  color: var(--text-color-secondary, #6c757d);
+  font-size: 0.9rem;
+}
 .night-grid {
   display: flex;
   flex-wrap: wrap;
@@ -105,9 +117,14 @@
   min-width: 7.5rem;
   text-align: center;
 }
+/* Tint instead of a solid palette color so the theme's own text color
+   stays legible in both light and dark modes. */
 .night-missing {
   border-color: var(--red-500, #ef4444);
-  background: var(--red-50, #fef2f2);
+  background: rgba(239, 68, 68, 0.12);
+}
+.night-hover {
+  outline: 2px solid var(--primary-color, #2196f3);
 }
 .night-title {
   font-weight: 600;
@@ -119,6 +136,8 @@
   gap: 0.4rem;
   margin: 0.25rem 0;
 }
+.flag-btn { cursor: pointer; }
+.flag-btn:hover { transform: scale(1.25); }
 .flag-on { color: var(--green-600, #16a34a); }
 .flag-off { color: var(--surface-400, #ced4da); }
 .flag-bad { color: var(--red-500, #ef4444); }
@@ -171,6 +190,12 @@
 }
 .tl-good { background: var(--green-500, #22c55e); }
 .tl-neutral { background: var(--surface-500, #adb5bd); }
+.tl-hilite {
+  opacity: 1;
+  outline: 2px solid var(--primary-color, #2196f3);
+  z-index: 1;
+}
+.tl-dim { opacity: 0.15; }
 .tl-legend {
   display: flex;
   gap: 1.25rem;
@@ -190,7 +215,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get } from '../../../lib/rest'
+import { get, post } from '../../../lib/rest'
 import { resolveTimeZone, wallTimeInZone, formatInZone } from '../../../lib/eventtime'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -202,10 +227,13 @@ export default {
     'badgeId'
   ],
   emits: [
-    'update:visible'
+    'update:visible',
+    'changed'
   ],
   data: () => ({
-    details: null
+    details: null,
+    hoverNight: null,
+    busy: false
   }),
   computed: {
     ...mapGetters([
@@ -215,7 +243,8 @@ export default {
       return resolveTimeZone(this.event ? this.event.timezone : null)
     },
     // Restricted night windows and shifts as intervals in both real UTC ms
-    // (for overlap math) and wall space (for layout).
+    // (for overlap math) and wall space (for layout). nightIds ties each
+    // segment back to the night cards for hover highlighting.
     windows () {
       if (!this.details) {
         return []
@@ -228,6 +257,7 @@ export default {
           return {
             start,
             end,
+            nightIds: [n.id],
             wallStart: wallTimeInZone(start, this.timeZone),
             wallEnd: wallTimeInZone(end, this.timeZone),
             title: n.name + ' window: ' + formatInZone(start, this.timeZone) +
@@ -242,12 +272,14 @@ export default {
       return this.details.shifts.map((s) => {
         const start = new Date(s.starttime).getTime()
         const end = start + (s.duration || 0) * 1000
+        const covering = this.windows.filter((w) => start < w.end && end > w.start)
         return {
           start,
           end,
+          nightIds: covering.map((w) => w.nightIds[0]),
           wallStart: wallTimeInZone(start, this.timeZone),
           wallEnd: wallTimeInZone(end, this.timeZone),
-          overlaps: this.windows.some((w) => start < w.end && end > w.start),
+          overlaps: covering.length > 0,
           title: s.job + ': ' + formatInZone(start, this.timeZone) +
             ' to ' + formatInZone(end, this.timeZone)
         }
@@ -285,6 +317,37 @@ export default {
     },
     isMissing (night) {
       return night.restricted && night.requested && !night.has_shift
+    },
+    segHighlight (nightIds) {
+      if (this.hoverNight === null) {
+        return ''
+      }
+      return nightIds.includes(this.hoverNight) ? 'tl-hilite' : 'tl-dim'
+    },
+    async toggle (night, url, field, value) {
+      if (this.busy) {
+        return
+      }
+      this.busy = true
+      try {
+        const payload = { badge: this.badgeId, room_night: night.id }
+        payload[field] = value
+        const res = await post('/api/event/' + this.event.id + url, payload)
+        night[field] = res[field]
+        this.$emit('changed')
+      } catch (e) {
+        this.$toast.add({ severity: 'error', summary: 'Update Failed', life: 3000 })
+      }
+      this.busy = false
+    },
+    toggleRequested (night) {
+      this.toggle(night, '/hotel/missing_shifts/request', 'requested', !night.requested)
+    },
+    toggleApproved (night) {
+      this.toggle(night, '/hotel/missing_shifts/approve', 'approved', !night.approved)
+    },
+    toggleAssigned (night) {
+      this.toggle(night, '/hotel/missing_shifts/assign', 'assigned', !night.assigned)
     },
     clipToDay (intervals, dayKey) {
       const dayStart = dayKey * DAY
