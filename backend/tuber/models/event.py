@@ -19,7 +19,7 @@ class Event(Base):
     
     unrestricted_nights = relationship(
         "HotelRoomNight",
-        primaryjoin="and_(Event.id == HotelRoomNight.event, HotelRoomNight.restricted == False)",
+        primaryjoin="and_(Event.id == HotelRoomNight.event, HotelRoomNight.restriction_mode == 'none')",
         viewonly=True
     )
     badges = relationship("Badge", back_populates="event_obj")

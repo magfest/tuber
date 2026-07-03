@@ -309,11 +309,11 @@ def import_mock():
         db.add(hotel_location)
         room_nights = []
         for i in ["Wednesday", "Thursday"]:
-            room_night = HotelRoomNight(name=i, event=event.id, restricted=True, restriction_type="Setup", hidden=False)
+            room_night = HotelRoomNight(name=i, event=event.id, restriction_mode="shift_window", restriction_type="Setup", hidden=False)
             db.add(room_night)
             room_nights.append(room_night)
         for i in ["Friday", "Saturday", "Sunday"]:
-            room_night = HotelRoomNight(name=i, event=event.id, restricted=False, restriction_type="Setup", hidden=False)
+            room_night = HotelRoomNight(name=i, event=event.id, restriction_mode="none", restriction_type="Setup", hidden=False)
             db.add(room_night)
             room_nights.append(room_night)
         print("Flushing database...")

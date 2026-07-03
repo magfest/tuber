@@ -14,8 +14,14 @@ COPY pyproject.toml pyproject.toml
 #    pip3 install lupa==1.14.1 --global-option="--with-cython"
 
 
+# Dependency layer: the source isn't copied yet, so this installs the
+# dependencies but produces an EMPTY tuber package in site-packages.
 RUN pip install .
 COPY tuber tuber
+# Reinstall the package itself now that the source exists — without this the
+# `tuber` console script (used by entrypoint.sh to run migrations) fails with
+# ModuleNotFoundError and the schema never gets migrated.
+RUN pip install --no-deps --force-reinstall .
 
 ENV DATABASE_URL=sqlite:///database.db
 ENV FLASK_DEBUG=false

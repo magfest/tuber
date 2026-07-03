@@ -4,8 +4,11 @@
     <ConfirmPopup></ConfirmPopup>
     <div class="flex justify-content-between">
       <h3>{{ tableTitle }}</h3>
+      <SelectButton v-if="modes.length" :modelValue="mode" :options="modes" optionLabel="label"
+                    optionValue="value" :allowEmpty="false" @update:modelValue="onModeChange" />
       <slot name="controls" :add="add">
-        <Button @click="add">Add</Button>
+        <Button v-if="showAdd" @click="add">Add</Button>
+        <span v-else></span>
       </slot>
     </div>
     <DataTable :value="formattedInstances" :loading="isLoading" dataKey="id" class="p-datatable-sm" ref="dt"
@@ -44,10 +47,14 @@
 
 <script>
 import { mapGetters } from 'vuex'
+import SelectButton from 'primevue/selectbutton'
 import { get, patch, del, post } from '../lib/rest'
 
 export default {
   name: 'TuberTable',
+  components: {
+    SelectButton
+  },
   props: {
     url: {
       type: String,
@@ -127,9 +134,49 @@ export default {
       default () {
         return false
       }
+    },
+    // The endpoint returns {results, count} in one call instead of a bare
+    // list plus a second count=true request.
+    envelope: {
+      type: Boolean,
+      default () {
+        return false
+      }
+    },
+    // Server-side filter modes rendered as a SelectButton in the header,
+    // passed to the endpoint as `modeParam`.
+    modes: {
+      type: Array,
+      default () {
+        return []
+      }
+    },
+    modeParam: {
+      type: String,
+      default () {
+        return 'filter'
+      }
+    },
+    defaultMode: {
+      type: String,
+      default () {
+        return ''
+      }
+    },
+    // Mirror table state (mode, search, offset) into $route.query under this
+    // prefix so filtered views are shareable and survive reloads.
+    routeSync: {
+      type: String,
+      default () {
+        return ''
+      }
+    },
+    showAdd: {
+      type: Boolean,
+      default () {
+        return true
+      }
     }
-  },
-  components: {
   },
   data: () => ({
     instances: [],
@@ -140,7 +187,8 @@ export default {
     totalRecords: 0,
     lazyParams: {},
     selection: [],
-    selectAll: false
+    selectAll: false,
+    mode: ''
   }),
   computed: {
     ...mapGetters([
@@ -157,12 +205,23 @@ export default {
     }
   },
   mounted () {
+    this.mode = this.defaultMode || (this.modes.length ? this.modes[0].value : '')
     this.lazyParams = {
       first: 0,
       rows: this.rows,
       sortField: 'id',
       sortOrder: 1,
       filters: this.filters
+    }
+    if (this.routeSync) {
+      const query = this.$route.query
+      const mode = query[this.routeSync + 'filter']
+      if (mode && (!this.modes.length || this.modes.some((x) => x.value === mode))) {
+        this.mode = mode
+      }
+      if (query[this.routeSync + 'offset']) {
+        this.lazyParams.first = parseInt(query[this.routeSync + 'offset']) || 0
+      }
     }
     if (this.autoload && (this.event || !this.eventSpecific)) {
       this.load()
@@ -190,9 +249,42 @@ export default {
         }
       }
       Object.assign(paginationParams, this.parameters)
-      this.instances = await get(this.fullUrl, paginationParams)
-      paginationParams.count = true
-      this.totalRecords = await get(this.fullUrl, paginationParams)
+      if (this.modes.length || this.mode) {
+        paginationParams[this.modeParam] = this.mode
+      }
+      if (this.envelope) {
+        const data = await get(this.fullUrl, paginationParams)
+        this.instances = data.results
+        this.totalRecords = data.count
+      } else {
+        this.instances = await get(this.fullUrl, paginationParams)
+        paginationParams.count = true
+        this.totalRecords = await get(this.fullUrl, paginationParams)
+      }
+      this.syncRoute()
+    },
+    onModeChange (mode) {
+      this.mode = mode
+      this.lazyParams.first = 0
+      this.load()
+    },
+    syncRoute () {
+      if (!this.routeSync) {
+        return
+      }
+      const query = Object.assign({}, this.$route.query)
+      const set = (key, value) => {
+        if (value) {
+          query[this.routeSync + key] = String(value)
+        } else {
+          delete query[this.routeSync + key]
+        }
+      }
+      set('filter', this.mode)
+      set('offset', this.lazyParams.first)
+      if (JSON.stringify(query) !== JSON.stringify(this.$route.query)) {
+        this.$router.replace({ query })
+      }
     },
     edit (instance) {
       this.edited = instance

@@ -7,7 +7,8 @@ import pytest
 
 
 def test_clear_matches(client):
-    """Tests that the clear_matches endpoint clears existing Hotel Room matches"""
+    """clear_matches removes suggested (matcher-created) rooms but leaves
+       hand-built rooms alone."""
     from tuber.database import db
     from tuber.models import (Badge, HotelRoom, HotelRoomRequest,
                               RoomNightAssignment)
@@ -22,28 +23,36 @@ def test_clear_matches(client):
         },
     )
 
-    hotel_room = HotelRoom(event=1, hotel_block=1, hotel_location=1)
+    suggested_room = HotelRoom(event=1, hotel_block=1, hotel_location=1,
+                               suggested=True)
+    handmade_room = HotelRoom(event=1, hotel_block=1, hotel_location=1)
     for i in range(1, 5):
         b = db.query(Badge).filter(Badge.id == i).one()
+        room = suggested_room if i % 2 else handmade_room
         rna = RoomNightAssignment(
-            event=1, badge=b.id, room_night=1, hotel_room=hotel_room.id
+            event=1, badge=b.id, room_night=1, hotel_room=room.id
         )
-        hotel_room.room_night_assignments.append(rna)
-        hotel_room.roommates.append(b)
+        room.room_night_assignments.append(rna)
+        room.roommates.append(b)
         db.add(rna)
 
         hrr = HotelRoomRequest(event=1, badge=b.id)
         db.add(hrr)
 
-    db.add(hotel_room)
+    db.add(suggested_room)
+    db.add(handmade_room)
     db.flush()
     db.commit()
+    suggested_id, handmade_id = suggested_room.id, handmade_room.id
 
     rv = client.post("/api/event/1/hotel/1/clear_matches", json={})
     assert rv.status_code == 200
 
-    with pytest.raises(ObjectDeletedError):
-        _ = db.query(HotelRoom).filter(HotelRoom.id == hotel_room.id).one_or_none()
+    db.expire_all()
+    assert db.query(HotelRoom).filter(
+        HotelRoom.id == suggested_id).one_or_none() is None
+    assert db.query(HotelRoom).filter(
+        HotelRoom.id == handmade_id).one_or_none() is not None
 
 @patch('tuber.api.uber.requests.post')
 def test_staffer_auth(mock_post, client):

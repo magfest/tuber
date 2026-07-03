@@ -1,16 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteLocation } from 'vue-router'
 import Dashboard from './components/Dashboard.vue'
 import RoomRequest from './views/rooming/Request.vue'
-import RoomApproval from './views/rooming/Approval.vue'
 import RoomApprovals from './views/rooming/Approvals.vue'
 import RoomSettings from './views/rooming/Settings.vue'
-import RoomBlocks from './views/rooming/Blocks.vue'
 import RoomAssignments from './views/rooming/Assignments.vue'
-import RoomMissingShifts from './views/rooming/MissingShifts.vue'
+import RoomingDashboard from './views/rooming/RoomingDashboard.vue'
+import RoomRequests from './views/rooming/Requests.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
 
-import { RoomTable, RequestTable } from './components/rooming'
 import EmailSettings from './views/event/EmailSettings.vue'
 
 import UserSettings from './views/settings/Users.vue'
@@ -34,14 +33,14 @@ const routes = [
     component: Dashboard
   },
   {
+    path: '/rooming',
+    name: 'roomingdashboard',
+    component: RoomingDashboard
+  },
+  {
     path: '/rooming/request',
     name: 'roomrequest',
     component: RoomRequest
-  },
-  {
-    path: '/rooming/rooms',
-    name: 'roomlist',
-    component: RoomTable
   },
   {
     path: '/hotels/request',
@@ -50,9 +49,10 @@ const routes = [
   },
   {
     path: '/rooming/approvals/:departmentID',
-    name: 'roomapproval',
-    component: RoomApproval,
-    props: true
+    redirect: (to: RouteLocation) => ({
+      path: '/rooming/approvals',
+      query: { department: to.params.departmentID }
+    })
   },
   {
     path: '/rooming/approvals',
@@ -65,9 +65,16 @@ const routes = [
     component: RoomAssignments
   },
   {
+    path: '/rooming/rooms',
+    redirect: '/rooming/assignments'
+  },
+  {
     path: '/rooming/missing_shifts',
-    name: 'roommissingshifts',
-    component: RoomMissingShifts
+    redirect: { path: '/rooming/requests', query: { afilter: 'missing_shifts' } }
+  },
+  {
+    path: '/rooming/blocks',
+    redirect: '/rooming/requests'
   },
   {
     path: '/rooming/settings',
@@ -75,14 +82,9 @@ const routes = [
     component: RoomSettings
   },
   {
-    path: '/rooming/blocks',
-    name: 'roomblocks',
-    component: RoomBlocks
-  },
-  {
     path: '/rooming/requests',
     name: 'roomrequests',
-    component: RequestTable
+    component: RoomRequests
   },
   {
     path: '/hotels/approvals',

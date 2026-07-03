@@ -1,6 +1,6 @@
 from tuber.models import Base
 from .badge import Badge
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Date, Table, DateTime
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Date, Table, DateTime, event
 from sqlalchemy.orm import relationship
 
 
@@ -113,6 +113,7 @@ class HotelRoom(Base):
         'hotel_location.id', ondelete="CASCADE"))
     completed = Column(Boolean, default=False)
     locked = Column(Boolean, default=False)
+    suggested = Column(Boolean, default=False, server_default='false')
     room_night_assignments = relationship(
         'RoomNightAssignment', cascade="all, delete", passive_deletes=True)
     roommates = relationship("Badge", secondary="room_night_assignment",
@@ -137,6 +138,17 @@ class HotelRoomNight(Base):
     date = Column(Date)
     name = Column(String())
     restricted = Column(Boolean, default=False)
+    # How eligibility for this night is decided:
+    #   none         - available to everyone
+    #   shift_window - requires a shift overlapping [shift_starttime, shift_endtime]
+    #   shift_hours  - requires >= shift_hours_required total assigned shift hours
+    #   manual       - requires a manual approval (department head or admin)
+    # A manual approval always satisfies any mode. `restricted` is kept in sync
+    # as a legacy mirror (restriction_mode != 'none'); `restriction_type` is a
+    # free-text display label only.
+    restriction_mode = Column(String(), nullable=False,
+                              default='none', server_default='none')
+    shift_hours_required = Column(Integer, nullable=True)
     shift_starttime = Column(DateTime(), nullable=True)
     shift_endtime = Column(DateTime(), nullable=True)
     restriction_type = Column(String(), nullable=True)
@@ -147,3 +159,39 @@ class HotelRoomNight(Base):
         "RoomNightAssignment", cascade="all, delete", passive_deletes=True)
     approvals = relationship(
         "RoomNightApproval", cascade="all, delete", passive_deletes=True)
+
+
+# Keep restriction_mode (source of truth) and the legacy `restricted` mirror
+# consistent no matter which one a writer sets (generic CRUD, importer, tests).
+# The "set" events fire before the new value lands on the instance, so the
+# listeners read raw __dict__ state and guard against re-entering each other.
+
+@event.listens_for(HotelRoomNight.restriction_mode, "set", retval=True)
+def _sync_restricted(target, value, oldvalue, initiator):
+    if getattr(target, '_restriction_sync', False):
+        return value
+    restricted = value is not None and value != 'none'
+    if target.__dict__.get('restricted') != restricted:
+        target._restriction_sync = True
+        try:
+            target.restricted = restricted
+        finally:
+            target._restriction_sync = False
+    return value
+
+
+@event.listens_for(HotelRoomNight.restricted, "set", retval=True)
+def _sync_restriction_mode(target, value, oldvalue, initiator):
+    # Legacy writers only set `restricted`; give them the equivalent mode.
+    if getattr(target, '_restriction_sync', False):
+        return value
+    mode = target.__dict__.get('restriction_mode')
+    target._restriction_sync = True
+    try:
+        if value and mode in (None, 'none'):
+            target.restriction_mode = 'shift_window'
+        elif not value and mode not in (None, 'none'):
+            target.restriction_mode = 'none'
+    finally:
+        target._restriction_sync = False
+    return value

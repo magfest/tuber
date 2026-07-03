@@ -8,12 +8,13 @@ import RoomNightForm from './nights/RoomNightForm.vue'
 import RoomNightTable from './nights/RoomNightTable.vue'
 
 import RequestForm from './requests/RequestForm.vue'
-import RequestTable from './requests/RequestTable.vue'
 import RoommateField from './requests/RoommateField.vue'
-import RequestShortForm from './requests/RequestShortForm.vue'
 
-import RoomTable from './rooms/RoomTable.vue'
-import RoomDetails from './rooms/RoomDetails.vue'
+import AttendeeName from './modals/AttendeeName.vue'
+import RoomName from './modals/RoomName.vue'
+import AttendeeModal from './modals/AttendeeModal.vue'
+import RoomModal from './modals/RoomModal.vue'
+import DetailModalHost from './modals/DetailModalHost.vue'
 
 export {
   RoomBlockForm,
@@ -23,9 +24,10 @@ export {
   RoomNightForm,
   RoomNightTable,
   RequestForm,
-  RequestTable,
   RoommateField,
-  RequestShortForm,
-  RoomTable,
-  RoomDetails
+  AttendeeName,
+  RoomName,
+  AttendeeModal,
+  RoomModal,
+  DetailModalHost
 }

@@ -9,7 +9,10 @@ from sqlalchemy.orm import joinedload, selectinload
 import datetime
 import os
 from tuber.api.util import *
-from .room_matcher import rematch_hotel_block, clear_hotel_block
+from .night_approval import (approved_night_ids, manual_approved_night_ids,
+                             shift_hours_totals, shift_satisfied_night_ids)
+from .room_matcher import (clear_hotel_block, match_block,
+                           rematch_hotel_block, suggest_roommates)
 from .uber import export_requests
 from .util import paginate
 import time
@@ -57,28 +60,54 @@ def add_roommates(event, hotel_block, room_id):
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/rematch_all", methods=["POST"])
 def rematch_block(event, hotel_block):
+    """Clear unaccepted suggestions and produce a fresh batch. Hand-built
+       (non-suggested) rooms are never touched."""
     if not check_permission(f"hotel_block.{hotel_block}.write", event=event):
         return "", 403
-    if rematch_hotel_block(db, event, hotel_block):
-        return "[]", 200
-    return "", 500
+    created = rematch_hotel_block(db, event, hotel_block)
+    return jsonify({"created": created})
+
+
+@app.route("/api/event/<int:event>/hotel/<int:hotel_block>/suggest_rooms", methods=["POST"])
+def suggest_rooms(event, hotel_block):
+    """Run the matcher over unhoused people, creating persisted suggested
+       rooms to accept (PATCH completed=true) or reject (DELETE) one by one."""
+    if not check_permission(f"hotel_block.{hotel_block}.write", event=event):
+        return "", 403
+    created = match_block(db, event, hotel_block)
+    return jsonify({"created": created})
 
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/clear_matches", methods=["POST"])
 def clear_matches(event, hotel_block):
+    """Delete unaccepted suggested rooms, returning their occupants to the
+       matching pool. Hand-built rooms are never touched."""
     if not check_permission(f"hotel_block.{hotel_block}.write", event=event):
         return "", 403
-    clear_hotel_block(db, event, hotel_block)
+    clear_hotel_block(db, event, hotel_block, suggested_only=True)
     return "[]", 200
 
 
-@app.route("/api/event/<int:event>/hotel/room_details", methods=["GET"])
-def room_details(event):
-    if not check_permission("hotel_block.*.read"):
+@app.route("/api/event/<int:event>/hotel/room/<int:room_id>/suggest_roommates", methods=["GET"])
+def hotel_suggest_roommates(event, room_id):
+    """Best additions to a room per the matcher's scoring, drawn from people
+       not in any completed room."""
+    if not check_permission("hotel_block.*.read", event=event):
         return "", 403
+    room = db.query(HotelRoom).filter(
+        HotelRoom.id == room_id, HotelRoom.event == event).options(
+        selectinload(HotelRoom.roommates),
+        selectinload(HotelRoom.room_night_assignments)).one_or_none()
+    if not room:
+        return "Could not locate room", 404
+    limit = request.args.get("limit", 10, type=int)
+    return jsonify(suggest_roommates(db, event, room, limit=limit))
 
-    rooms = [int(x) for x in g.data['rooms'].split(",")]
 
+def _room_details_data(event, rooms):
+    """Per-room roommate details, validation errors, and request groups for a
+       list of room ids. Shared by the bulk room_details endpoint, the room
+       modal endpoint, and the dashboard error sweep."""
     rnas = db.query(RoomNightAssignment, Badge.public_name).join(Badge, Badge.id ==
                                                                  RoomNightAssignment.badge).filter(RoomNightAssignment.hotel_room.in_(rooms)).all()
 
@@ -135,13 +164,11 @@ def room_details(event):
         selectinload(HotelRoomRequest.room_night_requests).load_only(
             RoomNightRequest.room_night, RoomNightRequest.requested),
         selectinload(HotelRoom.roommates).load_only(
-            Badge.id, Badge.public_name
-        ).selectinload(Badge.manually_approved_nights),
-        selectinload(HotelRoom.roommates).load_only(
-            Badge.id, Badge.public_name
-        ).selectinload(Badge.shift_overlap_nights),
+            Badge.id, Badge.public_name),
     ).all()
-    
+
+    approved = approved_night_ids(db, event, badges)
+
     for hotel_room, request in hotel_rooms:
         if not hotel_room.id in gender_prefs:
             gender_prefs[hotel_room.id] = set()
@@ -165,7 +192,7 @@ def room_details(event):
             if night_request.requested:
                 approved_nights = set()
                 for roommate in hotel_room.roommates:
-                    approved_nights.update([x.id for x in roommate.approved_hotel_nights])
+                    approved_nights.update(approved[roommate.id])
                 if night_request.room_night in approved_nights:
                     nights.add(night_request.room_night)
         assigned_nights = [x.room_night for x in rnas_by_badge[request.badge]]
@@ -202,96 +229,66 @@ def room_details(event):
                 })
         detail['groups'] = [{y: detail['roommates'][y]
                              for y in x['members']} for x in combined]
-    return jsonify(details)
+    return details
 
 
-@app.route("/api/event/<int:event>/hotel/matching_roommates", methods=["GET"])
-def matching_roommates(event):
+@app.route("/api/event/<int:event>/hotel/room_details", methods=["GET"])
+def room_details(event):
     if not check_permission("hotel_block.*.read"):
         return "", 403
-
-    room_nights = db.query(HotelRoomNight).filter(
-        HotelRoomNight.event == event).order_by(HotelRoomNight.date).all()
-    room_nights = {x.id: x for x in room_nights}
-
-    badges = db.query(Badge).join(HotelRoomRequest, HotelRoomRequest.badge == Badge.id).filter(
-        or_(HotelRoomRequest.declined == False, HotelRoomRequest.declined == None)
-    ).filter(Badge.event == event, Badge.search_name.contains(g.data.get('search', "").lower())
-    ).options(selectinload(Badge.shift_overlap_nights), selectinload(Badge.manually_approved_nights)
-    ).order_by(Badge.public_name).limit(20).all()
-
-    results = []
-    for badge in badges:
-        missing = []
-        approved_nights = badge.approved_hotel_nights
-        for night in badge.room_night_requests:
-            assign = False
-            if night.requested and night.room_night in [x.id for x in approved_nights]:
-                assign = True
-            for assignment in badge.room_night_assignments:
-                if assignment.room_night == night.room_night:
-                    assign = False
-                    break
-            if assign:
-                missing.append(night.room_night)
-        if missing:
-            results.append({
-                "missing_nights": missing,
-                "id": badge.id,
-                "name": badge.public_name,
-            })
-
-    return jsonify(results[:10])
+    rooms = [int(x) for x in g.data['rooms'].split(",")]
+    return jsonify(_room_details_data(event, rooms))
 
 
 @app.route("/api/event/<int:event>/hotel/room_search", methods=["GET"])
 def room_search(event):
+    """Filterable, sortable room listing. All parameters are optional:
+       search (matches room name or a roommate's name), hotel_block,
+       hotel_location, suggested (true/false),
+       status (completed|incomplete|locked|unlocked),
+       sort (name|created|modified), order (asc|desc), offset, limit."""
     if not check_permission("hotel_block.*.read"):
         return "", 403
-    count = db.query(HotelRoom).filter(HotelRoom.event == event).filter(
-        HotelRoom.roommates.any(Badge.search_name.contains(g.data['search'].lower()))).count()
+    query = db.query(HotelRoom).filter(HotelRoom.event == event)
+    if g.data.get('hotel_block'):
+        query = query.filter(HotelRoom.hotel_block == int(g.data['hotel_block']))
+    if g.data.get('hotel_location'):
+        query = query.filter(HotelRoom.hotel_location == int(g.data['hotel_location']))
+    if g.data.get('suggested'):
+        if g.data['suggested'].lower() == 'true':
+            query = query.filter(HotelRoom.suggested == True)
+        else:
+            query = query.filter(or_(HotelRoom.suggested == False,
+                                     HotelRoom.suggested == None))
+    status = g.data.get('status')
+    if status == 'completed':
+        query = query.filter(HotelRoom.completed == True)
+    elif status == 'incomplete':
+        query = query.filter(or_(HotelRoom.completed == False,
+                                 HotelRoom.completed == None))
+    elif status == 'locked':
+        query = query.filter(HotelRoom.locked == True)
+    elif status == 'unlocked':
+        query = query.filter(or_(HotelRoom.locked == False,
+                                 HotelRoom.locked == None))
+    if g.data.get('search'):
+        term = g.data['search'].lower()
+        query = query.filter(or_(
+            func.lower(HotelRoom.name).contains(term),
+            HotelRoom.roommates.any(Badge.search_name.contains(term))))
+    count = query.count()
+    sorts = {
+        "name": HotelRoom.name,
+        "created": HotelRoom.created,
+        "modified": HotelRoom.modified,
+    }
+    sort = sorts.get(g.data.get('sort'), HotelRoom.name)
+    if g.data.get('order') == 'desc':
+        sort = sort.desc()
     offset = int(g.data.get('offset', '0'))
-    rooms = db.query(HotelRoom).filter(HotelRoom.event == event).filter(
-        HotelRoom.roommates.any(Badge.search_name.contains(g.data['search'].lower()))).order_by(HotelRoom.name).offset(offset).limit(10).all()
-
-    # .join(RoomNightAssignment, RoomNightAssignment.hotel_room == HotelRoom.id).join(
-    #    Badge, Badge.id == RoomNightAssignment.badge).filter(Badge.search_name.contains(g.data['search'].lower())).order_by(Badge.search_name).all()
+    limit = int(g.data.get('limit', '10'))
+    rooms = query.order_by(sort).offset(offset).limit(limit).all()
     return jsonify(hotel_rooms=HotelRoom.serialize(rooms, serialize_relationships=True), count=count), 200
-
-
-@app.route("/api/event/<int:event>/hotel/list_requests", methods=["GET"])
-def list_requests(event):
-    if not check_permission("hotel_block.*.read"):
-        return "", 403
-    
-    query = db.query(HotelRoomRequest)
-    if "hotel_block" in g.data:
-        query = query.filter(HotelRoomRequest.hotel_block == int(g.data['hotel_block']))
-    query = query.options(
-        selectinload(HotelRoomRequest.badge_obj, Badge.manually_approved_nights),
-        selectinload(HotelRoomRequest.badge_obj, Badge.shift_overlap_nights)
-    )
-    
-    query = paginate(query, HotelRoomRequest, event)
-    
-    if request.args.get("count", False, type=lambda x: x.lower() == "true"):
-        return json.dumps(query.count()), 200
-    requests = query.all()
-    
-    room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
-    
-    result = []
-    for req in requests:
-        requested_nights = {z.id: z.id in [y.room_night for y in req.room_night_requests if y.requested] for z in room_nights}
-        result.append({
-            "first_name": req.badge_obj.first_name,
-            "last_name": req.badge_obj.last_name,
-            "notes": req.notes,
-            "id": req.id,
-            "approved_nights": {y.id: y in req.badge_obj.approved_hotel_nights and requested_nights[y.id] for y in room_nights},
-            "requested_nights": requested_nights
-        })
-    return result
 
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/request_search", methods=["GET"])
@@ -311,58 +308,59 @@ def request_search(event, hotel_block):
         HotelRoomRequest.hotel_block == hotel_block,
         or_(HotelRoomRequest.declined == False, HotelRoomRequest.declined == None),
         HotelRoomRequest.room_night_requests.any(and_(RoomNightRequest.requested, not_(RoomNightRequest.id.in_(assigned_nights))))
-    ).join(Badge, Badge.id == HotelRoomRequest.badge).options(
-        selectinload(HotelRoomRequest.badge_obj, Badge.shift_overlap_nights),
-        selectinload(HotelRoomRequest.badge_obj, Badge.manually_approved_nights)
-    )
-    if g.data['search_term']:
+    ).join(Badge, Badge.id == HotelRoomRequest.badge)
+    if g.data.get('search_term'):
         reqs = reqs.filter(
             or_(Badge.search_name.contains(g.data['search_term'].lower()), func.lower(
                 HotelRoomRequest.notes).contains(g.data['search_term'].lower()))
         )
-    count = reqs.count()
-    
-    if g.data['sort'] == "notes":
+    if g.data.get('night'):
+        reqs = reqs.filter(HotelRoomRequest.room_night_requests.any(and_(
+            RoomNightRequest.requested,
+            RoomNightRequest.room_night == int(g.data['night']))))
+    if g.data.get('has_roommates', '').lower() == 'true':
+        reqs = reqs.filter(HotelRoomRequest.roommate_requests.any())
+
+    # Base ordering in SQL; computed filters/sorts below preserve it for ties.
+    if g.data.get('sort') == "notes":
         sort = HotelRoomRequest.notes
     else:
         sort = Badge.search_name
-    if g.data['order'] == "desc":
+    if g.data.get('order') == "desc":
         sort = sort.desc()
-    reqs = reqs.order_by(sort).offset(int(g.data['offset'])).limit(int(g.data['limit'])).all()
-    
+    reqs = reqs.order_by(sort).all()
+
+    approved = approved_night_ids(db, event, [x.badge for x in reqs])
+    requested_map = {req.id: {y.room_night for y in req.room_night_requests if y.requested}
+                     for req in reqs}
+
+    # Approval coverage is computed, so it filters after the SQL query.
+    approval = g.data.get('approval')
+    if approval == 'full':
+        reqs = [x for x in reqs if requested_map[x.id] <= approved[x.badge]]
+    elif approval == 'partial':
+        reqs = [x for x in reqs if requested_map[x.id] - approved[x.badge]]
+
+    if g.data.get('sort') == 'nights':
+        reqs.sort(key=lambda x: len(requested_map[x.id]),
+                  reverse=g.data.get('order') == 'desc')
+
+    count = len(reqs)
+    offset = int(g.data.get('offset', 0))
+    limit = int(g.data.get('limit', 25))
+    reqs = reqs[offset:offset + limit]
+
     results = [{
         "id": req.id,
-        "approved_nights": {x.id: x in req.badge_obj.approved_hotel_nights and x.id in [y.room_night for y in req.room_night_requests if y.requested] for x in room_nights},
-        "requested_nights": {x.id: x.id in [y.room_night for y in req.room_night_requests if y.requested] for x in room_nights},
+        "approved_nights": {x.id: x.id in approved[req.badge] and x.id in requested_map[req.id] for x in room_nights},
+        "requested_nights": {x.id: x.id in requested_map[req.id] for x in room_nights},
         "notes": req.notes,
         "first_name": req.first_name,
         "last_name": req.last_name,
         "public_name": req.badge_obj.public_name,
         "badge": req.badge,
     } for req in reqs]
-    return jsonify(requests=results, count=count), 200
-
-
-@app.route("/api/event/<int:event>/hotel/submitted_requests", methods=["GET"])
-def submitted_requests(event):
-    if request.method == "GET":
-        if not check_permission("hotel_request.*.read"):
-            return "", 403
-        subquery = db.query(RoomNightRequest.badge).filter(
-            RoomNightRequest.event == event, RoomNightRequest.requested == True).distinct().subquery().select()
-        rows = db.query(HotelRoomRequest.id, HotelRoomRequest.declined, HotelRoomRequest.notes, Badge.id, Badge.public_name).filter(
-            HotelRoomRequest.event == event, HotelRoomRequest.badge.in_(subquery)).join(HotelRoomRequest, HotelRoomRequest.badge == Badge.id).all()
-        results = []
-        for ID, declined, notes, BID, public_name in rows:
-            if not declined:
-                results.append({
-                    "id": ID,
-                    "badge": BID,
-                    "public_name": public_name,
-                    "notes": notes
-                })
-        return jsonify(results)
-    return "", 406
+    return jsonify(requests=results, results=results, count=count), 200
 
 
 @app.route("/api/event/<int:event>/hotel/block_assignments", methods=["GET", "POST"])
@@ -426,28 +424,43 @@ def block_assignments(event):
 
 @app.route("/api/event/<int:event>/hotel/requests/<int:department>", methods=["GET"])
 def hotel_requests(event, department):
+    if not check_permission("hotel_request.*.approve", event=event, department=department):
+        return "", 403
     requests = db.query(Badge, HotelRoomRequest).join(BadgeToDepartment, BadgeToDepartment.badge == Badge.id).filter(
-        BadgeToDepartment.department == department).join(HotelRoomRequest, HotelRoomRequest.badge == BadgeToDepartment.badge).options(selectinload(Badge.manually_approved_nights), selectinload(Badge.shift_overlap_nights)).all()
+        BadgeToDepartment.department == department).join(HotelRoomRequest, HotelRoomRequest.badge == BadgeToDepartment.badge).all()
+    badge_ids = [badge.id for badge, _ in requests]
+    nights = {x.id: x for x in db.query(HotelRoomNight).filter(
+        HotelRoomNight.event == event).all()}
+    shift_satisfied = shift_satisfied_night_ids(db, event, badge_ids)
+    manual = manual_approved_night_ids(db, event, badge_ids)
+    hours = shift_hours_totals(db, event, badge_ids)
     res = []
-    for req in requests:
-        badge, roomrequest = req
-        if not check_permission("hotel_request.*.approve", event=event, department=department):
-            continue
+    for badge, roomrequest in requests:
         room_nights = db.query(RoomNightRequest, RoomNightApproval).join(RoomNightApproval, and_(RoomNightApproval.badge == RoomNightRequest.badge, RoomNightApproval.room_night ==
                                                                                                  RoomNightRequest.room_night, RoomNightApproval.department == department), isouter=True).filter(RoomNightRequest.badge == badge.id).all()
+        night_status = {}
+        for btr, rna in room_nights:
+            night = nights.get(btr.room_night)
+            mode = night.restriction_mode if night else 'none'
+            status = {
+                "id": btr.id,
+                "requested": btr.requested,
+                "room_night": btr.room_night,
+                "mode": mode,
+                "approved_by_anyone": btr.room_night in manual[badge.id],
+                "approved_by_shifts": btr.room_night in shift_satisfied[badge.id],
+                "approved": rna.approved if rna else None
+            }
+            if mode == 'shift_hours' and night:
+                status["hours_required"] = night.shift_hours_required
+                status["hours_assigned"] = round(hours.get(badge.id, 0), 1)
+                status["hours_met"] = btr.room_night in shift_satisfied[badge.id]
+            night_status[btr.room_night] = status
         res.append({
             "id": badge.id,
             "name": badge.public_name,
             "justification": roomrequest.room_night_justification,
-            "room_nights": {
-                btr.room_night: {
-                    "id": btr.id,
-                    "requested": btr.requested,
-                    "room_night": btr.room_night,
-                    "approved_by_anyone": btr.room_night in [x.id for x in badge.manually_approved_nights],
-                    "approved_by_shifts": btr.room_night in [x.id for x in badge.shift_overlap_nights],
-                    "approved": rna.approved if rna else None
-                } for btr, rna in room_nights}
+            "room_nights": night_status
         })
     res = sorted(res, key=lambda x: x['name'])
     return jsonify(res)
@@ -460,102 +473,8 @@ def _isoz(dt):
     return dt.replace(tzinfo=None).isoformat() + "Z"
 
 
-def _missing_shifts_data(event, mode="missing"):
-    """One entry per person with their requested/assigned night counts and the
-       restricted nights they requested without an overlapping shift.
-
-       mode selects who is included: "missing" (default) people missing a
-       shift, "requested" anyone with a requested night, "assigned" anyone
-       assigned to a night, or "all" every badge in the event."""
-    restricted = {x.id: x for x in db.query(HotelRoomNight).filter(
-        HotelRoomNight.event == event, HotelRoomNight.restricted == True).all()}
-    requested_nights = defaultdict(set)
-    for night_request in db.query(RoomNightRequest).filter(
-            RoomNightRequest.event == event, RoomNightRequest.requested == True).all():
-        requested_nights[night_request.badge].add(night_request.room_night)
-    assigned_nights = defaultdict(set)
-    for assignment in db.query(RoomNightAssignment).filter(
-            RoomNightAssignment.event == event).all():
-        assigned_nights[assignment.badge].add(assignment.room_night)
-
-    badges = db.query(Badge).filter(Badge.event == event)
-    if mode == "requested" or mode == "missing":
-        badges = badges.filter(Badge.id.in_(requested_nights.keys()))
-    elif mode == "assigned":
-        badges = badges.filter(Badge.id.in_(assigned_nights.keys()))
-    badges = badges.options(
-        selectinload(Badge.shift_overlap_nights),
-        selectinload(Badge.manually_approved_nights),
-        selectinload(Badge.departments)).all()
-
-    res = []
-    for badge in badges:
-        shift_nights = {x.id for x in badge.shift_overlap_nights}
-        manual_nights = {x.id for x in badge.manually_approved_nights}
-        missing = []
-        for night_id in requested_nights[badge.id]:
-            if night_id not in restricted or night_id in shift_nights:
-                continue
-            night = restricted[night_id]
-            missing.append({
-                "id": night.id,
-                "name": night.name,
-                "date": night.date.strftime("%Y-%m-%d") if night.date else None,
-                "restriction_type": night.restriction_type,
-                "requested": True,
-                "approved": night.id in manual_nights,
-                "assigned": night.id in assigned_nights[badge.id],
-            })
-        if mode == "missing" and not missing:
-            continue
-        missing.sort(key=lambda x: x["date"] or "")
-        res.append({
-            "id": badge.id,
-            "name": badge.public_name,
-            "email": badge.email,
-            "departments": sorted([x.name for x in badge.departments]),
-            "requested_nights": len(requested_nights[badge.id]),
-            "assigned_nights": len(assigned_nights[badge.id]),
-            "missing_nights": missing,
-        })
-    res.sort(key=lambda x: x["name"] or "")
-    return res
-
-
-@app.route("/api/event/<int:event>/hotel/missing_shifts", methods=["GET"])
-def hotel_missing_shifts(event):
-    if not check_permission("rooming.*.manage", event=event):
-        return "", 403
-    mode = request.args.get("filter", "missing")
-    if mode not in ("missing", "requested", "assigned", "all"):
-        return "Unknown filter", 400
-    return jsonify(_missing_shifts_data(event, mode))
-
-
-@app.route("/api/event/<int:event>/hotel/missing_shifts/export", methods=["GET"])
-def hotel_missing_shifts_export(event):
-    """CSV of people missing shifts, with emails, for easy outreach."""
-    if not check_permission("rooming.*.manage", event=event):
-        return "", 403
-    import csv
-    import io
-    out = io.StringIO()
-    writer = csv.writer(out)
-    writer.writerow(["Name", "Email", "Departments", "Nights Missing a Shift"])
-    for entry in _missing_shifts_data(event):
-        writer.writerow([
-            entry["name"],
-            entry["email"],
-            "; ".join(entry["departments"]),
-            "; ".join([f"{x['name']} ({x['date']})" if x["date"] else x["name"]
-                       for x in entry["missing_nights"]]),
-        ])
-    return Response(out.getvalue(), mimetype="text/csv", headers={
-        "Content-Disposition": "attachment; filename=missing_shifts.csv"})
-
-
-@app.route("/api/event/<int:event>/hotel/missing_shifts/approve", methods=["POST"])
-def hotel_missing_shifts_approve(event):
+@app.route("/api/event/<int:event>/hotel/attendee/approve", methods=["POST"])
+def hotel_attendee_approve(event):
     """Toggle an event-level manual approval for a badge's room night.
        Turning approval off removes all approvals for that badge+night."""
     if not check_permission("rooming.*.manage", event=event):
@@ -580,8 +499,8 @@ def hotel_missing_shifts_approve(event):
     return jsonify({"approved": bool(g.data["approved"])})
 
 
-@app.route("/api/event/<int:event>/hotel/missing_shifts/request", methods=["POST"])
-def hotel_missing_shifts_request(event):
+@app.route("/api/event/<int:event>/hotel/attendee/request", methods=["POST"])
+def hotel_attendee_request(event):
     """Toggle whether a badge has requested a room night."""
     if not check_permission("rooming.*.manage", event=event):
         return "", 403
@@ -600,8 +519,8 @@ def hotel_missing_shifts_request(event):
     return jsonify({"requested": requested})
 
 
-@app.route("/api/event/<int:event>/hotel/missing_shifts/assign", methods=["POST"])
-def hotel_missing_shifts_assign(event):
+@app.route("/api/event/<int:event>/hotel/attendee/assign", methods=["POST"])
+def hotel_attendee_assign(event):
     """Toggle a room night assignment (without a room) for a badge.
        Turning assignment off removes the badge from any room for that night."""
     if not check_permission("rooming.*.manage", event=event):
@@ -623,33 +542,37 @@ def hotel_missing_shifts_assign(event):
     return jsonify({"assigned": bool(g.data["assigned"])})
 
 
-@app.route("/api/event/<int:event>/hotel/missing_shifts/<int:badge_id>", methods=["GET"])
-def hotel_missing_shifts_detail(event, badge_id):
+@app.route("/api/event/<int:event>/hotel/attendee/<int:badge_id>", methods=["GET"])
+def hotel_attendee_detail(event, badge_id):
     """Everything needed to understand one person's situation: their shift
-       schedule, each room night's window, and their room request."""
-    if not check_permission("rooming.*.manage", event=event):
+       schedule, each room night's window and status, their room request, and
+       the rooms they're assigned to."""
+    if not (check_permission("rooming.*.manage", event=event)
+            or check_permission("hotel_block.*.read", event=event)):
         return "", 403
     badge = db.query(Badge).filter(
         Badge.id == badge_id, Badge.event == event).options(
-        selectinload(Badge.shift_overlap_nights),
-        selectinload(Badge.manually_approved_nights),
         selectinload(Badge.departments)).one_or_none()
     if not badge:
         return "Could not locate badge", 404
-    shift_nights = {x.id for x in badge.shift_overlap_nights}
-    manual_nights = {x.id for x in badge.manually_approved_nights}
+    shift_nights = shift_satisfied_night_ids(db, event, [badge.id])[badge.id]
+    manual_nights = manual_approved_night_ids(db, event, [badge.id])[badge.id]
+    hours = shift_hours_totals(db, event, [badge.id]).get(badge.id, 0)
     night_requests = {x.room_night: bool(x.requested) for x in db.query(
         RoomNightRequest).filter(RoomNightRequest.badge == badge.id).all()}
-    assigned = {x.room_night for x in db.query(RoomNightAssignment).filter(
-        RoomNightAssignment.badge == badge.id).all()}
+    assignments = db.query(RoomNightAssignment).filter(
+        RoomNightAssignment.badge == badge.id).all()
+    assigned = {x.room_night for x in assignments}
+    assigned_rooms = {x.room_night: x.hotel_room for x in assignments}
     nights = []
     for night in db.query(HotelRoomNight).filter(
             HotelRoomNight.event == event).order_by(HotelRoomNight.date).all():
-        nights.append({
+        entry = {
             "id": night.id,
             "name": night.name,
             "date": night.date.strftime("%Y-%m-%d") if night.date else None,
-            "restricted": bool(night.restricted),
+            "restricted": night.restriction_mode != 'none',
+            "mode": night.restriction_mode,
             "restriction_type": night.restriction_type,
             "shift_starttime": _isoz(night.shift_starttime),
             "shift_endtime": _isoz(night.shift_endtime),
@@ -657,7 +580,12 @@ def hotel_missing_shifts_detail(event, badge_id):
             "has_shift": night.id in shift_nights,
             "approved": night.id in manual_nights,
             "assigned": night.id in assigned,
-        })
+            "assigned_room": assigned_rooms.get(night.id),
+        }
+        if night.restriction_mode == 'shift_hours':
+            entry["hours_required"] = night.shift_hours_required
+            entry["hours_assigned"] = round(hours, 1)
+        nights.append(entry)
     shifts = []
     for shift, job, department in db.query(Shift, Job, Department).join(
             ShiftAssignment, ShiftAssignment.shift == Shift.id).join(
@@ -670,18 +598,51 @@ def hotel_missing_shifts_detail(event, badge_id):
             "starttime": _isoz(shift.starttime),
             "duration": shift.duration,
         })
+    # The rooms this person occupies, with the nights they hold there and who
+    # they share with.
+    rooms = []
+    room_ids = sorted({x.hotel_room for x in assignments if x.hotel_room})
+    if room_ids:
+        blocks = {x.id: x.name for x in db.query(HotelRoomBlock).filter(
+            HotelRoomBlock.event == event).all()}
+        for room in db.query(HotelRoom).filter(
+                HotelRoom.id.in_(room_ids)).options(
+                selectinload(HotelRoom.roommates)).all():
+            rooms.append({
+                "id": room.id,
+                "name": room.name,
+                "hotel_block": room.hotel_block,
+                "block_name": blocks.get(room.hotel_block),
+                "completed": bool(room.completed),
+                "locked": bool(room.locked),
+                "suggested": bool(room.suggested),
+                "nights": sorted([x.room_night for x in assignments
+                                  if x.hotel_room == room.id]),
+                "roommates": [{"id": x.id, "name": x.public_name}
+                              for x in room.roommates if x.id != badge.id],
+            })
+
     room_request = db.query(HotelRoomRequest).filter(
         HotelRoomRequest.badge == badge.id).one_or_none()
     request_summary = None
     if room_request:
         request_summary = {
+            "id": room_request.id,
             "justification": room_request.room_night_justification,
             "notes": room_request.notes,
             "declined": room_request.declined,
+            "hotel_block": room_request.hotel_block,
+            "prefer_department": room_request.prefer_department,
+            "preferred_department": room_request.preferred_department,
             "noise_level": room_request.noise_level,
             "sleep_time": room_request.sleep_time,
             "prefer_single_gender": room_request.prefer_single_gender,
+            "preferred_gender": room_request.preferred_gender,
             "smoke_sensitive": room_request.smoke_sensitive,
+            "roommate_requests": [{"id": x.id, "name": x.public_name}
+                                  for x in room_request.roommate_requests],
+            "roommate_anti_requests": [{"id": x.id, "name": x.public_name}
+                                       for x in room_request.roommate_anti_requests],
         }
     return jsonify({
         "id": badge.id,
@@ -690,7 +651,326 @@ def hotel_missing_shifts_detail(event, badge_id):
         "departments": sorted([x.name for x in badge.departments]),
         "nights": nights,
         "shifts": shifts,
+        "rooms": rooms,
         "room_request": request_summary,
+    })
+
+
+def _attendees_data(event, mode="all", search=None, block=None):
+    """One row per eligible person (anyone with a hotel room request record)
+       with request/assignment status and their missing restricted nights."""
+    requests = db.query(HotelRoomRequest, Badge).join(
+        Badge, HotelRoomRequest.badge == Badge.id).filter(
+        HotelRoomRequest.event == event).options(
+        selectinload(HotelRoomRequest.room_night_requests),
+        selectinload(Badge.departments))
+    if block is not None:
+        requests = requests.filter(HotelRoomRequest.hotel_block == block)
+    if search:
+        requests = requests.filter(or_(
+            Badge.search_name.contains(search.lower()),
+            func.lower(HotelRoomRequest.notes).contains(search.lower())))
+    requests = requests.all()
+
+    badge_ids = [badge.id for _, badge in requests]
+    nights = {x.id: x for x in db.query(HotelRoomNight).filter(
+        HotelRoomNight.event == event).all()}
+    shift_satisfied = shift_satisfied_night_ids(db, event, badge_ids)
+    manual_nights = manual_approved_night_ids(db, event, badge_ids)
+    hours = shift_hours_totals(db, event, badge_ids)
+    unrestricted = {x.id for x in nights.values() if x.restriction_mode == 'none'}
+    assigned_nights = defaultdict(set)
+    roomless = set()
+    for assignment in db.query(RoomNightAssignment).filter(
+            RoomNightAssignment.event == event,
+            RoomNightAssignment.badge.in_(badge_ids)).all():
+        assigned_nights[assignment.badge].add(assignment.room_night)
+        if assignment.hotel_room is None:
+            roomless.add(assignment.badge)
+
+    rows = []
+    for req, badge in requests:
+        requested = {x.room_night for x in req.room_night_requests if x.requested}
+        approved = (unrestricted | shift_satisfied[badge.id]
+                    | manual_nights[badge.id])
+        completed = bool(req.declined or (
+            req.first_name and req.last_name and requested))
+        missing = []
+        for night_id in requested:
+            night = nights.get(night_id)
+            if not night or night.restriction_mode == 'none':
+                continue
+            if night_id in shift_satisfied[badge.id]:
+                continue
+            if night.restriction_mode == 'manual' and night_id in manual_nights[badge.id]:
+                continue
+            entry = {
+                "id": night.id,
+                "name": night.name,
+                "date": night.date.strftime("%Y-%m-%d") if night.date else None,
+                "restriction_type": night.restriction_type,
+                "mode": night.restriction_mode,
+                "requested": True,
+                "approved": night_id in manual_nights[badge.id],
+                "assigned": night_id in assigned_nights[badge.id],
+            }
+            if night.restriction_mode == 'shift_hours':
+                entry["hours_required"] = night.shift_hours_required
+                entry["hours_assigned"] = round(hours.get(badge.id, 0), 1)
+            missing.append(entry)
+        missing.sort(key=lambda x: x["date"] or "")
+
+        if mode == "missing_shifts" and not missing:
+            continue
+        if mode == "complete" and (not completed or req.declined):
+            continue
+        if mode == "incomplete" and (completed or req.declined):
+            continue
+        if mode == "declined" and not req.declined:
+            continue
+        if mode == "roomless" and badge.id not in roomless:
+            continue
+        if mode == "unassigned_approved" and not (
+                requested & approved - assigned_nights[badge.id]):
+            continue
+
+        rows.append({
+            "badge": badge.id,
+            "id": badge.id,
+            "name": badge.public_name,
+            "email": badge.email,
+            "departments": sorted([x.name for x in badge.departments]),
+            "hotel_block": req.hotel_block,
+            "declined": bool(req.declined),
+            "completed": completed,
+            "notes": req.notes,
+            "request_id": req.id,
+            "requested_nights": len(requested),
+            "approved_nights": len(requested & approved),
+            "assigned_nights": len(assigned_nights[badge.id]),
+            "missing_nights": missing,
+        })
+    rows.sort(key=lambda x: x["name"] or "")
+    return rows
+
+
+ATTENDEE_FILTERS = ("all", "complete", "incomplete", "declined",
+                    "missing_shifts", "roomless", "unassigned_approved")
+
+
+@app.route("/api/event/<int:event>/hotel/attendees", methods=["GET"])
+def hotel_attendees(event):
+    if not check_permission("rooming.*.manage", event=event):
+        return "", 403
+    mode = request.args.get("filter", "all")
+    if mode not in ATTENDEE_FILTERS:
+        return "Unknown filter", 400
+    block = request.args.get("block", None, type=int)
+    rows = _attendees_data(event, mode, request.args.get("search"), block)
+    if request.args.get("sort") in ("requested_nights", "assigned_nights",
+                                    "approved_nights", "name"):
+        rows.sort(key=lambda x: x[request.args["sort"]] or 0
+                  if request.args["sort"] != "name" else (x["name"] or ""),
+                  reverse=request.args.get("order") == "desc")
+    count = len(rows)
+    offset = request.args.get("offset", 0, type=int)
+    limit = request.args.get("limit", None, type=int)
+    if limit is not None:
+        rows = rows[offset:offset + limit]
+    return jsonify(results=rows, count=count)
+
+
+@app.route("/api/event/<int:event>/hotel/attendees/export", methods=["GET"])
+def hotel_attendees_export(event):
+    """CSV of attendees for the given filter, with emails for outreach."""
+    if not check_permission("rooming.*.manage", event=event):
+        return "", 403
+    mode = request.args.get("filter", "missing_shifts")
+    if mode not in ATTENDEE_FILTERS:
+        return "Unknown filter", 400
+    import csv
+    import io
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(["Name", "Email", "Departments", "Nights Requested",
+                     "Nights Assigned", "Nights Missing a Shift"])
+    for entry in _attendees_data(event, mode):
+        writer.writerow([
+            entry["name"],
+            entry["email"],
+            "; ".join(entry["departments"]),
+            entry["requested_nights"],
+            entry["assigned_nights"],
+            "; ".join([f"{x['name']} ({x['date']})" if x["date"] else x["name"]
+                       for x in entry["missing_nights"]]),
+        ])
+    return Response(out.getvalue(), mimetype="text/csv", headers={
+        "Content-Disposition": f"attachment; filename={mode}_attendees.csv"})
+
+
+@app.route("/api/event/<int:event>/hotel/room/<int:room_id>/details", methods=["GET"])
+def hotel_room_grid(event, room_id):
+    """Everything the room modal needs: room fields plus a nights-by-occupant
+       grid of requested/approved/assigned status."""
+    if not check_permission("hotel_block.*.read", event=event):
+        return "", 403
+    room = db.query(HotelRoom).filter(
+        HotelRoom.id == room_id, HotelRoom.event == event).options(
+        selectinload(HotelRoom.roommates)).one_or_none()
+    if not room:
+        return "Could not locate room", 404
+    details = _room_details_data(event, [room_id]).get(room_id, {
+        "room_nights": [], "roommates": {}, "empty_slots": 0, "groups": []})
+    nights = db.query(HotelRoomNight).filter(
+        HotelRoomNight.event == event).order_by(HotelRoomNight.date).all()
+    badge_ids = [x.id for x in room.roommates]
+    approved = approved_night_ids(db, event, badge_ids)
+    requested = defaultdict(set)
+    if badge_ids:
+        for night_request in db.query(RoomNightRequest).filter(
+                RoomNightRequest.badge.in_(badge_ids),
+                RoomNightRequest.requested == True).all():
+            requested[night_request.badge].add(night_request.room_night)
+    assignments = defaultdict(dict)
+    if badge_ids:
+        for rna in db.query(RoomNightAssignment).filter(
+                RoomNightAssignment.badge.in_(badge_ids)).all():
+            assignments[rna.badge][rna.room_night] = rna.hotel_room
+    blocks = {x.id: x.name for x in db.query(HotelRoomBlock).filter(
+        HotelRoomBlock.event == event).all()}
+    locations = {x.id: x.name for x in db.query(HotelLocation).filter(
+        HotelLocation.event == event).all()}
+
+    occupants = []
+    for badge in room.roommates:
+        detail = details["roommates"].get(badge.id, {})
+        occupants.append({
+            "badge": badge.id,
+            "name": badge.public_name,
+            "errors": detail.get("errors", []),
+            "nights": {night.id: {
+                "requested": night.id in requested[badge.id],
+                "approved": night.id in approved[badge.id],
+                "assigned": assignments[badge.id].get(night.id, None) == room.id,
+                "assigned_room": assignments[badge.id].get(night.id),
+            } for night in nights},
+        })
+    groups = [[badge_id for badge_id in group]
+              for group in details.get("groups", [])]
+    return jsonify({
+        "id": room.id,
+        "name": room.name,
+        "notes": room.notes,
+        "messages": room.messages,
+        "completed": bool(room.completed),
+        "locked": bool(room.locked),
+        "suggested": bool(room.suggested),
+        "hotel_block": {"id": room.hotel_block,
+                        "name": blocks.get(room.hotel_block)},
+        "hotel_location": {"id": room.hotel_location,
+                           "name": locations.get(room.hotel_location)},
+        "nights": [{"id": x.id, "name": x.name,
+                    "date": x.date.strftime("%Y-%m-%d") if x.date else None}
+                   for x in nights],
+        "occupants": occupants,
+        "groups": groups,
+        "empty_slots": details.get("empty_slots", 0),
+    })
+
+
+@app.route("/api/event/<int:event>/hotel/dashboard", methods=["GET"])
+def hotel_dashboard(event):
+    """Status of the whole rooming system: request completion, night and room
+       counts, and the issues that still need attention."""
+    if not check_permission("rooming.*.manage", event=event):
+        return "", 403
+    attendees = _attendees_data(event)
+    eligible = len(attendees)
+    completed = len([x for x in attendees if x["completed"] and not x["declined"]])
+    declined = len([x for x in attendees if x["declined"]])
+    pending = eligible - completed - declined
+
+    requested_total = db.query(RoomNightRequest).filter(
+        RoomNightRequest.event == event, RoomNightRequest.requested == True).count()
+    approved_total = sum(x["approved_nights"] for x in attendees)
+    assigned_total = db.query(RoomNightAssignment).filter(
+        RoomNightAssignment.event == event).count()
+    roomless_total = db.query(RoomNightAssignment).filter(
+        RoomNightAssignment.event == event,
+        RoomNightAssignment.hotel_room == None).count()
+
+    rooms = db.query(HotelRoom).filter(HotelRoom.event == event).all()
+    blocks = {x.id: x.name for x in db.query(HotelRoomBlock).filter(
+        HotelRoomBlock.event == event).all()}
+    by_block = defaultdict(lambda: {"total": 0, "completed": 0, "suggested_pending": 0})
+    for room in rooms:
+        stats = by_block[room.hotel_block]
+        stats["total"] += 1
+        if room.completed:
+            stats["completed"] += 1
+        elif room.suggested:
+            stats["suggested_pending"] += 1
+    completed_rooms = [x for x in rooms if x.completed]
+    suggested_pending = [x for x in rooms if x.suggested and not x.completed]
+
+    # Error sweep over completed rooms (the ones believed done).
+    rooms_with_errors = []
+    if completed_rooms:
+        details = _room_details_data(event, [x.id for x in completed_rooms])
+        for room_id, detail in details.items():
+            if any(x["errors"] for x in detail["roommates"].values()):
+                rooms_with_errors.append(room_id)
+
+    missing = [x for x in attendees if x["missing_nights"]]
+    pending_manual = sum(
+        len([n for n in x["missing_nights"]
+             if n["mode"] == "manual" and not n["approved"]])
+        for x in attendees)
+    unassigned_approved = len([
+        x for x in attendees
+        if x["approved_nights"] > x["assigned_nights"] and not x["declined"]])
+
+    issues = [
+        {"kind": "missing_shifts", "count": len(missing),
+         "link": {"page": "requests", "filter": "missing_shifts"}},
+        {"kind": "pending_manual_approvals", "count": pending_manual,
+         "link": {"page": "approvals"}},
+        {"kind": "unassigned_approved", "count": unassigned_approved,
+         "link": {"page": "requests", "filter": "unassigned_approved"}},
+        {"kind": "roomless_assignments", "count": roomless_total,
+         "link": {"page": "requests", "filter": "roomless"}},
+        {"kind": "rooms_with_errors", "count": len(rooms_with_errors),
+         "rooms": rooms_with_errors,
+         "link": {"page": "assignments"}},
+        {"kind": "incomplete_requests", "count": pending,
+         "link": {"page": "requests", "filter": "incomplete"}},
+        {"kind": "suggested_rooms_pending", "count": len(suggested_pending),
+         "link": {"page": "assignments", "view": "suggested"}},
+    ]
+    return jsonify({
+        "requests": {
+            "eligible": eligible,
+            "completed": completed,
+            "declined": declined,
+            "pending": pending,
+            "percent_resolved": round(
+                (completed + declined) / eligible * 100, 1) if eligible else 0,
+        },
+        "room_nights": {
+            "requested": requested_total,
+            "approved": approved_total,
+            "assigned": assigned_total,
+            "roomless_assignments": roomless_total,
+        },
+        "rooms": {
+            "total": len(rooms),
+            "completed": len(completed_rooms),
+            "suggested_pending": len(suggested_pending),
+            "incomplete": len(rooms) - len(completed_rooms) - len(suggested_pending),
+            "by_block": [{"id": block_id, "name": blocks.get(block_id),
+                          **stats} for block_id, stats in by_block.items()],
+        },
+        "issues": [x for x in issues if x["count"]],
     })
 
 

@@ -2,523 +2,607 @@
   <div class="card">
     <Toast />
     <ConfirmPopup></ConfirmPopup>
-    <h3>Room Assignments</h3>
-    <Toolbar class="mb-1">
-      <template #start>
-        <Button class="p-button-success mr-2" @click="createRoom" :disabled="block === null">Create Room</Button>
-        <Button class="p-button-info mr-2" @click="rematchAll($event)" :disabled="block === null">Rematch All</Button>
-        <Button class="p-button-info mr-2" @click="clearAutoMatches($event)" :disabled="block === null">Reset Auto
-          Matches</Button>
-      </template>
-
-      <template #end>
-        <label for="blockselect" class="mr-2">Room Block</label>
-        <Dropdown id="blockselect" :options="blocks" showClear v-model="block" optionLabel="name" optionValue="id" />
-      </template>
-    </Toolbar>
-
-    <Dialog v-model:visible="editingRequest" :breakpoints="{ '1500px': '50vw', '1000px': '75vw', '500px': '95vw' }"
-      :style="{ width: '50vw' }">
-      <template #header>
-        <h3>Hotel Room Request</h3>
-      </template>
-
-      <request-short-form :modelValue="editedRequest" />
-
-      <template #footer>
-        <Button label="Cancel" @click="cancelRequest" icon="pi pi-times" class="p-button-text" />
-        <Button label="Save" @click="saveRequest(editedRequest)" icon="pi pi-check" autofocus />
-      </template>
-    </Dialog>
-
-    <div class="grid">
-      <div class="col">
-        <DataTable class="p-datatable-sm" ref="dt" :lazy="true" selectionMode="multiple" :value="filteredRequests"
-          :paginator="true" :rows="25" dataKey="id" v-model:filters="requestFilters" filterDisplay="row"
-          :globalFilterFields="['public_name']" v-model:selection="selectedRequests" :totalRecords="totalRequests"
-          :loading="loading" @page="onPage($event)" @sort="onSort($event)" @filter="onFilter($event)"
-          v-if="block != null">
-          <Column>
-            <template #body="slotProps">
-              <Button @click="editRequest(slotProps.data)" icon="pi pi-cog" class="p-button-info minibutton"
-                iconPos="right" />
-            </template>
-          </Column>
-          <Column header="Name" field="search_name" filterField="search_name" :sortable="true">
-            <template #body="slotProps">
-              {{ slotProps.data.public_name }}
-            </template>
-            <template #filter="{ filterModel, filterCallback }">
-              <InputText type="text" v-model="filterModel.value" @keydown.enter="filterCallback()" class="p-column-filter"
-                :placeholder="`Search Requests`" v-tooltip.top.focus="'Hit enter key to filter'" />
-            </template>
-          </Column>
-          <Column style="width: 25%">
-            <template #body="slotProps">
-              <Tag v-for="night in roomNights" :key="'rn' + night.id" :value="night.name.slice(0, 2)"
-                :severity="slotProps.data.approved_nights[night.id] ? 'primary' : (slotProps.data.requested_nights[night.id] ? 'warning' : 'danger')"
-                class="mr-1" style="width: 18px" />
-            </template>
-          </Column>
-          <Column header="Notes" field="notes" filterField="notes" :sortable="true"></Column>
-        </DataTable>
-        <h3 v-else>
-          Select a room block to search for people
-        </h3>
-      </div>
-
-      <div class="col">
-        <div class="flex justify-content-between">
-          <span class="field-checkbox pt-2">
-            <Checkbox id="hidecomplete" v-model="hidecompleted" :binary="true" />
-            <label for="hidecomplete">Hide Completed</label>
-          </span>
-          <span class="p-input-icon-left pt-1">
-            <i class="pi pi-search" />
-            <InputText type="text" v-model="roomSearchText" placeholder="Search Rooms" @change="roomSearch" />
-          </span>
-        </div>
-        <Card v-for="room in filteredRooms" :key="'rm' + room.id" class="mb-2">
-          <template #title>
-            <div class="flex justify-content-between">
-              <span>
-                <Button class="p-button-success mr-2" icon="pi pi-plus" @click="addRoommates(room)" />
-                <Button v-if="room.completed" class="p-button-success mr-2" icon="pi pi-check-square"
-                  @click="completeRoom(room, false)" />
-                <Button v-else class="p-button-warning mr-2" icon="pi pi-stop" @click="completeRoom(room, true)" />
-                <Button v-if="room.locked" class="p-button-success mr-2" icon="pi pi-lock"
-                  @click="lockRoom(room, false)" />
-                <Button v-else class="p-button-warning mr-2" icon="pi pi-unlock" @click="lockRoom(room, true)" />
-                <InputText v-if="room.edit" v-model="room.name" @blur="saveRoom(room)" />
-                <span v-else @click="room.edit = true">
-                  {{ room.name ? room.name : "Unnamed" }}
-                </span>
-              </span>
-              <span>
-                <span class="external-block mr-2">{{ room.hotel_block != block ? (blockLookup[room.hotel_block] !=
-                  undefined ? "(" + blockLookup[room.hotel_block].name + ")" : "loading") : "" }}</span>
-                <Button class="p-button-info mr-2" icon="pi pi-info-circle" @click="roomInfo(room)" />
-                <Button class="p-button-danger" @click="removeRoom(room)">Remove</Button>
-              </span>
-            </div>
-          </template>
-          <template #content>
-            <div class="grid">
-              <div class="col">
-                <div v-for="roommate in room.roommates" :key="room.id + '_' + roommate">
-                  <Button class="p-button-danger minibutton" icon="pi pi-times" iconPos="right"
-                    @click="removeRoommate(room, roommate)" />
-                  <Button @click="editRequestByBadge(roommate)" icon="pi pi-cog" class="p-button-info minibutton"
-                    iconPos="right" />
-                  {{ badgeLookup[roommate] != undefined ? badgeLookup[roommate].public_name : "loading" }}
-                </div>
-              </div>
-              <div class="col notebox">
-                Messages
-                <Textarea v-model="room.messages" rows="3" @change="saveRoom(room)" />
-              </div>
-              <div class="col notebox">
-                Internal Notes
-                <Textarea v-model="room.notes" rows="3" @change="saveRoom(room)" />
-              </div>
-            </div>
-          </template>
-        </Card>
-        <Paginator :totalRecords="roomCount" :rows="10" :first="roomOffset" @page="roomPage($event)"></Paginator>
+    <div class="flex justify-content-between align-items-center flex-wrap gap-2">
+      <h3 class="mt-0 mb-0">Room Assignments</h3>
+      <div class="flex gap-2 align-items-center flex-wrap">
+        <Dropdown v-model="block" :options="blocks" optionLabel="name" optionValue="id"
+                  placeholder="Select a block" />
+        <Button label="Suggest Rooms" icon="pi pi-star" @click="suggestRooms"
+                :loading="suggesting" :disabled="!block" />
+        <Button label="Rematch All" icon="pi pi-refresh" class="p-button-outlined"
+                @click="rematchAll($event)" :disabled="!block" />
+        <Button label="Clear Suggestions" icon="pi pi-trash" class="p-button-outlined p-button-danger"
+                @click="clearSuggestions($event)" :disabled="!block" />
+        <Button label="New Room" icon="pi pi-plus" class="p-button-outlined" @click="createRoom"
+                :disabled="!block" />
       </div>
     </div>
 
-    <Dialog v-model:visible="showRoomInfo" :breakpoints="{ '1500px': '50vw', '1000px': '75vw', '500px': '95vw' }"
-      :style="{ width: '50vw' }">
-      <template #header>
-        <h3>{{ currentRoom.name }}</h3>
-      </template>
-
-      <div>
-        <div v-for="group in roomDetails[currentRoom.id].groups" :key="Object.keys(group)[0] + '_group'"
-          class="roommate_group">
-          <div v-for="roommate in group" :key="currentRoom.id + '_' + roommate.id">
-            {{ roommate.name }}
-            <Chip v-for="error in roommate.errors" :key="roommate.id + error" :label="error" />
+    <!-- Suggested rooms awaiting review -->
+    <div v-if="suggestedRooms.length" class="suggested-strip">
+      <div class="flex justify-content-between align-items-center">
+        <h4>Suggested Rooms — {{ suggestedRooms.length }} awaiting review</h4>
+        <div class="flex gap-2">
+          <Button label="Accept All" icon="pi pi-check" class="p-button-sm p-button-success"
+                  @click="acceptAll($event)" />
+          <Button label="Reject All" icon="pi pi-times" class="p-button-sm p-button-danger p-button-outlined"
+                  @click="clearSuggestions($event)" />
+        </div>
+      </div>
+      <div class="suggested-cards">
+        <div v-for="room in suggestedRooms" :key="room.id" class="suggested-card">
+          <div class="flex justify-content-between align-items-center">
+            <room-name :room-id="room.id" :name="room.name" />
+            <span class="error-count" v-if="errorCount(room)">
+              <i class="pi pi-exclamation-triangle" /> {{ errorCount(room) }}
+            </span>
+          </div>
+          <div class="occupants">
+            <div v-for="mate in roomRoommates(room)" :key="mate.id">
+              <attendee-name :badge-id="mate.id" :name="mate.name" />
+              <Chip v-for="error in mate.errors" :key="error" :label="error" class="error-chip" />
+            </div>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <Button label="Accept" icon="pi pi-check" class="p-button-sm p-button-success"
+                    @click="acceptRoom(room)" />
+            <Button label="Reject" icon="pi pi-times" class="p-button-sm p-button-danger p-button-outlined"
+                    @click="rejectRoom(room)" />
           </div>
         </div>
       </div>
+    </div>
 
-      <template #footer>
-        <Button label="Close" @click="cancelInfo" icon="pi pi-times" class="p-button-text" />
+    <div class="grid mt-2">
+      <!-- Unassigned request pool -->
+      <div class="col-12 lg:col-5">
+        <div class="flex justify-content-between align-items-center">
+          <h4>Unassigned Requests</h4>
+          <span class="p-input-icon-left">
+            <i class="pi pi-search" />
+            <InputText v-model="poolSearch" placeholder="Search requests" @change="reloadPool" />
+          </span>
+        </div>
+        <div class="filter-bar">
+          <Dropdown v-model="poolNight" :options="nightOptions" optionLabel="label" optionValue="value"
+                    placeholder="Any night" :showClear="poolNight !== null" title="Only people who requested this night" />
+          <Dropdown v-model="poolApproval" :options="approvalOptions" optionLabel="label" optionValue="value"
+                    title="Filter by night approval coverage" />
+          <Dropdown v-model="poolSort" :options="poolSortOptions" optionLabel="label" optionValue="value"
+                    title="Sort requests" />
+          <div class="field-checkbox mb-0">
+            <Checkbox id="poolroommates" v-model="poolRoommates" :binary="true" />
+            <label for="poolroommates" title="Only people who requested specific roommates">Has roommates</label>
+          </div>
+        </div>
+        <tuber-table v-if="block" ref="pool" :url="poolUrl" tableTitle="" formTitle="Request"
+                     :envelope="true" :parameters="poolParameters" :showActions="false" :showAdd="false"
+                     :rows="10" :onSelect="setSelection">
+          <template #controls><span></span></template>
+          <template #columns>
+            <Column selectionMode="multiple" headerStyle="width: 3em"></Column>
+            <Column field="public_name" header="Name">
+              <template #body="slotProps">
+                <attendee-name :badge-id="slotProps.data.badge" :name="slotProps.data.public_name" />
+              </template>
+            </Column>
+            <Column header="Nights">
+              <template #body="slotProps">
+                <Tag v-for="night in nightTags(slotProps.data)" :key="night.id" :severity="night.severity"
+                     :value="night.name" class="mr-1 mb-1" />
+              </template>
+            </Column>
+            <Column field="notes" header="Notes"></Column>
+          </template>
+        </tuber-table>
+        <p v-else>Select a hotel block to see requests.</p>
+      </div>
+
+      <!-- Rooms -->
+      <div class="col-12 lg:col-7">
+        <div class="flex justify-content-between align-items-center flex-wrap gap-2">
+          <h4>Rooms</h4>
+          <span class="p-input-icon-left">
+            <i class="pi pi-search" />
+            <InputText v-model="roomSearch" placeholder="Room or roommate name" @change="onRoomFilter" />
+          </span>
+        </div>
+        <div class="filter-bar">
+          <Dropdown v-model="roomStatus" :options="statusOptions" optionLabel="label" optionValue="value"
+                    title="Filter by room status" />
+          <Dropdown v-if="locations.length" v-model="roomLocation" :options="locationOptions"
+                    optionLabel="label" optionValue="value" placeholder="Any location"
+                    :showClear="roomLocation !== null" title="Filter by hotel location" />
+          <Dropdown v-model="roomSort" :options="roomSortOptions" optionLabel="label" optionValue="value"
+                    title="Sort rooms" />
+        </div>
+        <div class="room-cards">
+          <div v-for="room in rooms" :key="room.id" class="room-card"
+               :class="{ 'room-completed': room.completed, 'room-suggested': room.suggested }">
+            <div class="flex justify-content-between align-items-center">
+              <room-name :room-id="room.id" :name="room.name" />
+              <div class="flex gap-1">
+                <Button :icon="room.completed ? 'pi pi-check-circle' : 'pi pi-circle'"
+                        :class="['p-button-rounded p-button-text', room.completed ? 'p-button-success' : 'p-button-warning']"
+                        :title="room.completed ? 'Completed — click to reopen' : 'Click to mark completed'"
+                        @click="toggleRoomFlag(room, 'completed')" />
+                <Button :icon="room.locked ? 'pi pi-lock' : 'pi pi-lock-open'"
+                        :class="['p-button-rounded p-button-text', room.locked ? 'p-button-info' : 'p-button-warning']"
+                        :title="room.locked ? 'Locked' : 'Unlocked'"
+                        @click="toggleRoomFlag(room, 'locked')" />
+                <Button icon="pi pi-user-plus" class="p-button-rounded p-button-text"
+                        title="Add selected requests to this room"
+                        :disabled="!selection.length" @click="addSelected(room)" />
+                <Button icon="pi pi-star" class="p-button-rounded p-button-text"
+                        title="Suggest roommates" @click="openSuggestions(room)" />
+                <Button icon="pi pi-trash" class="p-button-rounded p-button-text p-button-danger"
+                        title="Delete room" @click="removeRoom($event, room)" />
+              </div>
+            </div>
+            <div class="occupants">
+              <div v-for="mate in roomRoommates(room)" :key="mate.id">
+                <attendee-name :badge-id="mate.id" :name="mate.name" />
+                <Chip v-for="error in mate.errors" :key="error" :label="error" class="error-chip" />
+              </div>
+              <div v-if="!roomRoommates(room).length" class="empty">Empty room</div>
+            </div>
+          </div>
+        </div>
+        <Paginator v-if="roomCount > 25" :rows="25" :totalRecords="roomCount"
+                   @page="onRoomPage($event)" />
+      </div>
+    </div>
+
+    <!-- Roommate suggestions -->
+    <Dialog v-model:visible="showSuggestions" modal :style="{ width: '45rem', maxWidth: '95vw' }">
+      <template #header>
+        <h3 class="mt-0 mb-0" v-if="suggestionRoom">
+          Suggested roommates for {{ suggestionRoom.name }}
+        </h3>
       </template>
+      <p v-if="suggestionsLoading">Scoring candidates...</p>
+      <p v-else-if="!suggestions.length">
+        No candidates found — everyone in this block is either housed in a completed room
+        or has no matching request.
+      </p>
+      <DataTable v-else :value="suggestions" class="p-datatable-sm">
+        <Column field="name" header="Name">
+          <template #body="slotProps">
+            <attendee-name :badge-id="slotProps.data.badge" :name="slotProps.data.name" />
+          </template>
+        </Column>
+        <Column field="score" header="Score" :sortable="true"></Column>
+        <Column header="Fit">
+          <template #body="slotProps">
+            <Tag v-if="!slotProps.data.missing_in_room.length" severity="success" value="Covers all nights" />
+            <Tag v-else severity="warning" :value="'Misses ' + slotProps.data.missing_in_room.length + ' night(s)'" />
+            <Tag v-if="slotProps.data.current_room" severity="info" value="Will move rooms" class="ml-1" />
+          </template>
+        </Column>
+        <Column header="">
+          <template #body="slotProps">
+            <Button icon="pi pi-user-plus" class="p-button-sm"
+                    @click="addSuggested(slotProps.data)" />
+          </template>
+        </Column>
+      </DataTable>
     </Dialog>
   </div>
 </template>
 
-<style>
-.roommate_group {
-  margin-bottom: 5px;
+<style scoped>
+.filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0.4rem 0 0.6rem 0;
 }
-
-.roommate_group:nth-child(2) {
-  background: darkblue;
+.filter-bar .p-dropdown {
+  min-width: 9rem;
 }
-
-.roommate_group:nth-child(3) {
-  background: darkgreen;
+.suggested-strip {
+  border: 1px solid var(--orange-300, #fcd34d);
+  background: rgba(245, 158, 11, 0.07);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  margin-top: 0.75rem;
 }
-
-.roommate_group:nth-child(4) {
-  background: darkred;
+.suggested-cards {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
 }
-
-.p-chip {
-  height: 15px;
-  font-size: x-small;
+.suggested-card {
+  border: 1px solid var(--surface-border, #dee2e6);
+  border-radius: 6px;
+  padding: 0.6rem;
+  min-width: 16rem;
+  background: var(--surface-card, white);
 }
-
-.notebox .p-inputtext {
-  width: 100%
+.room-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 65vh;
+  overflow-y: auto;
 }
-
-.p-card .p-card-content {
-  padding-top: 0;
-  padding-bottom: 0;
+.room-card {
+  border: 1px solid var(--surface-border, #dee2e6);
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
 }
-
-.p-button.p-button-icon-only.minibutton {
-  padding-top: 0;
-  padding-bottom: 0;
-  width: 19px;
-  margin-bottom: 2px;
-  margin-right: 2px;
+.room-completed {
+  opacity: 0.75;
+  border-left: 4px solid var(--green-500, #22c55e);
+}
+.room-suggested {
+  border-left: 4px solid var(--orange-400, #fbbf24);
+}
+.occupants {
+  margin-top: 0.4rem;
+}
+.occupants .empty {
+  color: var(--text-color-secondary, #6c757d);
+  font-style: italic;
+}
+.error-chip {
+  background: rgba(239, 68, 68, 0.15);
+  margin-left: 0.3rem;
+  font-size: 0.75rem;
+}
+.error-count {
+  color: var(--orange-500, #f59e0b);
 }
 </style>
 
 <script>
-import { reactive } from 'vue'
 import { mapGetters } from 'vuex'
 import { get, post, patch, del } from '../../lib/rest'
-import { FilterMatchMode } from 'primevue/api'
-import { ModelActionTypes } from '../../store/modules/models/actions'
-import RequestShortForm from '../../components/rooming/requests/RequestShortForm.vue'
+import TuberTable from '../../components/TuberTable.vue'
+import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
+import RoomName from '../../components/rooming/modals/RoomName.vue'
 
 export default {
   name: 'RoomAssignments',
-  props: [
-    ''
-  ],
   components: {
-    RequestShortForm
+    TuberTable,
+    AttendeeName,
+    RoomName
   },
   data: () => ({
-    roomSearchText: '',
-    badges: [],
+    block: null,
     blocks: [],
-    block: '',
-    loading: false,
-    hidecompleted: true,
-    requests: [],
+    nights: [],
+    locations: [],
     rooms: [],
-    requestFilters: {
-      global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      notes: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      search_name: { value: null, matchMode: FilterMatchMode.CONTAINS }
-    },
-    roomFilters: {
-      global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      name: { value: null, matchMode: FilterMatchMode.CONTAINS }
-    },
-    selectedRequests: [],
-    selectedRooms: [],
-    roomNights: [],
-    assignedNights: {},
-    lazyParams: {},
-    totalRequests: 0,
-    filteredRequests: [],
     roomCount: 0,
     roomOffset: 0,
-    showRoomInfo: false,
+    roomSearch: '',
+    roomStatus: 'incomplete',
+    roomLocation: null,
+    roomSort: 'modified_desc',
+    suggestedRooms: [],
     roomDetails: {},
-    currentRoom: null,
-    editingRequest: false,
-    editedRequest: null,
-    editedRequestID: null
+    selection: [],
+    poolSearch: '',
+    poolNight: null,
+    poolApproval: '',
+    poolRoommates: false,
+    poolSort: 'name_asc',
+    suggesting: false,
+    showSuggestions: false,
+    suggestionRoom: null,
+    suggestions: [],
+    suggestionsLoading: false,
+    approvalOptions: [
+      { label: 'Any approval', value: '' },
+      { label: 'Fully approved', value: 'full' },
+      { label: 'Needs approval', value: 'partial' }
+    ],
+    poolSortOptions: [
+      { label: 'Name A→Z', value: 'name_asc' },
+      { label: 'Name Z→A', value: 'name_desc' },
+      { label: 'Most nights', value: 'nights_desc' },
+      { label: 'Fewest nights', value: 'nights_asc' },
+      { label: 'Notes', value: 'notes_asc' }
+    ],
+    statusOptions: [
+      { label: 'All rooms', value: '' },
+      { label: 'Incomplete', value: 'incomplete' },
+      { label: 'Completed', value: 'completed' },
+      { label: 'Locked', value: 'locked' },
+      { label: 'Unlocked', value: 'unlocked' }
+    ],
+    roomSortOptions: [
+      { label: 'Recently modified', value: 'modified_desc' },
+      { label: 'Name A→Z', value: 'name_asc' },
+      { label: 'Name Z→A', value: 'name_desc' },
+      { label: 'Newest', value: 'created_desc' },
+      { label: 'Oldest', value: 'created_asc' }
+    ]
   }),
   computed: {
     ...mapGetters([
-      'event',
-      'departments'
+      'event'
     ]),
-    filteredRooms() {
-      const filtered = []
-      for (const room of this.rooms) {
-        if (this.hidecompleted) {
-          if (!room.completed) {
-            filtered.push(room)
-          }
-        } else {
-          filtered.push(room)
-        }
+    poolUrl () {
+      return '/api/event/<event>/hotel/' + this.block + '/request_search'
+    },
+    poolParameters () {
+      const [sort, order] = this.poolSort.split('_')
+      const params = {
+        search_term: this.poolSearch || '',
+        sort,
+        order
       }
-      return filtered.slice(0, 10)
-    },
-    roomNightLookup() {
-      const lookup = {}
-      for (const night of this.roomNights) {
-        lookup[night.id] = night
+      if (this.poolNight) {
+        params.night = this.poolNight
       }
-      return lookup
+      if (this.poolApproval) {
+        params.approval = this.poolApproval
+      }
+      if (this.poolRoommates) {
+        params.has_roommates = true
+      }
+      return params
     },
-    badgeLookup() {
-      const lookup = {}
-      this.badges.forEach((badge) => {
-        lookup[badge.id] = badge
-      })
-      return lookup
+    nightOptions () {
+      return [{ label: 'Any night', value: null }].concat(
+        this.nights.map((night) => ({ label: night.name, value: night.id })))
     },
-    blockLookup() {
-      const lookup = {}
-      this.blocks.forEach((block) => {
-        lookup[block.id] = block
-      })
-      return lookup
+    locationOptions () {
+      return [{ label: 'Any location', value: null }].concat(
+        this.locations.map((location) => ({ label: location.name, value: location.id })))
     }
   },
-  mounted() {
-    this.lazyParams = {
-      first: 0,
-      rows: this.$refs.dt.rows,
-      sortField: 'search_name',
-      sortOrder: 1,
-      filters: this.requestFilters
-    }
-    if (this.event) {
-      get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' }).then((roomNights) => {
-        this.roomNights = roomNights
-        this.getblocks().then(() => {
-          this.load()
-        })
-      })
-    }
+  mounted () {
+    this.load()
+    window.addEventListener('detailmodal-changed', this.refresh)
+  },
+  unmounted () {
+    window.removeEventListener('detailmodal-changed', this.refresh)
   },
   methods: {
-    async getblocks() {
+    async load () {
+      if (!this.event) {
+        return
+      }
+      this.nights = await get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' })
       this.blocks = await get('/api/event/' + this.event.id + '/hotel_room_block', { sort: 'name' })
-      if (this.blocks) {
+      this.locations = await get('/api/event/' + this.event.id + '/hotel_location', { sort: 'name' })
+      const fromQuery = parseInt(this.$route.query.block)
+      if (fromQuery && this.blocks.some((x) => x.id === fromQuery)) {
+        this.block = fromQuery
+      } else if (this.blocks.length && !this.block) {
         this.block = this.blocks[0].id
       }
     },
-    async load() {
-      this.loading = true
-      this.roomOffset = 0
-      this.badges = await get('/api/event/' + this.event.id + '/badge')
-      await this.fetchRooms()
-      await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
-      this.loading = false
+    async refresh () {
+      await this.loadRooms()
+      this.reloadPool()
     },
-    async fetchRooms() {
-      this.loading = true
-      try {
-        if (this.roomSearchText) {
-          const result = await get('/api/event/' + this.event.id + '/hotel/room_search', { search: this.roomSearchText, offset: this.roomOffset })
-          this.roomCount = result.count
-          this.rooms = result.hotel_rooms
-        } else {
-          let query = { full: true, limit: 25, offset: this.roomOffset, sort: 'modified', order: 'desc', count: true };
-          if (this.block != null) {
-            query.hotel_block = this.block;
-          }
-          if (this.hidecompleted) {
-            query.completed = false;
-          }
-          this.roomCount = await get('/api/event/' + this.event.id + '/hotel_room', query);
-          delete query.count;
-          this.rooms = await get('/api/event/' + this.event.id + '/hotel_room', query);
-        }
-      } catch (error) {
-        this.rooms = []
+    reloadPool () {
+      if (this.$refs.pool) {
+        this.$refs.pool.load()
       }
-      this.loading = false
     },
-    async fetchRequests() {
-      this.loading = true
+    setSelection (selection) {
+      this.selection = selection
+    },
+    async loadRooms () {
+      if (!this.block) {
+        return
+      }
+      const [sort, order] = this.roomSort.split('_')
+      const params = {
+        hotel_block: this.block,
+        suggested: false,
+        sort,
+        order,
+        limit: 25,
+        offset: this.roomOffset
+      }
+      if (this.roomStatus) {
+        params.status = this.roomStatus
+      }
+      if (this.roomLocation) {
+        params.hotel_location = this.roomLocation
+      }
+      if (this.roomSearch) {
+        params.search = this.roomSearch
+      }
+      const found = await get('/api/event/' + this.event.id + '/hotel/room_search', params)
+      this.rooms = found.hotel_rooms || []
+      this.roomCount = found.count || 0
+      this.suggestedRooms = await get('/api/event/' + this.event.id + '/hotel_room', {
+        full: true,
+        hotel_block: this.block,
+        suggested: true,
+        completed: false,
+        sort: 'id',
+        order: 'asc'
+      })
+      await this.loadRoomDetails()
+    },
+    async loadRoomDetails () {
+      const ids = this.rooms.map((x) => x.id).concat(this.suggestedRooms.map((x) => x.id))
+      if (!ids.length) {
+        this.roomDetails = {}
+        return
+      }
+      this.roomDetails = await get('/api/event/' + this.event.id + '/hotel/room_details',
+        { rooms: ids.join(',') })
+    },
+    roomRoommates (room) {
+      const details = this.roomDetails[room.id]
+      if (!details) {
+        return []
+      }
+      return Object.values(details.roommates)
+    },
+    errorCount (room) {
+      return this.roomRoommates(room).reduce((n, mate) => n + mate.errors.length, 0)
+    },
+    nightTags (request) {
+      return this.nights.filter((night) => request.requested_nights[night.id]).map((night) => ({
+        id: night.id,
+        name: night.name,
+        severity: request.approved_nights[night.id] ? 'success' : 'warning'
+      }))
+    },
+    async suggestRooms () {
+      this.suggesting = true
       try {
-        if (this.block === null) {
-          this.filteredRequests = [];
-          return
-        }
-        let requests = []
-        const searchRes = await get('/api/event/' + this.event.id + '/hotel/' + this.block + '/request_search', {
-          approved: true,
-          assigned: false,
-          search_term: this.lazyParams.filters.search_name.value != null ? this.lazyParams.filters.search_name.value : "",
-          full: true,
-          deep: true,
-          offset: this.lazyParams.first,
-          limit: this.lazyParams.rows,
-          sort: this.lazyParams.sortField,
-          order: this.lazyParams.sortOrder > 0 ? 'asc' : 'desc'
+        const res = await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/suggest_rooms', {})
+        this.$toast.add({
+          severity: 'info',
+          summary: res.created.length
+            ? 'Created ' + res.created.length + ' suggested room(s)'
+            : 'Nobody left to match',
+          life: 3000
         })
-        requests = searchRes.requests
-        this.totalRequests = searchRes.count
-        this.filteredRequests = reactive(requests)
-      } catch (error) {
-        this.filteredRequests = []
-        this.totalRequests = 0
+      } catch (e) {
+        this.$toast.add({ severity: 'error', summary: 'Matching Failed', life: 3000 })
       }
-      this.loading = false
+      this.suggesting = false
+      this.refresh()
     },
-    onPage(event) {
-      this.lazyParams = event
-      this.fetchRequests()
-    },
-    async roomPage(event) {
-      this.roomOffset = event.first
-      await this.fetchRooms()
-    },
-    onSort(event) {
-      this.lazyParams = event
-      this.fetchRequests()
-    },
-    onFilter() {
-      this.lazyParams.first = 0
-      this.lazyParams.filters = this.requestFilters
-      this.fetchRequests()
-    },
-    async createRoom() {
-      this.roomOffset = 0
-      const room = await post('/api/event/' + this.event.id + '/hotel_room', { hotel_block: this.block, name: 'New Room' })
-      return this.addRoommates(room)
-    },
-    async rematchAll(event) {
-      this.roomOffset = 0
+    rematchAll (event) {
       this.$confirm.require({
         target: event.currentTarget,
-        message: 'This will delete unlocked/incomplete rooms then recreate them. Are you sure?',
+        message: 'Discard current suggestions and produce a fresh batch?',
         icon: 'pi pi-exclamation-triangle',
-        accept: () => {
-          this.loading = true
-          post('/api/event/' + this.event.id + '/hotel/' + this.block + '/rematch_all', { weights: {} }).then(() => {
-            this.fetchRooms()
-            this.fetchRequests()
-            this.loading = false
-          })
-        },
-        reject: () => {
-
+        accept: async () => {
+          await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/rematch_all', {})
+          this.refresh()
         }
       })
     },
-    async removeRoom(room) {
-      this.roomOffset = 0
+    clearSuggestions (event) {
+      this.$confirm.require({
+        target: event.currentTarget,
+        message: 'Delete all unaccepted suggested rooms?',
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+          await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/clear_matches', {})
+          this.refresh()
+        }
+      })
+    },
+    async acceptRoom (room) {
+      await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id,
+        { id: room.id, completed: true, suggested: false })
+      this.refresh()
+    },
+    async rejectRoom (room) {
       await del('/api/event/' + this.event.id + '/hotel_room/' + room.id)
-      this.fetchRooms()
-      this.fetchRequests()
+      this.refresh()
     },
-    async roomInfo(room) {
-      this.roomDetails = await get('/api/event/' + this.event.id + '/hotel/room_details', { rooms: room.id })
-      this.currentRoom = room
-      this.showRoomInfo = true
-    },
-    async saveInfo(details) {
-
-    },
-    async cancelInfo() {
-      this.showRoomInfo = false
-    },
-    async removeRoommate(room, roommate) {
-      await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/room/' + room.id + '/remove_roommates', { roommates: [roommate] })
-      this.fetchRooms()
-      this.fetchRequests()
-    },
-    async addRoommates(room) {
-      const roommates = []
-      for (const roommate of this.selectedRequests) {
-        roommates.push(roommate.badge)
-      }
-      await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/room/' + room.id + '/add_roommates', { roommates: roommates })
-      this.fetchRooms()
-      this.fetchRequests()
-    },
-    async roomSearch() {
-      this.roomOffset = 0
-      this.fetchRooms()
-    },
-    async saveRoom(room) {
-      room.edit = false
-      try {
-        await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id, { id: room.id, completed: room.completed, locked: room.locked, notes: room.notes, name: room.name, messages: room.messages })
-        this.$toast.add({ severity: 'success', summary: 'Saved ' + room.name + ' successfully!', life: 500 })
-      } catch {
-        this.$toast.add({ severity: 'error', summary: 'Failed to save ' + room.name, life: 3000 })
-      }
-    },
-    completeRoom(room, completed) {
-      room.completed = completed
-      this.saveRoom(room)
-      this.fetchRooms()
-    },
-    lockRoom(room, locked) {
-      room.locked = locked
-      this.saveRoom(room)
-    },
-    async clearAutoMatches(evt) {
+    acceptAll (event) {
       this.$confirm.require({
         target: event.currentTarget,
-        message: 'This will delete unlocked/incomplete rooms. Are you sure?',
-        icon: 'pi pi-exclamation-triangle',
-        accept: () => {
-          this.loading = true
-          post('/api/event/' + this.event.id + '/hotel/' + this.block + '/clear_matches', { weights: {} }).then(() => {
-            this.fetchRooms()
-            this.fetchRequests()
-            this.loading = false
-          })
-        },
-        reject: () => {
-
+        message: 'Accept all ' + this.suggestedRooms.length + ' suggested rooms?',
+        icon: 'pi pi-question-circle',
+        accept: async () => {
+          for (const room of this.suggestedRooms) {
+            await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id,
+              { id: room.id, completed: true, suggested: false })
+          }
+          this.refresh()
         }
       })
     },
-    async editRequest(request) {
-      this.editedRequestID = request.id;
-      this.editedRequest = await get('/api/event/' + this.event.id + '/hotel/request/' + request.id);
-      this.editingRequest = true;
+    async createRoom () {
+      await post('/api/event/' + this.event.id + '/hotel_room',
+        { event: this.event.id, hotel_block: this.block, name: 'New Room' })
+      this.refresh()
     },
-    async editRequestByBadge(badgeID) {
-      const request = await get('/api/event/' + this.event.id + '/hotel_room_request', { badge: badgeID, full: true })
-      this.editedRequestID = request[0].id
-      this.editedRequest = await get('/api/event/' + this.event.id + '/hotel/request/' + request[0].id);
-      this.editingRequest = true;
+    async toggleRoomFlag (room, flag) {
+      const payload = { id: room.id }
+      payload[flag] = !room[flag]
+      if (flag === 'completed' && payload.completed && room.suggested) {
+        payload.suggested = false
+      }
+      await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id, payload)
+      Object.assign(room, payload)
+      if (flag === 'completed' && this.hideCompleted) {
+        this.loadRooms()
+      }
     },
-    saveRequest(request) {
-      patch('/api/event/' + this.event.id + '/hotel/request/' + this.editedRequestID, request).then(() => {
-        this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
-        this.editingRequest = false;
-        this.fetchRequests()
-        this.fetchRooms()
-      }).catch(() => {
-        this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })
+    removeRoom (event, room) {
+      this.$confirm.require({
+        target: event.currentTarget,
+        message: 'Delete this room? Occupants return to the pool.',
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+          await del('/api/event/' + this.event.id + '/hotel_room/' + room.id)
+          this.refresh()
+        }
       })
     },
-    cancelRequest() {
-      this.editingRequest = false;
+    async addSelected (room) {
+      const roommates = this.selection.map((x) => x.badge)
+      if (!roommates.length) {
+        return
+      }
+      await post('/api/event/' + this.event.id + '/hotel/' + this.block +
+        '/room/' + room.id + '/add_roommates', { roommates })
+      this.selection = []
+      this.refresh()
+    },
+    async openSuggestions (room) {
+      this.suggestionRoom = room
+      this.showSuggestions = true
+      this.suggestionsLoading = true
+      this.suggestions = []
+      try {
+        this.suggestions = await get('/api/event/' + this.event.id + '/hotel/room/' +
+          room.id + '/suggest_roommates', { limit: 10 })
+      } finally {
+        this.suggestionsLoading = false
+      }
+    },
+    async addSuggested (candidate) {
+      await post('/api/event/' + this.event.id + '/hotel/' + this.block +
+        '/room/' + this.suggestionRoom.id + '/add_roommates', { roommates: [candidate.badge] })
+      this.suggestions = this.suggestions.filter((x) => x.badge !== candidate.badge)
+      this.refresh()
+    },
+    onRoomPage (event) {
+      this.roomOffset = event.first
+      this.loadRooms()
+    },
+    onRoomFilter () {
+      this.roomOffset = 0
+      this.loadRooms()
     }
   },
   watch: {
-    event() {
-      this.rooms = []
-      this.roomNights = []
-      get('/api/event/' + this.event.id + '/hotel_room_night', { sort: 'date' }).then((roomNights) => {
-        this.roomNights = roomNights
-        this.getblocks().then(() => {
-          this.load()
-        })
-      })
+    event () {
+      this.load()
     },
-    block() {
-      this.fetchRequests()
-      this.fetchRooms()
+    block (value) {
+      const query = Object.assign({}, this.$route.query)
+      if (value) {
+        query.block = String(value)
+      } else {
+        delete query.block
+      }
+      if (JSON.stringify(query) !== JSON.stringify(this.$route.query)) {
+        this.$router.replace({ query })
+      }
+      this.onRoomFilter()
     },
-    hidecompleted() {
-      this.fetchRooms()
+    roomStatus () {
+      this.onRoomFilter()
+    },
+    roomLocation () {
+      this.onRoomFilter()
+    },
+    roomSort () {
+      this.onRoomFilter()
     }
   }
 }

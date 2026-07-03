@@ -194,12 +194,33 @@ def combine_rooms(rooms):
     return combined
 
 
-def load_staffers(db, event, hotel_block):
+def load_staffer_pool(db, event, hotel_block, badge_ids=None,
+                      exclude_assigned=True, exclude_completed_room=False):
+    """Load matcher staffer objects for a block.
+
+    exclude_assigned: only people with no room night assignments at all (the
+        classic matching pool).
+    exclude_completed_room: allow people with assignments unless any of them
+        is in a room marked completed (the roommate-suggestion pool).
+    badge_ids: restrict to specific badges (e.g. a room's current occupants),
+        ignoring the assignment filters.
+    """
     room_nights = db.query(HotelRoomNight).filter(
         HotelRoomNight.event == event).all()
-    requests = db.query(HotelRoomRequest, Badge).join(Badge, Badge.id == HotelRoomRequest.badge).filter(
-        ~HotelRoomRequest.room_night_assignments.any(), HotelRoomRequest.hotel_block == hotel_block,
-        or_(HotelRoomRequest.declined == None, HotelRoomRequest.declined == False)).all()
+    query = db.query(HotelRoomRequest, Badge).join(
+        Badge, Badge.id == HotelRoomRequest.badge).filter(
+        HotelRoomRequest.hotel_block == hotel_block,
+        or_(HotelRoomRequest.declined == None, HotelRoomRequest.declined == False))
+    if badge_ids is not None:
+        query = query.filter(HotelRoomRequest.badge.in_(badge_ids))
+    elif exclude_assigned:
+        query = query.filter(~HotelRoomRequest.room_night_assignments.any())
+    elif exclude_completed_room:
+        completed_badges = db.query(RoomNightAssignment.badge).join(
+            HotelRoom, RoomNightAssignment.hotel_room == HotelRoom.id).filter(
+            HotelRoom.event == event, HotelRoom.completed == True).subquery()
+        query = query.filter(~HotelRoomRequest.badge.in_(completed_badges.select()))
+    requests = query.all()
     staffers = []
     for request, badge in requests:
         staffer = HashNS()
@@ -253,23 +274,35 @@ def load_staffers(db, event, hotel_block):
     return staffers
 
 
-def clear_hotel_block(db, event, hotel_block):
+def load_staffers(db, event, hotel_block):
+    return load_staffer_pool(db, event, hotel_block)
+
+
+def clear_hotel_block(db, event, hotel_block, suggested_only=False):
+    """Delete matcher-created rooms in a block. With suggested_only (the
+       default behavior of the rematch/clear endpoints) hand-built rooms are
+       left alone; only unaccepted suggestions are removed."""
     rooms = db.query(HotelRoom).filter(HotelRoom.hotel_block == hotel_block,
-                                       HotelRoom.completed == False, HotelRoom.locked == False).all()
-    roommates = []
-    for room in rooms:
-        roommates.extend(room.roommates)
+                                       HotelRoom.completed == False, HotelRoom.locked == False)
+    if suggested_only:
+        rooms = rooms.filter(HotelRoom.suggested == True)
+    for room in rooms.all():
         db.delete(room)
     db.commit()
 
 
 def rematch_hotel_block(db, event, hotel_block):
-    clear_hotel_block(db, event, hotel_block)
+    clear_hotel_block(db, event, hotel_block, suggested_only=True)
+    return match_block(db, event, hotel_block)
 
+
+def match_block(db, event, hotel_block):
+    """Run the matcher over everyone in the block who has no assignments yet,
+       creating persisted suggested rooms for review. Returns created room ids."""
     start = time.perf_counter()
-    staffers = load_staffers(db, event, hotel_block)
+    staffers = load_staffer_pool(db, event, hotel_block)
     if not staffers:
-        return True
+        return []
     print(f"Load time: {time.perf_counter() - start}")
 
     start = time.perf_counter()
@@ -309,7 +342,8 @@ def rematch_hotel_block(db, event, hotel_block):
     hotels = []
     for idx, room in enumerate(all_rooms):
         hotel_room = HotelRoom(
-            event=event, hotel_block=hotel_block, name=f"Auto Room {idx}")
+            event=event, hotel_block=hotel_block,
+            name=f"Suggested Room {idx + 1}", suggested=True)
         db.add(hotel_room)
         hotels.append((room, hotel_room))
     db.flush()
@@ -323,4 +357,60 @@ def rematch_hotel_block(db, event, hotel_block):
             db.add(roommate.request)
     db.commit()
     print(unmapped)
-    return True
+    return [hotel_room.id for _, hotel_room in hotels]
+
+
+def suggest_roommates(db, event, room, limit=10):
+    """Rank the best additions to a room using the matcher's scoring.
+
+    Candidates are people in the room's block who are not in any completed
+    room (people sitting in incomplete or suggested rooms are fair game and
+    would be moved). Anti-request conflicts are skipped outright.
+    """
+    occupant_ids = {x.id for x in room.roommates}
+    pool = load_staffer_pool(db, event, room.hotel_block,
+                             exclude_assigned=False, exclude_completed_room=True)
+    # Occupants may not appear in the pool (e.g. declined since placement);
+    # load them explicitly so scoring sees the full room.
+    pool_ids = {x.id for x in pool}
+    missing_occupants = occupant_ids - pool_ids
+    if missing_occupants:
+        pool.extend(load_staffer_pool(db, event, room.hotel_block,
+                                      badge_ids=missing_occupants))
+    occupants = {x for x in pool if x.id in occupant_ids}
+    candidates = [x for x in pool if x.id not in occupant_ids]
+
+    room_night_ids = {x.room_night for x in room.room_night_assignments}
+    current_rooms = {}
+    if candidates:
+        for rna in db.query(RoomNightAssignment).filter(
+                RoomNightAssignment.badge.in_([x.id for x in candidates]),
+                RoomNightAssignment.hotel_room != None).all():
+            current_rooms[rna.badge] = rna.hotel_room
+
+    scored = []
+    for candidate in candidates:
+        try:
+            parts = score_room(occupants | {candidate})
+        except AntiRequestException:
+            continue
+        scored.append((sum(parts), parts, candidate))
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    results = []
+    for total, parts, candidate in scored[:limit]:
+        results.append({
+            "badge": candidate.id,
+            "name": candidate.name,
+            "score": round(total, 2),
+            "score_parts": {
+                "room_night": round(parts[0], 2),
+                "roommate": round(parts[1], 2),
+                "department": round(parts[2], 2),
+                "other": round(parts[3], 2),
+            },
+            "nights": sorted(candidate.room_nights),
+            "missing_in_room": sorted(room_night_ids - candidate.room_nights),
+            "current_room": current_rooms.get(candidate.id),
+        })
+    return results

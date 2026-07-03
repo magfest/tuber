@@ -16,6 +16,8 @@
       <AppFooter />
     </div>
 
+    <detail-modal-host />
+
     <transition name="layout-mask">
       <div class="layout-mask p-component-overlay" v-if="mobileMenuActive"></div>
     </transition>
@@ -32,6 +34,7 @@ import AppMenu from './AppMenu.vue'
 import AppFooter from './AppFooter.vue'
 import InitialSetup from './views/setup/InitialSetup.vue'
 import Login from './views/Login.vue'
+import DetailModalHost from './components/rooming/modals/DetailModalHost.vue'
 import { AppActionTypes } from './store/modules/app/actions'
 
 type ColorMode = 'dark' | 'light'
@@ -88,22 +91,16 @@ export default {
             permission: 'rooming.*.write',
             items: [
               {
-                label: 'Requests', icon: 'pi pi-fw pi-home', to: '/rooming/requests'
+                label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/rooming', permission: 'rooming.*.manage'
               },
               {
-                label: 'Approvals', icon: 'pi pi-fw pi-thumbs-up', to: '/rooming/approvals'
+                label: 'Requests', icon: 'pi pi-fw pi-home', to: '/rooming/requests', permission: 'rooming.*.manage'
               },
               {
                 label: 'Assignments', icon: 'pi pi-fw pi-sign-in', to: '/rooming/assignments'
               },
               {
-                label: 'Missing Shifts', icon: 'pi pi-fw pi-exclamation-triangle', to: '/rooming/missing_shifts', permission: 'rooming.*.manage'
-              },
-              {
-                label: 'Rooms', icon: 'pi pi-fw pi-list', to: '/rooming/rooms'
-              },
-              {
-                label: 'Blocks', icon: 'pi pi-fw pi-th-large', to: '/rooming/blocks'
+                label: 'Approvals', icon: 'pi pi-fw pi-thumbs-up', to: '/rooming/approvals'
               },
               {
                 label: 'Settings', icon: 'pi pi-fw pi-cog', to: '/rooming/settings'
@@ -290,7 +287,8 @@ export default {
     AppMenu: AppMenu,
     AppFooter: AppFooter,
     InitialSetup: InitialSetup,
-    Login: Login
+    Login: Login,
+    DetailModalHost: DetailModalHost
   }
 }
 </script>

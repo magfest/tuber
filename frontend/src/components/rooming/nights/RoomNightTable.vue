@@ -7,13 +7,12 @@
                 {{ slotProps.data.date ? slotProps.data.date.split(" ").slice(0, 4).join(" ") : "" }}
             </template>
         </Column>
-        <Column field="restricted" header="Restricted">
+        <Column field="restriction_mode" header="Restriction">
             <template #body="slotProps">
-                <i class="pi pi-check" v-if="slotProps.data.restricted" />
-                <i class="pi pi-times" v-else />
+                {{ modeLabel(slotProps.data) }}
             </template>
         </Column>
-        <Column field="restriction_type" header="Restriction"></Column>
+        <Column field="restriction_type" header="Label"></Column>
         <Column field="hidden" header="Hidden">
             <template #body="slotProps">
                 <i class="pi pi-check" v-if="slotProps.data.hidden" />
@@ -94,6 +93,15 @@ export default {
     edit (data) {
       this.edited = data.id
       this.editing = true
+    },
+    modeLabel (night) {
+      const labels = {
+        none: 'None',
+        shift_window: 'Shift window',
+        shift_hours: (night.shift_hours_required || 0) + '+ shift hours',
+        manual: 'Manual approval'
+      }
+      return labels[night.restriction_mode] || (night.restricted ? 'Shift window' : 'None')
     },
     cancel () {
       this.editing = false

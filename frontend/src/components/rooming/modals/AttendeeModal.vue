@@ -13,14 +13,63 @@
     </template>
 
     <div v-if="details">
-      <h4>Room Request</h4>
-      <Tag v-if="details.room_request && details.room_request.declined" severity="danger"
-           value="Declined hotel space" class="mb-2" />
-      <blockquote v-if="details.room_request && details.room_request.justification" class="justification">
-        {{ details.room_request.justification }}
-      </blockquote>
-      <p v-else-if="details.room_request">No justification given for restricted nights.</p>
-      <p v-else>This person has not started a room request.</p>
+      <div class="grid">
+        <div class="col-12 md:col-6">
+          <h4>Room Request</h4>
+          <Tag v-if="details.room_request && details.room_request.declined" severity="danger"
+               value="Declined hotel space" class="mb-2" />
+          <blockquote v-if="details.room_request && details.room_request.justification" class="justification">
+            {{ details.room_request.justification }}
+          </blockquote>
+          <p v-else-if="details.room_request">No justification given for restricted nights.</p>
+          <p v-else>This person has not started a room request.</p>
+          <template v-if="details.room_request">
+            <p v-if="details.room_request.notes"><b>Notes:</b> {{ details.room_request.notes }}</p>
+            <p v-if="details.room_request.roommate_requests.length">
+              <b>Requested roommates:</b>
+              <span v-for="(mate, i) in details.room_request.roommate_requests" :key="mate.id">
+                <attendee-name :badge-id="mate.id" :name="mate.name" /><span v-if="i < details.room_request.roommate_requests.length - 1">, </span>
+              </span>
+            </p>
+            <p v-if="details.room_request.roommate_anti_requests.length">
+              <b>Anti-requested:</b>
+              <span v-for="(mate, i) in details.room_request.roommate_anti_requests" :key="mate.id">
+                <attendee-name :badge-id="mate.id" :name="mate.name" /><span v-if="i < details.room_request.roommate_anti_requests.length - 1">, </span>
+              </span>
+            </p>
+            <p class="preferences">
+              <Tag v-if="details.room_request.prefer_single_gender" severity="info"
+                   :value="'Single gender: ' + (details.room_request.preferred_gender || '?')" class="mr-1" />
+              <Tag v-if="details.room_request.noise_level" severity="info"
+                   :value="details.room_request.noise_level" class="mr-1" />
+              <Tag v-if="details.room_request.sleep_time" severity="info"
+                   :value="'Sleeps: ' + details.room_request.sleep_time" class="mr-1" />
+              <Tag v-if="details.room_request.smoke_sensitive" severity="info"
+                   value="Smoke sensitive" class="mr-1" />
+            </p>
+            <Button label="Edit Full Request" icon="pi pi-pencil" class="p-button-sm p-button-outlined"
+                    @click="editingRequest = true" />
+          </template>
+        </div>
+        <div class="col-12 md:col-6">
+          <h4>Rooms</h4>
+          <p v-if="!details.rooms.length">Not assigned to any room.</p>
+          <div v-for="room in details.rooms" :key="room.id" class="room-summary">
+            <room-name :room-id="room.id" :name="room.name" />
+            <Tag v-if="room.completed" severity="success" value="Completed" class="ml-2" />
+            <Tag v-else-if="room.suggested" severity="warning" value="Suggested" class="ml-2" />
+            <Tag v-if="room.locked" severity="info" value="Locked" class="ml-2" />
+            <span v-if="room.block_name" class="ml-2">({{ room.block_name }})</span>
+            <div v-if="room.roommates.length" class="roommates">
+              with
+              <span v-for="(mate, i) in room.roommates" :key="mate.id">
+                <attendee-name :badge-id="mate.id" :name="mate.name" /><span v-if="i < room.roommates.length - 1">, </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <p class="hint">Click the icons to change whether a night is requested, approved, or assigned.
          Hover a night to highlight its shift window in the timeline below.</p>
 
@@ -36,9 +85,9 @@
             <i class="pi flag-btn" :class="night.requested ? 'pi-check-circle flag-on' : 'pi-minus-circle flag-off'"
                :title="(night.requested ? 'Requested' : 'Not requested') + ' — click to change'"
                role="button" @click="toggleRequested(night)" />
-            <i v-if="night.restricted" class="pi pi-briefcase"
+            <i v-if="night.restricted && night.mode !== 'manual'" class="pi pi-briefcase"
                :class="night.has_shift ? 'flag-on' : 'flag-bad'"
-               :title="night.has_shift ? 'Has an overlapping shift' : 'No overlapping shift'" />
+               :title="shiftTitle(night)" />
             <i class="pi pi-thumbs-up flag-btn" :class="night.approved ? 'flag-on' : 'flag-off'"
                :title="(night.approved ? 'Manually approved' : 'Not manually approved') + ' — click to change'"
                role="button" @click="toggleApproved(night)" />
@@ -46,7 +95,7 @@
                :title="(night.assigned ? 'Assigned to the night' : 'Not assigned') + ' — click to change'"
                role="button" @click="toggleAssigned(night)" />
           </div>
-          <small v-if="night.restricted" class="night-type">{{ night.restriction_type }}</small>
+          <small v-if="night.restricted" class="night-type">{{ nightModeLabel(night) }}</small>
         </div>
       </div>
 
@@ -89,6 +138,17 @@
           </template>
         </Column>
       </DataTable>
+
+      <Dialog v-model:visible="editingRequest" modal :style="{ width: '60rem', maxWidth: '95vw' }">
+        <template #header>
+          <h3 class="mt-0 mb-0">Edit Request — {{ details.name }}</h3>
+        </template>
+        <request-form v-if="details.room_request" ref="requestForm" :id="details.room_request.id" />
+        <template #footer>
+          <Button label="Cancel" class="p-button-text" @click="editingRequest = false" />
+          <Button label="Save" icon="pi pi-check" @click="saveRequest" />
+        </template>
+      </Dialog>
     </div>
   </Dialog>
 </template>
@@ -103,6 +163,14 @@
 .hint {
   color: var(--text-color-secondary, #6c757d);
   font-size: 0.9rem;
+}
+.room-summary {
+  margin-bottom: 0.5rem;
+}
+.room-summary .roommates {
+  font-size: 0.9rem;
+  color: var(--text-color-secondary, #6c757d);
+  margin-left: 1.25rem;
 }
 .night-grid {
   display: flex;
@@ -217,11 +285,19 @@
 import { mapGetters } from 'vuex'
 import { get, post } from '../../../lib/rest'
 import { resolveTimeZone, wallTimeInZone, formatInZone } from '../../../lib/eventtime'
+import AttendeeName from './AttendeeName.vue'
+import RoomName from './RoomName.vue'
+import RequestForm from '../requests/RequestForm.vue'
 
 const DAY = 24 * 60 * 60 * 1000
 
 export default {
-  name: 'MissingShiftDetails',
+  name: 'AttendeeModal',
+  components: {
+    AttendeeName,
+    RoomName,
+    RequestForm
+  },
   props: [
     'visible',
     'badgeId'
@@ -233,7 +309,8 @@ export default {
   data: () => ({
     details: null,
     hoverNight: null,
-    busy: false
+    busy: false,
+    editingRequest: false
   }),
   computed: {
     ...mapGetters([
@@ -250,7 +327,7 @@ export default {
         return []
       }
       return this.details.nights
-        .filter((n) => n.restricted && n.shift_starttime && n.shift_endtime)
+        .filter((n) => n.mode === 'shift_window' && n.shift_starttime && n.shift_endtime)
         .map((n) => {
           const start = new Date(n.shift_starttime).getTime()
           const end = new Date(n.shift_endtime).getTime()
@@ -313,10 +390,33 @@ export default {
         return
       }
       this.details = null
-      this.details = await get('/api/event/' + this.event.id + '/hotel/missing_shifts/' + this.badgeId)
+      this.details = await get('/api/event/' + this.event.id + '/hotel/attendee/' + this.badgeId)
     },
     isMissing (night) {
-      return night.restricted && night.requested && !night.has_shift
+      if (!night.restricted || !night.requested) {
+        return false
+      }
+      if (night.mode === 'manual') {
+        return !night.approved
+      }
+      return !night.has_shift
+    },
+    nightModeLabel (night) {
+      if (night.mode === 'shift_hours') {
+        return (night.restriction_type ? night.restriction_type + ' — ' : '') +
+          'needs ' + night.hours_required + 'h, has ' + night.hours_assigned + 'h'
+      }
+      const labels = { shift_window: 'shift window', manual: 'manual approval' }
+      return (night.restriction_type ? night.restriction_type + ' — ' : '') +
+        (labels[night.mode] || night.mode)
+    },
+    shiftTitle (night) {
+      if (night.mode === 'shift_hours') {
+        return night.has_shift
+          ? 'Has enough shift hours (' + night.hours_assigned + '/' + night.hours_required + 'h)'
+          : 'Not enough shift hours (' + night.hours_assigned + '/' + night.hours_required + 'h)'
+      }
+      return night.has_shift ? 'Has an overlapping shift' : 'No overlapping shift'
     },
     segHighlight (nightIds) {
       if (this.hoverNight === null) {
@@ -341,13 +441,19 @@ export default {
       this.busy = false
     },
     toggleRequested (night) {
-      this.toggle(night, '/hotel/missing_shifts/request', 'requested', !night.requested)
+      this.toggle(night, '/hotel/attendee/request', 'requested', !night.requested)
     },
     toggleApproved (night) {
-      this.toggle(night, '/hotel/missing_shifts/approve', 'approved', !night.approved)
+      this.toggle(night, '/hotel/attendee/approve', 'approved', !night.approved)
     },
     toggleAssigned (night) {
-      this.toggle(night, '/hotel/missing_shifts/assign', 'assigned', !night.assigned)
+      this.toggle(night, '/hotel/attendee/assign', 'assigned', !night.assigned)
+    },
+    async saveRequest () {
+      await this.$refs.requestForm.save()
+      this.editingRequest = false
+      this.$emit('changed')
+      this.load()
     },
     clipToDay (intervals, dayKey) {
       const dayStart = dayKey * DAY

@@ -93,11 +93,12 @@ class Badge(Base):
         primaryjoin="Badge.id == ShiftAssignment.badge",
         secondaryjoin="""and_(
             Shift.event == HotelRoomNight.event,
+            HotelRoomNight.restriction_mode == 'shift_window',
             Shift.starttime < HotelRoomNight.shift_endtime,
             (Shift.starttime + func.make_interval(0, 0, 0, 0, 0, 0, Shift.duration)) > HotelRoomNight.shift_starttime
         )""",
         viewonly=True,
-        doc="Hotel nights that overlap with this badge's assigned shifts."
+        doc="Shift-window nights where one of this badge's shifts overlaps the window."
     )
 
     # --- 2. RELATIONSHIP for Manual Approvals ---
@@ -112,18 +113,40 @@ class Badge(Base):
         viewonly=True,
         doc="Hotel nights manually approved for this badge."
     )
-    
+
+    @property
+    def shift_hours_nights(self):
+        """Shift-hours nights where this badge has enough total shift hours."""
+        from sqlalchemy import func as sqlfunc
+        from sqlalchemy.orm import object_session
+        from tuber.models.shift import Shift, ShiftAssignment
+        from tuber.models.hotel import HotelRoomNight
+        session = object_session(self)
+        nights = session.query(HotelRoomNight).filter(
+            HotelRoomNight.event == self.event,
+            HotelRoomNight.restriction_mode == 'shift_hours',
+            HotelRoomNight.shift_hours_required != None).all()
+        if not nights:
+            return []
+        seconds = session.query(sqlfunc.sum(Shift.duration)).join(
+            ShiftAssignment, ShiftAssignment.shift == Shift.id).filter(
+            ShiftAssignment.badge == self.id).scalar() or 0
+        hours = seconds / 3600
+        return [x for x in nights if hours >= x.shift_hours_required]
+
     @property
     def approved_hotel_nights(self):
         """
         Returns a distinct, sorted list of all approved hotel nights
         by combining results from the underlying relationships.
+        For bulk use, prefer tuber.api.night_approval.approved_night_ids.
         """
         all_nights = set()
         all_nights.update(self.shift_overlap_nights)
+        all_nights.update(self.shift_hours_nights)
         all_nights.update(self.manually_approved_nights)
         all_nights.update(self.event_obj.unrestricted_nights)
-        
+
         return list(all_nights)
 
 class Department(Base):
