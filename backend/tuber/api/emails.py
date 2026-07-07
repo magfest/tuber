@@ -8,7 +8,14 @@ import datetime
 import re
 import jinja2
 import jinja2.meta
-import lupa
+# Pin the Lua 5.1 backend: fakeredis (used by the tests' circuitbreaker
+# fixtures) loads lupa.lua51 to match Redis, and mixing a second Lua VM
+# (lupa's default picks the newest) into the same process has caused
+# segfaults. One backend for everyone; 5.1 also matches Redis scripting.
+try:
+    from lupa import lua51 as lupa
+except ImportError:
+    import lupa
 from tuber.api import *
 from tuber.models import *
 
