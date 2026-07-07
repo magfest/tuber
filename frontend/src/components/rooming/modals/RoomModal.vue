@@ -27,7 +27,8 @@
       </div>
 
       <p class="hint">Click a night cell to assign or unassign that night for that person.
-         Green = assigned here, blue outline = requested and approved, gray = not requested.</p>
+         Green = assigned here, blue outline = requested and approved,
+         orange outline = granted but not yet placed in a room, gray = not requested.</p>
       <table class="night-table">
         <thead>
           <tr>
@@ -50,6 +51,7 @@
                 @click="toggleNight(occupant, night)">
               <i v-if="occupant.nights[night.id].assigned" class="pi pi-check" />
               <i v-else-if="occupant.nights[night.id].assigned_room" class="pi pi-external-link" />
+              <i v-else-if="occupant.nights[night.id].roomless" class="pi pi-home" />
             </td>
             <td>
               <Chip v-for="error in occupant.errors" :key="error" :label="error" class="error-chip" />
@@ -116,6 +118,11 @@
 .night-cell.elsewhere {
   background: rgba(245, 158, 11, 0.2);
 }
+.night-cell.roomless {
+  background: rgba(245, 158, 11, 0.12);
+  box-shadow: inset 0 0 0 2px var(--orange-400, #fbbf24);
+  color: var(--orange-500, #f59e0b);
+}
 .error-chip {
   background: rgba(239, 68, 68, 0.15);
   margin: 0.1rem;
@@ -170,6 +177,9 @@ export default {
       if (status.assigned_room) {
         return 'elsewhere'
       }
+      if (status.roomless) {
+        return 'roomless'
+      }
       if (status.requested && status.approved) {
         return 'wanted'
       }
@@ -183,6 +193,9 @@ export default {
       if (status.assigned_room) {
         return 'Assigned to another room — click to move here'
       }
+      if (status.roomless) {
+        return 'Granted this night without a room — click to place here'
+      }
       if (status.requested && status.approved) {
         return 'Requested and approved — click to assign'
       }
@@ -191,6 +204,16 @@ export default {
       }
       return 'Not requested — click to assign anyway'
     },
+    async clearNightAssignments (occupant, night) {
+      // A night can carry several assignment rows (a room-less grant from the
+      // attendee view plus a room assignment), so always clear them all before
+      // writing a new one — a leftover NULL row otherwise shadows the update.
+      const assignments = await get('/api/event/' + this.event.id + '/room_night_assignment',
+        { badge: occupant.badge, room_night: night.id })
+      for (const assignment of assignments) {
+        await del('/api/event/' + this.event.id + '/room_night_assignment/' + assignment.id)
+      }
+    },
     async toggleNight (occupant, night) {
       if (this.busy) {
         return
@@ -198,30 +221,21 @@ export default {
       this.busy = true
       const status = occupant.nights[night.id]
       try {
+        await this.clearNightAssignments(occupant, night)
         if (status.assigned) {
-          const assignments = await get('/api/event/' + this.event.id + '/room_night_assignment',
-            { badge: occupant.badge, room_night: night.id })
-          for (const assignment of assignments) {
-            await del('/api/event/' + this.event.id + '/room_night_assignment/' + assignment.id)
-          }
           status.assigned = false
           status.assigned_room = null
         } else {
-          if (status.assigned_room) {
-            const assignments = await get('/api/event/' + this.event.id + '/room_night_assignment',
-              { badge: occupant.badge, room_night: night.id })
-            for (const assignment of assignments) {
-              await del('/api/event/' + this.event.id + '/room_night_assignment/' + assignment.id)
-            }
-          }
           await post('/api/event/' + this.event.id + '/room_night_assignment',
             { event: this.event.id, badge: occupant.badge, room_night: night.id, hotel_room: this.room.id })
           status.assigned = true
           status.assigned_room = this.room.id
         }
+        status.roomless = false
         this.$emit('changed')
       } catch (e) {
         this.$toast.add({ severity: 'error', summary: 'Update Failed', life: 3000 })
+        await this.load()
       }
       this.busy = false
     },

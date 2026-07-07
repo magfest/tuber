@@ -7,6 +7,7 @@ import RoomSettings from './views/rooming/Settings.vue'
 import RoomAssignments from './views/rooming/Assignments.vue'
 import RoomingDashboard from './views/rooming/RoomingDashboard.vue'
 import RoomRequests from './views/rooming/Requests.vue'
+import RoomList from './views/rooming/Rooms.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
 
@@ -66,7 +67,8 @@ const routes = [
   },
   {
     path: '/rooming/rooms',
-    redirect: '/rooming/assignments'
+    name: 'roomlist',
+    component: RoomList
   },
   {
     path: '/rooming/missing_shifts',

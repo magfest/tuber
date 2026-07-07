@@ -109,6 +109,29 @@ def test_attendees_filters(client):
     # Bob has an approved (unrestricted) night and no assignment.
     assert "Bob Badger" in unassigned and "Alice Aardvark" not in unassigned
 
+    # The old "roomless" state is folded into unassigned: a night granted
+    # without a room counts even when it isn't approved. Alice gets a
+    # room-less grant for the restricted night she isn't approved for...
+    # actually Alice is approved for everything, so grant Carol's slot to
+    # Alice on a brand-new unapproved manual night.
+    import datetime as _dt
+    manual_night = models.HotelRoomNight(
+        event=1, name="Manual", date=_dt.date(2025, 8, 9),
+        restriction_mode="manual")
+    db.add(manual_night)
+    db.flush()
+    db.add(models.RoomNightAssignment(
+        event=1, badge=s["alice"].id, room_night=manual_night.id,
+        hotel_room=None))
+    db.commit()
+    unassigned, _ = names("unassigned_approved")
+    assert "Alice Aardvark" in unassigned
+
+    # The removed filter name is rejected.
+    rv = client.get("/api/event/1/hotel/attendees",
+                    query_string={"filter": "roomless"})
+    assert rv.status_code == 400
+
     # Search and pagination.
     searched, count = names("all", search="badger")
     assert searched == {"Bob Badger"} and count == 1
@@ -168,6 +191,52 @@ def test_room_grid(client):
     assert rv.status_code == 404
 
 
+def test_room_grid_roomless_never_masks_assignment(client):
+    """A room-less grant (hotel_room=NULL) for the same night must not hide a
+       real room assignment in the grid, and is reported separately."""
+    import tuber.models as models
+    from tuber.database import db
+
+    s = _seed(db, models)
+    alice, room = s["alice"], s["room"]
+    window, friday = s["window"], s["open"]
+
+    # Alice ends up with BOTH a room-less grant and a real assignment for the
+    # window night (the attendee view granted it, then she was placed).
+    db.add(models.RoomNightAssignment(
+        event=1, badge=alice.id, room_night=window.id, hotel_room=None))
+    # And a room-less-only grant for a third night nobody placed yet.
+    saturday = models.HotelRoomNight(
+        event=1, name="Saturday", date=datetime.date(2025, 8, 8),
+        restriction_mode="none")
+    db.add(saturday)
+    db.flush()
+    db.add(models.RoomNightAssignment(
+        event=1, badge=alice.id, room_night=saturday.id, hotel_room=None))
+    db.commit()
+
+    rv = client.get(f"/api/event/1/hotel/room/{room.id}/details")
+    assert rv.status_code == 200
+    nights = rv.json["occupants"][0]["nights"]
+
+    # The real assignment wins regardless of row order.
+    window_status = nights[str(window.id)]
+    assert window_status["assigned"] is True
+    assert window_status["assigned_room"] == room.id
+    assert window_status["roomless"] is True
+
+    # A purely room-less night reads as unassigned but flagged.
+    saturday_status = nights[str(saturday.id)]
+    assert saturday_status["assigned"] is False
+    assert saturday_status["assigned_room"] is None
+    assert saturday_status["roomless"] is True
+
+    # An untouched assigned night is unaffected.
+    friday_status = nights[str(friday.id)]
+    assert friday_status["assigned"] is True
+    assert friday_status["roomless"] is False
+
+
 def test_attendee_detail_rooms(client):
     import tuber.models as models
     from tuber.database import db
@@ -215,5 +284,7 @@ def test_dashboard(client):
     assert issues["missing_shifts"]["link"]["filter"] == "missing_shifts"
     # Bob has an approved night without an assignment.
     assert issues["unassigned_approved"]["count"] == 1
+    # Roomless is folded into unassigned — no separate issue kind.
+    assert "roomless_assignments" not in issues
     # Alice's completed room has no roommate errors (mutual single occupant).
     assert "rooms_with_errors" not in issues or issues["rooms_with_errors"]["count"] == 0

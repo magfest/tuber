@@ -100,6 +100,9 @@ export default {
                 label: 'Assignments', icon: 'pi pi-fw pi-sign-in', to: '/rooming/assignments'
               },
               {
+                label: 'Rooms', icon: 'pi pi-fw pi-list', to: '/rooming/rooms'
+              },
+              {
                 label: 'Approvals', icon: 'pi pi-fw pi-thumbs-up', to: '/rooming/approvals'
               },
               {

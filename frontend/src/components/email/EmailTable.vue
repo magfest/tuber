@@ -2,7 +2,7 @@
   <div>
     <a ref="download" />
     <tuber-table tableTitle="Emails" formTitle="Email" url="/api/event/<event>/email" :parameters="parameters"
-      :filters="filters">
+      :filters="filters" :dialogStyle="{ width: '85vw' }">
 
       <template #columns>
         <Column field="name" filterField="name" header="Name" :sortable="true">

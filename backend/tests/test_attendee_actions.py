@@ -149,3 +149,41 @@ def test_attendee_detail(client):
 
     rv = client.get("/api/event/1/hotel/attendee/99999")
     assert rv.status_code == 404
+
+
+def test_attendees_sort_and_field_search(client):
+    """The attendees list sorts by any column and searches scoped fields."""
+    import tuber.models as models
+    from tuber.database import db
+
+    night, worker, slacker = _seed(db, models)
+    # Give the slacker distinguishing notes for the scoped search.
+    req = db.query(models.HotelRoomRequest).filter(
+        models.HotelRoomRequest.badge == slacker.id).one()
+    req.notes = "Needs a quiet room"
+    db.commit()
+
+    def names(**params):
+        rv = client.get("/api/event/1/hotel/attendees", query_string=params)
+        assert rv.status_code == 200
+        return [x["name"] for x in rv.json["results"]]
+
+    # Sorting: slacker requested 2 nights, worker 1.
+    assert names(sort="requested_nights", order="desc") == [
+        "No Shifts", "Setup Worker"]
+    assert names(sort="requested_nights", order="asc") == [
+        "Setup Worker", "No Shifts"]
+    assert names(sort="email", order="asc") == ["No Shifts", "Setup Worker"]
+    assert names(sort="missing", order="desc")[0] == "No Shifts"
+    assert names(sort="departments", order="desc")[0] == "No Shifts"
+    # Unknown sort keys fall back to the default name ordering.
+    assert names(sort="id") == ["No Shifts", "Setup Worker"]
+
+    # Field-scoped search.
+    assert names(search_field="notes", search="quiet") == ["No Shifts"]
+    assert names(search_field="departments", search="arcade") == ["No Shifts"]
+    assert names(search_field="email", search="worker@") == ["Setup Worker"]
+    assert names(search_field="name", search="setup") == ["Setup Worker"]
+    assert names(search_field="notes", search="nonexistent") == []
+    # Global search (no field) still matches names.
+    assert names(search="shifts") == ["No Shifts"]

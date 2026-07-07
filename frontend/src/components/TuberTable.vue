@@ -26,8 +26,8 @@
       </slot>
     </DataTable>
 
-    <Dialog v-model:visible="editing" :breakpoints="{ '1500px': '50vw', '1000px': '75vw', '500px': '95vw' }"
-      :style="{ width: '50vw' }">
+    <Dialog v-model:visible="editing" :breakpoints="{ '1000px': '85vw', '500px': '95vw' }"
+      :style="dialogStyle">
       <template #header>
         <h3>{{ formTitle }}</h3>
       </template>
@@ -175,6 +175,12 @@ export default {
       type: Boolean,
       default () {
         return true
+      }
+    },
+    dialogStyle: {
+      type: Object,
+      default () {
+        return { width: '50vw' }
       }
     }
   },
@@ -356,6 +362,13 @@ export default {
       if (this.eventSpecific) {
         this.load()
       }
+    },
+    // The url can embed path parameters (e.g. the selected hotel block), so a
+    // change means a different dataset: restart from the first page.
+    url () {
+      this.lazyParams.first = 0
+      this.selection = []
+      this.load()
     },
     instances () {
       if (this.instances.length > 0) {

@@ -28,7 +28,9 @@
             <li>{{ data.room_nights.approved }} approved</li>
             <li>{{ data.room_nights.assigned }} assigned</li>
             <li v-if="data.room_nights.roomless_assignments">
-              {{ data.room_nights.roomless_assignments }} assigned without a room
+              <router-link :to="{ path: '/rooming/requests', query: { afilter: 'unassigned_approved' } }">
+                {{ data.room_nights.roomless_assignments }} assigned without a room
+              </router-link>
             </li>
           </ul>
         </div>
@@ -129,8 +131,7 @@ import { get } from '../../lib/rest'
 const ISSUE_LABELS = {
   missing_shifts: 'people requested a restricted night without qualifying shifts',
   pending_manual_approvals: 'manual-approval nights awaiting a decision',
-  unassigned_approved: 'people with approved nights not yet assigned',
-  roomless_assignments: 'night assignments without a room',
+  unassigned_approved: 'people with nights ready to assign but no room',
   rooms_with_errors: 'completed rooms with unresolved issues',
   incomplete_requests: 'eligible people who have not finished a request',
   suggested_rooms_pending: 'suggested rooms awaiting review'

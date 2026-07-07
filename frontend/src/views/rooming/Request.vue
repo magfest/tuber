@@ -29,14 +29,16 @@
             against your photo ID at checkin time. This will be shared only with STOPS and the hotel.</p>
           <div class="formgrid grid">
             <div class="field col">
-              <label for="first_name">First Name</label>
+              <label for="first_name">First Name *</label>
               <InputText id="first_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64"
-                maxlength="64" v-model="request.first_name" />
+                maxlength="64" v-model="request.first_name"
+                :class="{ 'p-invalid': attempted && !hasFirstName }" />
             </div>
             <div class="field col">
-              <label for="last_name">Last Name</label>
+              <label for="last_name">Last Name *</label>
               <InputText id="last_name" class="inputfield w-full" type="text" :disabled="request.declined" counter="64"
-                maxlength="64" v-model="request.last_name" /><br>
+                maxlength="64" v-model="request.last_name"
+                :class="{ 'p-invalid': attempted && !hasLastName }" /><br>
             </div>
           </div>
 
@@ -49,11 +51,12 @@
             }}</label>
           </div>
 
-          <p v-if="justification_required">Please provide justification for requesting restricted nights:</p>
-          <Textarea v-model="request.room_night_justification" @input="blah" v-if="justification_required"
+          <p v-if="justification_required">Please provide justification for requesting restricted nights: *</p>
+          <Textarea v-model="request.room_night_justification" v-if="justification_required"
             :disabled="request.declined" :autoResize="true" rows="5" cols="50"
+            :class="{ 'p-invalid': attempted && !hasJustification }"
             placeholder="I'm helping with setup in <department>." maxlength="512"></Textarea>
-          <p v-if="justification_required">{{ request.room_night_justification.length }} / 200</p>
+          <p v-if="justification_required">{{ (request.room_night_justification || '').length }} / 512</p>
           <br><br>
 
           <h4>Who would you like to room with?</h4>
@@ -123,6 +126,11 @@
           <Dropdown :disabled="request.declined" v-model="request.sleep_time" :options="sleep_times"></Dropdown><br><br>
         </div>
 
+        <div v-if="attempted && validationErrors.length" class="validation-errors">
+          <p v-for="error in validationErrors" :key="error">
+            <i class="pi pi-exclamation-triangle" /> {{ error }}
+          </p>
+        </div>
         <Button type="submit" :disabled="invalidRoommates" @click="saveRequest">Save</Button>
 
       </form>
@@ -130,12 +138,18 @@
   </div>
 </template>
 
-<style>
-
+<style scoped>
+.validation-errors {
+  color: var(--red-600, #dc2626);
+  margin: 0.5rem 0;
+}
+.validation-errors p {
+  margin: 0.2rem 0;
+}
 </style>
 
 <script>
-import { get, post, patch } from '../../lib/rest'
+import { get, patch } from '../../lib/rest'
 import { mapGetters } from 'vuex'
 import { RoommateField } from '../../components/rooming'
 import { ModelActionTypes } from '../../store/modules/models/actions'
@@ -151,6 +165,7 @@ export default {
     loading: false,
     roommates: [1, 2],
     confirmation: false,
+    attempted: false,
     request: {
       declined: false,
       room_night_justification: '',
@@ -214,6 +229,37 @@ export default {
       }
       return false
     },
+    hasFirstName () {
+      return Boolean((this.request.first_name || '').trim())
+    },
+    hasLastName () {
+      return Boolean((this.request.last_name || '').trim())
+    },
+    hasNights () {
+      return (this.request.room_nights || []).some((night) => night.requested)
+    },
+    hasJustification () {
+      return Boolean((this.request.room_night_justification || '').trim())
+    },
+    validationErrors () {
+      if (this.request.declined) {
+        return []
+      }
+      const errors = []
+      if (!this.hasFirstName) {
+        errors.push('First name is required.')
+      }
+      if (!this.hasLastName) {
+        errors.push('Last name is required.')
+      }
+      if (!this.hasNights) {
+        errors.push('Please request at least one night (or decline a room).')
+      }
+      if (this.justification_required && !this.hasJustification) {
+        errors.push('A justification is required for the restricted nights you selected.')
+      }
+      return errors
+    },
     badge_departments () {
       if (!this.badge) {
         return []
@@ -267,33 +313,20 @@ export default {
       })
     },
     saveRequest () {
+      this.attempted = true
+      if (this.validationErrors.length) {
+        this.$toast.add({
+          severity: 'warn',
+          summary: 'Missing Required Fields',
+          detail: this.validationErrors.join(' '),
+          life: 5000
+        })
+        return
+      }
       patch('/api/event/' + this.event.id + '/hotel/request', this.request).then((request) => {
         this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: 'Your request has been saved. You may continue editing it until the deadline.', life: 3000 })
       }).catch(() => {
         this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
-      })
-    },
-    blah () {
-      const len = this.request.room_night_justification.length
-      const max = 200
-      if (len > max) {
-        this.request.room_night_justification = this.request.room_night_justification.slice(0, max)
-        this.request.room_night_justification += 'blah '.repeat(Math.floor((len - max) / 5))
-        if (this.request.room_night_justification.length < len) {
-          this.request.room_night_justification += 'blah '.slice(0, (len % 5))
-        }
-      }
-    },
-    submitRequest () {
-      post('/api/hotels/request', {
-        badge: self.badge.id,
-        request: self.request
-      }).then(() => {
-        self.loading = false
-        self.confirmation = true
-      }).catch(() => {
-        self.notify('Failed to submit hotel request.')
-        self.loading = false
       })
     }
   },

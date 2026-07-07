@@ -11,17 +11,25 @@
         </div>
       </template>
       <template #columns>
-        <Column field="name" header="Name">
+        <Column field="name" header="Name" :sortable="true" :showFilterMenu="false">
           <template #body="slotProps">
             <attendee-name :badge-id="slotProps.data.id" :name="slotProps.data.name" />
           </template>
+          <template #filter="{ filterModel, filterCallback }">
+            <InputText v-model="filterModel.value" @keydown.enter="filterCallback()"
+                       class="p-column-filter" placeholder="Search name" />
+          </template>
         </Column>
-        <Column field="departments" header="Departments">
+        <Column field="departments" header="Departments" :sortable="true" :showFilterMenu="false">
           <template #body="slotProps">
             {{ slotProps.data.departments.join(', ') }}
           </template>
+          <template #filter="{ filterModel, filterCallback }">
+            <InputText v-model="filterModel.value" @keydown.enter="filterCallback()"
+                       class="p-column-filter" placeholder="Search department" />
+          </template>
         </Column>
-        <Column field="hotel_block" header="Block">
+        <Column field="hotel_block" header="Block" :sortable="true">
           <template #body="slotProps">
             <Dropdown :modelValue="slotProps.data.hotel_block" :options="blockOptions"
                       optionLabel="name" optionValue="id" placeholder="No block" :showClear="true"
@@ -29,20 +37,26 @@
                       @update:modelValue="setBlock(slotProps.data, $event)" />
           </template>
         </Column>
-        <Column header="Status">
+        <Column field="status" header="Status" :sortable="true">
           <template #body="slotProps">
             <Tag v-if="slotProps.data.declined" severity="danger" value="Declined" />
             <Tag v-else-if="slotProps.data.completed" severity="success" value="Complete" />
             <Tag v-else severity="warning" value="Incomplete" />
           </template>
         </Column>
-        <Column field="requested_nights" header="Requested"></Column>
-        <Column field="approved_nights" header="Approved"></Column>
-        <Column field="assigned_nights" header="Assigned"></Column>
-        <Column header="Missing Shifts">
+        <Column field="requested_nights" header="Requested" :sortable="true"></Column>
+        <Column field="approved_nights" header="Approved" :sortable="true"></Column>
+        <Column field="assigned_nights" header="Assigned" :sortable="true"></Column>
+        <Column field="notes" header="Notes" :sortable="true" :showFilterMenu="false">
+          <template #filter="{ filterModel, filterCallback }">
+            <InputText v-model="filterModel.value" @keydown.enter="filterCallback()"
+                       class="p-column-filter" placeholder="Search notes" />
+          </template>
+        </Column>
+        <Column field="missing" header="Missing Shifts" :sortable="true">
           <template #body="slotProps">
             <Tag v-for="night in slotProps.data.missing_nights" :key="night.id"
-                 :severity="night.approved || night.assigned ? 'success' : 'warning'"
+                 :severity="night.approved || night.assigned ? 'warning' : 'danger'"
                  :value="nightLabel(night)" class="mr-1 mb-1" />
           </template>
         </Column>
@@ -72,11 +86,12 @@ export default {
       { label: 'Incomplete', value: 'incomplete' },
       { label: 'Declined', value: 'declined' },
       { label: 'Missing Shifts', value: 'missing_shifts' },
-      { label: 'Roomless', value: 'roomless' },
       { label: 'Unassigned', value: 'unassigned_approved' }
     ],
     filters: {
-      name: { value: null, matchMode: FilterMatchMode.CONTAINS }
+      name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+      departments: { value: null, matchMode: FilterMatchMode.CONTAINS },
+      notes: { value: null, matchMode: FilterMatchMode.CONTAINS }
     }
   }),
   computed: {

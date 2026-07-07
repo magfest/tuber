@@ -288,7 +288,8 @@ def room_search(event):
     offset = int(g.data.get('offset', '0'))
     limit = int(g.data.get('limit', '10'))
     rooms = query.order_by(sort).offset(offset).limit(limit).all()
-    return jsonify(hotel_rooms=HotelRoom.serialize(rooms, serialize_relationships=True), count=count), 200
+    serialized = HotelRoom.serialize(rooms, serialize_relationships=True)
+    return jsonify(hotel_rooms=serialized, results=serialized, count=count), 200
 
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/request_search", methods=["GET"])
@@ -680,13 +681,16 @@ def _attendees_data(event, mode="all", search=None, block=None):
     hours = shift_hours_totals(db, event, badge_ids)
     unrestricted = {x.id for x in nights.values() if x.restriction_mode == 'none'}
     assigned_nights = defaultdict(set)
-    roomless = set()
+    roomed_nights = defaultdict(set)
+    roomless_nights = defaultdict(set)
     for assignment in db.query(RoomNightAssignment).filter(
             RoomNightAssignment.event == event,
             RoomNightAssignment.badge.in_(badge_ids)).all():
         assigned_nights[assignment.badge].add(assignment.room_night)
         if assignment.hotel_room is None:
-            roomless.add(assignment.badge)
+            roomless_nights[assignment.badge].add(assignment.room_night)
+        else:
+            roomed_nights[assignment.badge].add(assignment.room_night)
 
     rows = []
     for req, badge in requests:
@@ -728,10 +732,12 @@ def _attendees_data(event, mode="all", search=None, block=None):
             continue
         if mode == "declined" and not req.declined:
             continue
-        if mode == "roomless" and badge.id not in roomless:
-            continue
-        if mode == "unassigned_approved" and not (
-                requested & approved - assigned_nights[badge.id]):
+        # Unassigned = nights that should be placed in a room but aren't:
+        # requested-and-approved nights with no room, plus nights granted
+        # without a room (the old "roomless" state), whatever their approval.
+        unassigned = ((requested & approved) | roomless_nights[badge.id]) \
+            - roomed_nights[badge.id]
+        if mode == "unassigned_approved" and not unassigned:
             continue
 
         rows.append({
@@ -748,6 +754,7 @@ def _attendees_data(event, mode="all", search=None, block=None):
             "requested_nights": len(requested),
             "approved_nights": len(requested & approved),
             "assigned_nights": len(assigned_nights[badge.id]),
+            "unassigned_nights": len(unassigned),
             "missing_nights": missing,
         })
     rows.sort(key=lambda x: x["name"] or "")
@@ -755,7 +762,30 @@ def _attendees_data(event, mode="all", search=None, block=None):
 
 
 ATTENDEE_FILTERS = ("all", "complete", "incomplete", "declined",
-                    "missing_shifts", "roomless", "unassigned_approved")
+                    "missing_shifts", "unassigned_approved")
+
+
+# Sort keys for the attendees list. Text fields sort case-insensitively and
+# None-safely; count fields numerically; missing by number of missing nights.
+ATTENDEE_SORTS = {
+    "name": lambda x: (x["name"] or "").lower(),
+    "email": lambda x: (x["email"] or "").lower(),
+    "notes": lambda x: (x["notes"] or "").lower(),
+    "hotel_block": lambda x: x["hotel_block"] or 0,
+    "departments": lambda x: [d.lower() for d in x["departments"]],
+    "status": lambda x: (2 if x["declined"] else (1 if x["completed"] else 0)),
+    "requested_nights": lambda x: x["requested_nights"] or 0,
+    "approved_nights": lambda x: x["approved_nights"] or 0,
+    "assigned_nights": lambda x: x["assigned_nights"] or 0,
+    "missing": lambda x: len(x["missing_nights"]),
+}
+
+ATTENDEE_SEARCH_FIELDS = {
+    "name": lambda x, term: term in (x["name"] or "").lower(),
+    "email": lambda x, term: term in (x["email"] or "").lower(),
+    "notes": lambda x, term: term in (x["notes"] or "").lower(),
+    "departments": lambda x, term: any(term in d.lower() for d in x["departments"]),
+}
 
 
 @app.route("/api/event/<int:event>/hotel/attendees", methods=["GET"])
@@ -766,12 +796,18 @@ def hotel_attendees(event):
     if mode not in ATTENDEE_FILTERS:
         return "Unknown filter", 400
     block = request.args.get("block", None, type=int)
-    rows = _attendees_data(event, mode, request.args.get("search"), block)
-    if request.args.get("sort") in ("requested_nights", "assigned_nights",
-                                    "approved_nights", "name"):
-        rows.sort(key=lambda x: x[request.args["sort"]] or 0
-                  if request.args["sort"] != "name" else (x["name"] or ""),
-                  reverse=request.args.get("order") == "desc")
+    search = request.args.get("search")
+    search_field = request.args.get("search_field")
+    if search and search_field in ATTENDEE_SEARCH_FIELDS:
+        # Field-scoped search filters the built rows below instead.
+        rows = _attendees_data(event, mode, None, block)
+        term = search.lower()
+        rows = [x for x in rows if ATTENDEE_SEARCH_FIELDS[search_field](x, term)]
+    else:
+        rows = _attendees_data(event, mode, search, block)
+    sort = ATTENDEE_SORTS.get(request.args.get("sort"))
+    if sort:
+        rows.sort(key=sort, reverse=request.args.get("order") == "desc")
     count = len(rows)
     offset = request.args.get("offset", 0, type=int)
     limit = request.args.get("limit", None, type=int)
@@ -831,11 +867,18 @@ def hotel_room_grid(event, room_id):
                 RoomNightRequest.badge.in_(badge_ids),
                 RoomNightRequest.requested == True).all():
             requested[night_request.badge].add(night_request.room_night)
+    # A badge can end up with several assignment rows for one night (e.g. a
+    # room-less grant from the attendee view plus a real room assignment), so
+    # keep room-less rows separate — a NULL must never mask a real room.
     assignments = defaultdict(dict)
+    roomless = defaultdict(set)
     if badge_ids:
         for rna in db.query(RoomNightAssignment).filter(
                 RoomNightAssignment.badge.in_(badge_ids)).all():
-            assignments[rna.badge][rna.room_night] = rna.hotel_room
+            if rna.hotel_room is None:
+                roomless[rna.badge].add(rna.room_night)
+            else:
+                assignments[rna.badge][rna.room_night] = rna.hotel_room
     blocks = {x.id: x.name for x in db.query(HotelRoomBlock).filter(
         HotelRoomBlock.event == event).all()}
     locations = {x.id: x.name for x in db.query(HotelLocation).filter(
@@ -853,6 +896,7 @@ def hotel_room_grid(event, room_id):
                 "approved": night.id in approved[badge.id],
                 "assigned": assignments[badge.id].get(night.id, None) == room.id,
                 "assigned_room": assignments[badge.id].get(night.id),
+                "roomless": night.id in roomless[badge.id],
             } for night in nights},
         })
     groups = [[badge_id for badge_id in group]
@@ -928,7 +972,7 @@ def hotel_dashboard(event):
         for x in attendees)
     unassigned_approved = len([
         x for x in attendees
-        if x["approved_nights"] > x["assigned_nights"] and not x["declined"]])
+        if x["unassigned_nights"] and not x["declined"]])
 
     issues = [
         {"kind": "missing_shifts", "count": len(missing),
@@ -937,8 +981,6 @@ def hotel_dashboard(event):
          "link": {"page": "approvals"}},
         {"kind": "unassigned_approved", "count": unassigned_approved,
          "link": {"page": "requests", "filter": "unassigned_approved"}},
-        {"kind": "roomless_assignments", "count": roomless_total,
-         "link": {"page": "requests", "filter": "roomless"}},
         {"kind": "rooms_with_errors", "count": len(rooms_with_errors),
          "rooms": rooms_with_errors,
          "link": {"page": "assignments"}},
@@ -1130,6 +1172,31 @@ def hotel_request_single_api(event, request_id):
         return "null", 200
 
 
+def _validate_room_request(event, data):
+    """Required-field checks for the staffer-facing request form. Declining a
+       room skips them all — that's a complete answer by itself."""
+    if data.get('declined'):
+        return []
+    errors = []
+    if not (data.get('first_name') or '').strip():
+        errors.append("First name is required.")
+    if not (data.get('last_name') or '').strip():
+        errors.append("Last name is required.")
+    requested_ids = [x.get('id') for x in data.get('room_nights', [])
+                     if x.get('requested')]
+    if not requested_ids:
+        errors.append("Please request at least one night (or decline a room).")
+    else:
+        restricted = db.query(HotelRoomNight).filter(
+            HotelRoomNight.event == event,
+            HotelRoomNight.id.in_(requested_ids),
+            HotelRoomNight.restriction_mode != 'none').count()
+        if restricted and not (data.get('room_night_justification') or '').strip():
+            errors.append(
+                "A justification is required for the restricted nights you selected.")
+    return errors
+
+
 @app.route("/api/event/<int:event>/hotel/request", methods=["GET", "PATCH"])
 def hotel_request_api(event):
     if not check_permission("rooming.*.request", event=event):
@@ -1145,6 +1212,12 @@ def hotel_request_api(event):
         HotelRoomRequest.badge == badge.id).one_or_none()
     if not hotel_request:
         return "Could not locate hotel room request", 404
+    if request.method == "PATCH":
+        # The admin route (hotel_request_single_api) stays lenient so partial
+        # states can be saved; the staffer form must be complete.
+        errors = _validate_room_request(event, g.data)
+        if errors:
+            return jsonify(errors=errors), 400
     return hotel_request_single_api(event, hotel_request.id)
 
 

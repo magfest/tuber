@@ -211,6 +211,9 @@ def export_rooms(event):
 
 def export_requests(event, hotel_room_requests):
     event_obj = db.query(Event).filter(Event.id == event).one()
+    if not event_obj.uber_url:
+        # Not every event syncs to Uber; saving a request locally is fine.
+        return
     headers = {
         'X-Auth-Token': event_obj.uber_apikey
     }

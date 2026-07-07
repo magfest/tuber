@@ -34,7 +34,7 @@
           </div>
 
           <p v-if="justification_required">Please provide justification for requesting restricted nights:</p>
-          <Textarea v-model="request.room_night_justification" @input="blah" v-if="justification_required" :disabled="request.declined" :autoResize="true" rows="5" cols="50" placeholder="I'm helping with setup in <department>." maxlength="512"></Textarea>
+          <Textarea v-model="request.room_night_justification" v-if="justification_required" :disabled="request.declined" :autoResize="true" rows="5" cols="50" placeholder="I'm helping with setup in <department>." maxlength="512"></Textarea>
           <br><br>
 
           <h4>Who would you like to room with?</h4>
@@ -212,21 +212,10 @@ export default {
     save () {
       if (this.id) {
         return patch(this.url, this.request).then(() => {
-          this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 300 })
+          this.$toast.add({ severity: 'success', summary: 'Saved Successfully', life: 3000 })
         }).catch(() => {
-          this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 300 })
+          this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
         })
-      }
-    },
-    blah () {
-      const len = this.request.room_night_justification.length
-      const max = 200
-      if (len > max) {
-        this.request.room_night_justification = this.request.room_night_justification.slice(0, max)
-        this.request.room_night_justification += 'blah '.repeat(Math.floor((len - max) / 5))
-        if (this.request.room_night_justification.length < len) {
-          this.request.room_night_justification += 'blah '.slice(0, (len % 5))
-        }
       }
     }
   },
