@@ -4,10 +4,14 @@
     <ConfirmPopup></ConfirmPopup>
     <div class="flex justify-content-between align-items-center flex-wrap gap-2">
       <h3 class="mt-0 mb-0">Rooms</h3>
-      <span class="p-input-icon-left">
-        <i class="pi pi-search" />
-        <InputText v-model="search" placeholder="Room or roommate name" @change="onFilter" />
-      </span>
+      <div class="flex gap-2 align-items-center">
+        <Button label="Export Passkey CSV" icon="pi pi-download" class="p-button-outlined"
+                title="Passkey-format CSV of all completed rooms" @click="exportPasskey" />
+        <span class="p-input-icon-left">
+          <i class="pi pi-search" />
+          <InputText v-model="search" placeholder="Room or roommate name" @change="onFilter" />
+        </span>
+      </div>
     </div>
     <div class="filter-bar">
       <Dropdown v-model="block" :options="blockOptions" optionLabel="label" optionValue="value"
@@ -197,6 +201,20 @@ export default {
         { id: room.id, hotel_block: blockId })
       room.hotel_block = blockId
       this.$toast.add({ severity: 'success', summary: 'Block Updated', life: 1500 })
+    },
+    async exportPasskey () {
+      const resp = await fetch('/api/event/' + this.event.id + '/hotel/export_passkey',
+        { credentials: 'include' })
+      if (!resp.ok) {
+        this.$toast.add({ severity: 'error', summary: 'Export Failed', life: 3000 })
+        return
+      }
+      const url = URL.createObjectURL(await resp.blob())
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'passkey_rooms.csv'
+      link.click()
+      URL.revokeObjectURL(url)
     },
     onFilter () {
       this.offset = 0
