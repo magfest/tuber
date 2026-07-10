@@ -55,6 +55,9 @@ export default {
   },
   methods: {
     async load () {
+      if (!this.event) {
+        return
+      }
       this.loading = true
       this.hotelRoomBlocks = await get('/api/event/' + this.event.id + '/hotel_room_block', { sort: 'name' })
       this.loading = false

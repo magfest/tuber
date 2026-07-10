@@ -88,7 +88,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, patch } from '../../lib/rest'
+import { get, patch, download } from '../../lib/rest'
 import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
 import RoomName from '../../components/rooming/modals/RoomName.vue'
 
@@ -153,6 +153,9 @@ export default {
       await this.loadRooms()
     },
     async loadRooms () {
+      if (!this.event) {
+        return
+      }
       this.loading = true
       const params = {
         sort: this.sort,
@@ -203,18 +206,12 @@ export default {
       this.$toast.add({ severity: 'success', summary: 'Block Updated', life: 1500 })
     },
     async exportPasskey () {
-      const resp = await fetch('/api/event/' + this.event.id + '/hotel/export_passkey',
-        { credentials: 'include' })
-      if (!resp.ok) {
+      try {
+        await download('/api/event/' + this.event.id + '/hotel/export_passkey',
+          'passkey_rooms.csv')
+      } catch (e) {
         this.$toast.add({ severity: 'error', summary: 'Export Failed', life: 3000 })
-        return
       }
-      const url = URL.createObjectURL(await resp.blob())
-      const link = document.createElement('a')
-      link.href = url
-      link.download = 'passkey_rooms.csv'
-      link.click()
-      URL.revokeObjectURL(url)
     },
     onFilter () {
       this.offset = 0

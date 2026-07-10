@@ -392,6 +392,9 @@ export default {
       this.selection = selection
     },
     async loadRooms () {
+      if (!this.event) {
+        return
+      }
       if (!this.block) {
         return
       }

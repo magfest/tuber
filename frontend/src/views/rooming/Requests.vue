@@ -68,7 +68,7 @@
 <script>
 import { mapGetters } from 'vuex'
 import { FilterMatchMode } from 'primevue/api'
-import { get, post } from '../../lib/rest'
+import { get, post, download } from '../../lib/rest'
 import TuberTable from '../../components/TuberTable.vue'
 import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
 
@@ -121,6 +121,9 @@ export default {
   },
   methods: {
     async load () {
+      if (!this.event) {
+        return
+      }
       this.blocks = await get('/api/event/' + this.event.id + '/hotel_room_block', { sort: 'name' })
     },
     reloadTable () {
@@ -148,18 +151,12 @@ export default {
     },
     async exportCsv () {
       const mode = this.$refs.table ? this.$refs.table.mode : 'missing_shifts'
-      const resp = await fetch('/api/event/' + this.event.id + '/hotel/attendees/export?filter=' + mode,
-        { credentials: 'include' })
-      if (!resp.ok) {
+      try {
+        await download('/api/event/' + this.event.id + '/hotel/attendees/export?filter=' + mode,
+          mode + '_attendees.csv')
+      } catch (e) {
         this.$toast.add({ severity: 'error', summary: 'Export Failed', life: 3000 })
-        return
       }
-      const url = URL.createObjectURL(await resp.blob())
-      const link = document.createElement('a')
-      link.href = url
-      link.download = mode + '_attendees.csv'
-      link.click()
-      URL.revokeObjectURL(url)
     }
   },
   watch: {

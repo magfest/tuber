@@ -84,6 +84,9 @@ export default {
   },
   methods: {
     async load () {
+      if (!this.event) {
+        return
+      }
       if (this.id) {
         this.badge = await get(this.url)
       }

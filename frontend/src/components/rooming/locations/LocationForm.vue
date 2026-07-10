@@ -45,6 +45,9 @@ export default {
   },
   methods: {
     load () {
+      if (!this.event) {
+        return
+      }
       if (this.id) {
         get(this.url).then((hotelLocation) => {
           this.hotelLocation = hotelLocation

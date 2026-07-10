@@ -157,6 +157,9 @@ export default {
   },
   methods: {
     async load () {
+      if (!this.event) {
+        return
+      }
       this.loading = true
       this.data = await get('/api/event/' + this.event.id + '/hotel/dashboard')
       this.loading = false

@@ -385,6 +385,9 @@ export default {
   },
   methods: {
     async load () {
+      if (!this.event) {
+        return
+      }
       if (!this.badgeId) {
         this.details = null
         return

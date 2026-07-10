@@ -136,10 +136,31 @@ async function del (url: string, data?: any, progressTracker?: ProgressTracker, 
   return await restFetch('DELETE', url, data, progressTracker, name)
 }
 
+// Fetch a file endpoint and trigger a browser download. Every /api request
+// must carry the CSRF token header, even GETs — a bare fetch() gets a 403.
+async function download (url: string, filename: string): Promise<void> {
+  const response = await fetch(url, {
+    headers: {
+      'CSRF-Token': VueCookieNext.getCookie('csrf_token')
+    },
+    credentials: 'include'
+  })
+  if (!response.ok) {
+    throw new Error(await response.text())
+  }
+  const blobUrl = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = blobUrl
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(blobUrl)
+}
+
 export {
   get,
   post,
   patch,
   del,
+  download,
   Progress
 }

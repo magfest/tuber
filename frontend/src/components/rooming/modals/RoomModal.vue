@@ -162,6 +162,9 @@ export default {
   },
   methods: {
     async load () {
+      if (!this.event) {
+        return
+      }
       if (!this.roomId) {
         this.room = null
         return

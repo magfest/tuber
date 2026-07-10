@@ -55,6 +55,9 @@ export default {
   },
   methods: {
     async load () {
+      if (!this.event) {
+        return
+      }
       this.loading = true
       this.hotelLocations = await get('/api/event/' + this.event.id + '/hotel_location')
       this.loading = false

@@ -359,7 +359,9 @@ export default {
   },
   watch: {
     event () {
-      if (this.eventSpecific) {
+      // On logout the event becomes null; an event-specific table has
+      // nothing to load (and would crash building its URL).
+      if (this.eventSpecific && this.event) {
         this.load()
       }
     },

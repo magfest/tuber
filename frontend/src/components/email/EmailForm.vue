@@ -272,6 +272,9 @@ export default {
   },
   methods: {
     async load () {
+      if (!this.event) {
+        return
+      }
       this.sources = await get('/api/event/' + this.event.id + '/email_source')
       this.runPreview('filter')
     },
@@ -298,6 +301,9 @@ export default {
       }, 700)
     },
     async runPreview (kind) {
+      if (!this.event) {
+        return
+      }
       // Rendering against one attendee is cheap; the full filter pass over
       // every attendee only runs when the filter code itself changed.
       const renderOnly = kind === 'render' && this.renderBadge !== null

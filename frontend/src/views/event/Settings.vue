@@ -58,6 +58,9 @@ export default {
       this.load()
     },
     async load () {
+      if (!this.event) {
+        return
+      }
       this.loading = true
       if (this.event) {
         this.eventModel = await get('/api/event/' + this.event.id)

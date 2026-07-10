@@ -119,6 +119,9 @@ export default {
   },
   methods: {
     load () {
+      if (!this.event) {
+        return
+      }
       if (this.id) {
         get(this.url, { sort: 'date' }).then((roomNight) => {
           if (!roomNight.restriction_mode) {

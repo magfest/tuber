@@ -202,6 +202,9 @@ export default {
   },
   methods: {
     async load () {
+      if (!this.event) {
+        return
+      }
       this.badges = await get('/api/event/' + this.event.id + '/badge')
       await this.$store.dispatch(ModelActionTypes.LOAD_DEPARTMENTS)
       if (this.id) {
