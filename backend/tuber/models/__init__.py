@@ -1,5 +1,5 @@
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 import sqlalchemy.inspection
 from sqlalchemy.types import JSON
 from sqlalchemy.sql import func

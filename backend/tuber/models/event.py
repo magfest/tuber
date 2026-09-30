@@ -1,7 +1,10 @@
 from tuber.models import Base, TimeZone
 from zoneinfo import ZoneInfo
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, and_
 from sqlalchemy.orm import relationship
+# HotelRoomNight is defined in a module imported after this one; the lambda
+# below resolves it when the mappers are configured.
+import tuber.models as models
 
 
 class Event(Base):
@@ -19,7 +22,8 @@ class Event(Base):
     
     unrestricted_nights = relationship(
         "HotelRoomNight",
-        primaryjoin="and_(Event.id == HotelRoomNight.event, HotelRoomNight.restriction_mode == 'none')",
+        primaryjoin=lambda: and_(Event.id == models.HotelRoomNight.event,
+                                 models.HotelRoomNight.restriction_mode == 'none'),
         viewonly=True
     )
     badges = relationship("Badge", back_populates="event_obj")

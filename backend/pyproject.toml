@@ -20,11 +20,10 @@ classifiers = [
 dependencies = [
     'requests',
     'alembic',
-    # SQLAlchemy 2.1 stopped evaluating string expressions in relationship()
-    # arguments (the join() strings on Badge.shifts and friends), so every
-    # request failed once a fresh image picked it up. Stay on 2.0 until the
-    # models are ported to lambdas.
-    'SQLAlchemy>=2.0,<2.1',
+    # Imported directly everywhere, so declare it rather than relying on
+    # alembic to pull it in. The models use lambdas for relationship joins,
+    # which is what 2.1 requires.
+    'SQLAlchemy>=2.0',
     'passlib',
     'flask>=1.0',
     'greenlet',

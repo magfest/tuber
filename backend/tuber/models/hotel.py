@@ -1,6 +1,6 @@
 from tuber.models import Base
 from .badge import Badge
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Date, Table, DateTime, event
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Date, Table, DateTime, event, select
 from sqlalchemy.orm import relationship
 
 
@@ -128,8 +128,19 @@ class HotelRoom(Base):
     suggested = Column(Boolean, default=False, server_default='false')
     room_night_assignments = relationship(
         'RoomNightAssignment', cascade="all, delete", passive_deletes=True)
-    roommates = relationship("Badge", secondary="room_night_assignment",
-                             primaryjoin=id == RoomNightAssignment.hotel_room, viewonly=True)
+    # `roommates` is attached below, once the hotel_room table exists.
+
+
+# One row per (room, person) even though the assignment table holds one per
+# night: SQLAlchemy 2.1 no longer de-duplicates lazily loaded collections, so
+# a two-night guest otherwise appears twice in HotelRoom.roommates. Built after
+# the class so the foreign keys the subquery copies can resolve.
+_room_occupants = select(RoomNightAssignment.hotel_room, RoomNightAssignment.badge).where(
+    RoomNightAssignment.hotel_room != None).distinct().subquery("room_occupants")
+HotelRoom.roommates = relationship(
+    "Badge", secondary=_room_occupants,
+    primaryjoin=HotelRoom.id == _room_occupants.c.hotel_room,
+    secondaryjoin=Badge.id == _room_occupants.c.badge, viewonly=True)
 
 
 class HotelLocation(Base):

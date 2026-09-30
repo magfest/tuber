@@ -2,6 +2,10 @@ from tuber.models import Base
 from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, cast, and_, Interval, union
 from sqlalchemy.orm import relationship, object_session
 from sqlalchemy.sql import select, func
+# The shift and hotel classes live in modules that import this one, so the
+# relationship lambdas below look them up through the package at mapper
+# configuration time rather than at import time.
+import tuber.models as models
 
 
 class BadgeToDepartment(Base):
@@ -87,16 +91,21 @@ class Badge(Base):
     shifts = relationship("Shift", secondary="shift_assignment", viewonly=True)
     
     # --- 1. RELATIONSHIP for Shift Overlaps ---
+    # Lambdas, not strings: SQLAlchemy 2.1 stopped evaluating Python
+    # expressions passed as strings to relationship().
     shift_overlap_nights = relationship(
         "HotelRoomNight",
-        secondary="join(ShiftAssignment, Shift, ShiftAssignment.shift == Shift.id)",
-        primaryjoin="Badge.id == ShiftAssignment.badge",
-        secondaryjoin="""and_(
-            Shift.event == HotelRoomNight.event,
-            HotelRoomNight.restriction_mode == 'shift_window',
-            Shift.starttime < HotelRoomNight.shift_endtime,
-            (Shift.starttime + func.make_interval(0, 0, 0, 0, 0, 0, Shift.duration)) > HotelRoomNight.shift_starttime
-        )""",
+        secondary=lambda: models.ShiftAssignment.__table__.join(
+            models.Shift.__table__,
+            models.ShiftAssignment.__table__.c.shift == models.Shift.__table__.c.id),
+        primaryjoin=lambda: Badge.id == models.ShiftAssignment.badge,
+        secondaryjoin=lambda: and_(
+            models.Shift.event == models.HotelRoomNight.event,
+            models.HotelRoomNight.restriction_mode == 'shift_window',
+            models.Shift.starttime < models.HotelRoomNight.shift_endtime,
+            (models.Shift.starttime + func.make_interval(0, 0, 0, 0, 0, 0, models.Shift.duration))
+            > models.HotelRoomNight.shift_starttime
+        ),
         viewonly=True,
         doc="Shift-window nights where one of this badge's shifts overlaps the window."
     )
@@ -105,11 +114,11 @@ class Badge(Base):
     manually_approved_nights = relationship(
         "HotelRoomNight",
         secondary="room_night_approval",
-        primaryjoin="Badge.id == RoomNightApproval.badge",
-        secondaryjoin="""and_(
-            RoomNightApproval.room_night == HotelRoomNight.id,
-            RoomNightApproval.approved == True
-        )""",
+        primaryjoin=lambda: Badge.id == models.RoomNightApproval.badge,
+        secondaryjoin=lambda: and_(
+            models.RoomNightApproval.room_night == models.HotelRoomNight.id,
+            models.RoomNightApproval.approved == True
+        ),
         viewonly=True,
         doc="Hotel nights manually approved for this badge."
     )
