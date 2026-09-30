@@ -194,7 +194,8 @@ export default {
     lazyParams: {},
     selection: [],
     selectAll: false,
-    mode: ''
+    mode: '',
+    loadSequence: 0
   }),
   computed: {
     ...mapGetters([
@@ -238,6 +239,10 @@ export default {
       if (this.neverload) {
         return
       }
+      // Loads overlap when the url or a filter changes while a slow request is
+      // still in flight. Only the newest load may write results; otherwise the
+      // late response for the previous dataset overwrites the current one.
+      const sequence = ++this.loadSequence
       this.isLoading = true
       const paginationParams = {
         offset: this.lazyParams.first,
@@ -260,12 +265,20 @@ export default {
       }
       if (this.envelope) {
         const data = await get(this.fullUrl, paginationParams)
+        if (sequence !== this.loadSequence) {
+          return
+        }
         this.instances = data.results
         this.totalRecords = data.count
       } else {
-        this.instances = await get(this.fullUrl, paginationParams)
+        const instances = await get(this.fullUrl, paginationParams)
         paginationParams.count = true
-        this.totalRecords = await get(this.fullUrl, paginationParams)
+        const totalRecords = await get(this.fullUrl, paginationParams)
+        if (sequence !== this.loadSequence) {
+          return
+        }
+        this.instances = instances
+        this.totalRecords = totalRecords
       }
       this.syncRoute()
     },

@@ -54,7 +54,9 @@
     </div>
 
     <div class="grid mt-2">
-      <!-- Unassigned request pool -->
+      <!-- Unassigned request pool. Keyed on the block so switching blocks mounts
+           a fresh table (first page, empty selection) instead of mutating the
+           old one while its last request may still be in flight. -->
       <div class="col-12 lg:col-5">
         <div class="flex justify-content-between align-items-center">
           <h4>Unassigned Requests</h4>
@@ -75,7 +77,7 @@
             <label for="poolroommates" title="Only people who requested specific roommates">Has roommates</label>
           </div>
         </div>
-        <tuber-table v-if="block" ref="pool" :url="poolUrl" tableTitle="" formTitle="Request"
+        <tuber-table v-if="block" :key="block" ref="pool" :url="poolUrl" tableTitle="" formTitle="Request"
                      :envelope="true" :parameters="poolParameters" :showActions="false" :showAdd="false"
                      :rows="10" :onSelect="setSelection">
           <template #controls><span></span></template>
@@ -278,6 +280,7 @@ export default {
     locations: [],
     rooms: [],
     roomCount: 0,
+    roomLoadSequence: 0,
     roomOffset: 0,
     roomSearch: '',
     roomStatus: 'incomplete',
@@ -398,6 +401,9 @@ export default {
       if (!this.block) {
         return
       }
+      // Same overlap problem as TuberTable.load: a block or filter change
+      // while a request is in flight must not let the old response win.
+      const sequence = ++this.roomLoadSequence
       const [sort, order] = this.roomSort.split('_')
       const params = {
         hotel_block: this.block,
@@ -417,9 +423,7 @@ export default {
         params.search = this.roomSearch
       }
       const found = await get('/api/event/' + this.event.id + '/hotel/room_search', params)
-      this.rooms = found.hotel_rooms || []
-      this.roomCount = found.count || 0
-      this.suggestedRooms = await get('/api/event/' + this.event.id + '/hotel_room', {
+      const suggested = await get('/api/event/' + this.event.id + '/hotel_room', {
         full: true,
         hotel_block: this.block,
         suggested: true,
@@ -427,15 +431,21 @@ export default {
         sort: 'id',
         order: 'asc'
       })
-      await this.loadRoomDetails()
-    },
-    async loadRoomDetails () {
-      const ids = this.rooms.map((x) => x.id).concat(this.suggestedRooms.map((x) => x.id))
-      if (!ids.length) {
-        this.roomDetails = {}
+      const details = await this.loadRoomDetails(
+        (found.hotel_rooms || []).concat(suggested).map((x) => x.id))
+      if (sequence !== this.roomLoadSequence) {
         return
       }
-      this.roomDetails = await get('/api/event/' + this.event.id + '/hotel/room_details',
+      this.rooms = found.hotel_rooms || []
+      this.roomCount = found.count || 0
+      this.suggestedRooms = suggested
+      this.roomDetails = details
+    },
+    async loadRoomDetails (ids) {
+      if (!ids.length) {
+        return {}
+      }
+      return get('/api/event/' + this.event.id + '/hotel/room_details',
         { rooms: ids.join(',') })
     },
     roomRoommates (room) {
@@ -530,7 +540,14 @@ export default {
       }
       await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id, payload)
       Object.assign(room, payload)
-      if (flag === 'completed' && this.hideCompleted) {
+      // Refetch when the status filter keys off the flag that just changed,
+      // so a room completed under "Incomplete" (or unlocked under "Locked")
+      // drops out of the list instead of lingering until the next reload.
+      const filteredBy = {
+        completed: ['completed', 'incomplete'],
+        locked: ['locked', 'unlocked']
+      }
+      if (filteredBy[flag].includes(this.roomStatus)) {
         this.loadRooms()
       }
     },
