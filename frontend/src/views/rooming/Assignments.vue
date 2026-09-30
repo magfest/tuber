@@ -38,9 +38,15 @@
             </span>
           </div>
           <div class="occupants">
-            <div v-for="mate in roomRoommates(room)" :key="mate.id">
+            <div v-for="mate in roomRoommates(room)" :key="mate.id" class="occupant">
               <attendee-name :badge-id="mate.id" :name="mate.name" />
               <Chip v-for="error in mate.errors" :key="error" :label="error" class="error-chip" />
+              <div v-if="mate.notes" class="staffer-note" :title="'From ' + mate.name + '\'s request'">
+                <i class="pi pi-comment" /> {{ mate.notes }}
+              </div>
+              <inline-note v-if="mate.request_id" compact :modelValue="mate.admin_notes || ''"
+                           @update:modelValue="mate.admin_notes = $event"
+                           :save="(text) => saveRequestNote(mate.request_id, text)" />
             </div>
           </div>
           <div class="flex gap-2 mt-2">
@@ -95,6 +101,13 @@
               </template>
             </Column>
             <Column field="notes" header="Notes"></Column>
+            <Column header="Admin Notes">
+              <template #body="slotProps">
+                <inline-note compact :modelValue="slotProps.data.admin_notes || ''"
+                             @update:modelValue="slotProps.data.admin_notes = $event"
+                             :save="(text) => saveRequestNote(slotProps.data.id, text)" />
+              </template>
+            </Column>
           </template>
         </tuber-table>
         <p v-else>Select a hotel block to see requests.</p>
@@ -142,11 +155,23 @@
               </div>
             </div>
             <div class="occupants">
-              <div v-for="mate in roomRoommates(room)" :key="mate.id">
+              <div v-for="mate in roomRoommates(room)" :key="mate.id" class="occupant">
                 <attendee-name :badge-id="mate.id" :name="mate.name" />
                 <Chip v-for="error in mate.errors" :key="error" :label="error" class="error-chip" />
+                <div v-if="mate.notes" class="staffer-note" :title="'From ' + mate.name + '\'s request'">
+                  <i class="pi pi-comment" /> {{ mate.notes }}
+                </div>
+                <inline-note v-if="mate.request_id" compact :modelValue="mate.admin_notes || ''"
+                             @update:modelValue="mate.admin_notes = $event"
+                             :save="(text) => saveRequestNote(mate.request_id, text)" />
               </div>
               <div v-if="!roomRoommates(room).length" class="empty">Empty room</div>
+            </div>
+            <div class="room-note">
+              <inline-note compact :modelValue="room.admin_notes || ''" label="room admin note"
+                           placeholder="Add room admin note"
+                           @update:modelValue="room.admin_notes = $event"
+                           :save="(text) => saveRoomNote(room, text)" />
             </div>
           </div>
         </div>
@@ -249,6 +274,21 @@
   color: var(--text-color-secondary, #6c757d);
   font-style: italic;
 }
+.occupant {
+  margin-bottom: 0.35rem;
+}
+.staffer-note {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--text-color-secondary, #6c757d);
+  margin-left: 1.2rem;
+  white-space: pre-wrap;
+}
+.room-note {
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed var(--surface-border, #dee2e6);
+}
 .error-chip {
   background: rgba(239, 68, 68, 0.15);
   margin-left: 0.3rem;
@@ -265,13 +305,16 @@ import { get, post, patch, del } from '../../lib/rest'
 import TuberTable from '../../components/TuberTable.vue'
 import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
 import RoomName from '../../components/rooming/modals/RoomName.vue'
+import InlineNote from '../../components/rooming/InlineNote.vue'
+import { saveRequestAdminNote, saveRoomAdminNote } from '../../lib/adminNotes'
 
 export default {
   name: 'RoomAssignments',
   components: {
     TuberTable,
     AttendeeName,
-    RoomName
+    RoomName,
+    InlineNote
   },
   data: () => ({
     block: null,
@@ -393,6 +436,12 @@ export default {
     },
     setSelection (selection) {
       this.selection = selection
+    },
+    saveRequestNote (requestId, text) {
+      return saveRequestAdminNote(this.event.id, requestId, text)
+    },
+    saveRoomNote (room, text) {
+      return saveRoomAdminNote(this.event.id, room.id, text)
     },
     async loadRooms () {
       if (!this.event) {

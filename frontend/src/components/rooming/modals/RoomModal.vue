@@ -44,6 +44,12 @@
           <tr v-for="occupant in room.occupants" :key="occupant.badge">
             <td class="occupant-name">
               <attendee-name :badge-id="occupant.badge" :name="occupant.name" />
+              <div v-if="occupant.notes" class="staffer-note" :title="'From ' + occupant.name + '\'s request'">
+                <i class="pi pi-comment" /> {{ occupant.notes }}
+              </div>
+              <inline-note v-if="occupant.request_id" compact :modelValue="occupant.admin_notes || ''"
+                           @update:modelValue="occupant.admin_notes = $event"
+                           :save="(text) => saveOccupantNote(occupant, text)" />
             </td>
             <td v-for="night in room.nights" :key="night.id" class="night-cell"
                 :class="cellClass(occupant, night)"
@@ -73,8 +79,12 @@
           <Textarea v-model="room.messages" rows="3" class="w-full" @change="saveField('messages')" />
         </div>
         <div class="col-12 md:col-6">
-          <h4>Internal Notes</h4>
+          <h4>Hotel notes (sent to the hotel)</h4>
           <Textarea v-model="room.notes" rows="3" class="w-full" @change="saveField('notes')" />
+        </div>
+        <div class="col-12">
+          <h4>Admin notes (internal, never exported)</h4>
+          <Textarea v-model="room.admin_notes" rows="3" class="w-full" @change="saveAdminNotes" />
         </div>
       </div>
     </div>
@@ -86,6 +96,12 @@
   font-size: 1.2rem;
   font-weight: 600;
   width: 16rem;
+}
+.staffer-note {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--text-color-secondary, #6c757d);
+  white-space: pre-wrap;
 }
 .hint {
   color: var(--text-color-secondary, #6c757d);
@@ -134,11 +150,14 @@
 import { mapGetters } from 'vuex'
 import { get, post, patch, del } from '../../../lib/rest'
 import AttendeeName from './AttendeeName.vue'
+import InlineNote from '../InlineNote.vue'
+import { saveRequestAdminNote, saveRoomAdminNote } from '../../../lib/adminNotes'
 
 export default {
   name: 'RoomModal',
   components: {
-    AttendeeName
+    AttendeeName,
+    InlineNote
   },
   props: [
     'visible',
@@ -171,6 +190,18 @@ export default {
       }
       this.room = null
       this.room = await get('/api/event/' + this.event.id + '/hotel/room/' + this.roomId + '/details')
+    },
+    saveOccupantNote (occupant, text) {
+      return saveRequestAdminNote(this.event.id, occupant.request_id, text)
+    },
+    async saveAdminNotes () {
+      try {
+        const saved = await saveRoomAdminNote(this.event.id, this.room.id, this.room.admin_notes || '')
+        this.room.admin_notes = saved.admin_notes || ''
+        this.$emit('changed')
+      } catch (e) {
+        this.$toast.add({ severity: 'error', summary: 'Could not save the admin note', life: 3000 })
+      }
     },
     cellClass (occupant, night) {
       const status = occupant.nights[night.id]

@@ -145,6 +145,10 @@ class Model_Base(object):
         def filter(field):
             if hasattr(field, "hidden") and field.hidden:
                 return False
+            # `internal` columns (the admin-only notes) are served and written
+            # only by their own endpoints, never through the generic API.
+            if getattr(field, "internal", False):
+                return False
             allow_r = set()
             allow_rw = set()
             if hasattr(field, "allow_r"):
@@ -202,6 +206,10 @@ class Model_Base(object):
         for key in instance.keys():
             if not hasattr(cls, key):
                 raise MalformedRequest(f"Table {name} has no field {key}")
+            column = cls.__table__.columns.get(key)
+            if column is not None and getattr(column, "internal", False):
+                raise PermissionDenied(
+                    f"{name}.{key} can only be changed through its own endpoint")
             field = getattr(cls, key)
             if hasattr(field, "allow_rw"):
                 if not instance_perms.intersection(field.allow_rw.union({"write", "*"})):

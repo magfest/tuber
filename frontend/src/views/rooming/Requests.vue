@@ -53,6 +53,17 @@
                        class="p-column-filter" placeholder="Search notes" />
           </template>
         </Column>
+        <Column field="admin_notes" header="Admin Notes" :sortable="true" :showFilterMenu="false">
+          <template #body="slotProps">
+            <inline-note :modelValue="slotProps.data.admin_notes || ''"
+                         @update:modelValue="slotProps.data.admin_notes = $event"
+                         :save="(text) => saveAdminNote(slotProps.data, text)" />
+          </template>
+          <template #filter="{ filterModel, filterCallback }">
+            <InputText v-model="filterModel.value" @keydown.enter="filterCallback()"
+                       class="p-column-filter" placeholder="Search admin notes" />
+          </template>
+        </Column>
         <Column field="missing" header="Missing Shifts" :sortable="true">
           <template #body="slotProps">
             <Tag v-for="night in slotProps.data.missing_nights" :key="night.id"
@@ -71,12 +82,15 @@ import { FilterMatchMode } from 'primevue/api'
 import { get, post, download } from '../../lib/rest'
 import TuberTable from '../../components/TuberTable.vue'
 import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
+import InlineNote from '../../components/rooming/InlineNote.vue'
+import { saveRequestAdminNote } from '../../lib/adminNotes'
 
 export default {
   name: 'RoomRequests',
   components: {
     TuberTable,
-    AttendeeName
+    AttendeeName,
+    InlineNote
   },
   data: () => ({
     block: null,
@@ -91,7 +105,8 @@ export default {
     filters: {
       name: { value: null, matchMode: FilterMatchMode.CONTAINS },
       departments: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      notes: { value: null, matchMode: FilterMatchMode.CONTAINS }
+      notes: { value: null, matchMode: FilterMatchMode.CONTAINS },
+      admin_notes: { value: null, matchMode: FilterMatchMode.CONTAINS }
     }
   }),
   computed: {
@@ -143,6 +158,9 @@ export default {
         label += ' — assigned'
       }
       return label
+    },
+    saveAdminNote (row, text) {
+      return saveRequestAdminNote(this.event.id, row.request_id, text)
     },
     async setBlock (row, blockId) {
       await post('/api/event/' + this.event.id + '/hotel/block_assignments',

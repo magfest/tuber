@@ -60,6 +60,14 @@
                :title="issues(slotProps.data).join('\n')" />
         </template>
       </Column>
+      <Column field="admin_notes" header="Admin Notes">
+        <template #body="slotProps">
+          <inline-note compact :modelValue="slotProps.data.admin_notes || ''" label="room admin note"
+                       placeholder="Add room admin note"
+                       @update:modelValue="slotProps.data.admin_notes = $event"
+                       :save="(text) => saveAdminNote(slotProps.data, text)" />
+        </template>
+      </Column>
       <Column field="modified" header="Last Modified" :sortable="true">
         <template #body="slotProps">
           {{ formatTimestamp(slotProps.data.modified) }}
@@ -91,12 +99,15 @@ import { mapGetters } from 'vuex'
 import { get, patch, download } from '../../lib/rest'
 import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
 import RoomName from '../../components/rooming/modals/RoomName.vue'
+import InlineNote from '../../components/rooming/InlineNote.vue'
+import { saveRoomAdminNote } from '../../lib/adminNotes'
 
 export default {
   name: 'RoomList',
   components: {
     AttendeeName,
-    RoomName
+    RoomName,
+    InlineNote
   },
   data: () => ({
     rooms: [],
@@ -183,6 +194,9 @@ export default {
         ? await get('/api/event/' + this.event.id + '/hotel/room_details', { rooms: ids.join(',') })
         : {}
       this.loading = false
+    },
+    saveAdminNote (room, text) {
+      return saveRoomAdminNote(this.event.id, room.id, text)
     },
     occupants (room) {
       const details = this.roomDetails[room.id]

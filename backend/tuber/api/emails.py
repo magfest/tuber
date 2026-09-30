@@ -62,6 +62,21 @@ def referenced_symbols(code, templates):
     return symbols & CONTEXT_KEYS
 
 
+class TemplateRequest:
+    """The room request as templates and Lua filters see it: every attribute
+       of the real request except the admin-only notes, which must never be
+       rendered into an email."""
+    _blocked = {"admin_notes"}
+
+    def __init__(self, request):
+        self._request = request
+
+    def __getattr__(self, name):
+        if name.startswith("_") or name in self._blocked:
+            raise AttributeError(name)
+        return getattr(self._request, name)
+
+
 def get_email_context(badge, tables, needed=None):
     """Build the filter/template context for one badge. With `needed` (a set
        of CONTEXT_KEYS), only those parts are computed — a large win when a
@@ -73,7 +88,7 @@ def get_email_context(badge, tables, needed=None):
     context = {
         "badge": badge,
         "event": event,
-        "hotel_request": request,
+        "hotel_request": TemplateRequest(request),
     }
     if "hotel_room_nights" in needed:
         context["hotel_room_nights"] = tables['HotelRoomNight']
@@ -150,7 +165,7 @@ def summarize_value(value, depth=0):
         return value.public_name
     if isinstance(value, HotelRoomNight):
         return value.name
-    if isinstance(value, HotelRoomRequest):
+    if isinstance(value, (HotelRoomRequest, TemplateRequest)):
         return {"declined": value.declined, "hotel_block": value.hotel_block,
                 "notes": summarize_value(value.notes, depth + 1)}
     if isinstance(value, Event):

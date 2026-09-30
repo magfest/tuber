@@ -24,7 +24,13 @@
           <p v-else-if="details.room_request">No justification given for restricted nights.</p>
           <p v-else>This person has not started a room request.</p>
           <template v-if="details.room_request">
-            <p v-if="details.room_request.notes"><b>Notes:</b> {{ details.room_request.notes }}</p>
+            <p v-if="details.room_request.notes"><b>Their notes:</b> {{ details.room_request.notes }}</p>
+            <div class="admin-note">
+              <b>Admin note:</b>
+              <inline-note :modelValue="details.room_request.admin_notes || ''"
+                           @update:modelValue="details.room_request.admin_notes = $event"
+                           :save="saveAdminNote" />
+            </div>
             <p v-if="details.room_request.roommate_requests.length">
               <b>Requested roommates:</b>
               <span v-for="(mate, i) in details.room_request.roommate_requests" :key="mate.id">
@@ -154,6 +160,9 @@
 </template>
 
 <style scoped>
+.admin-note {
+  margin: 0.5rem 0;
+}
 .justification {
   border-left: 4px solid var(--primary-color, #2196f3);
   margin: 0.5rem 0;
@@ -288,6 +297,8 @@ import { resolveTimeZone, wallTimeInZone, formatInZone } from '../../../lib/even
 import AttendeeName from './AttendeeName.vue'
 import RoomName from './RoomName.vue'
 import RequestForm from '../requests/RequestForm.vue'
+import InlineNote from '../InlineNote.vue'
+import { saveRequestAdminNote } from '../../../lib/adminNotes'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -296,7 +307,8 @@ export default {
   components: {
     AttendeeName,
     RoomName,
-    RequestForm
+    RequestForm,
+    InlineNote
   },
   props: [
     'visible',
@@ -451,6 +463,11 @@ export default {
     },
     toggleAssigned (night) {
       this.toggle(night, '/hotel/attendee/assign', 'assigned', !night.assigned)
+    },
+    async saveAdminNote (text) {
+      const saved = await saveRequestAdminNote(this.event.id, this.details.room_request.id, text)
+      this.$emit('changed')
+      return saved
     },
     async saveRequest () {
       await this.$refs.requestForm.save()

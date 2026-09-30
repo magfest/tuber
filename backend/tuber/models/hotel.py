@@ -77,6 +77,13 @@ class HotelRoomRequest(Base):
     smoke_sensitive = Column(Boolean, nullable=True)
     sleep_time = Column(String(), nullable=True)
     room_night_justification = Column(String(), nullable=True)
+    # Placement notes for the rooming admins only. `notes` above is the
+    # staffer's own text and goes to Uber as special needs; this never leaves
+    # the app. `internal` keeps it off the generic API, which staffers can
+    # write their own request through; edit it via
+    # /hotel/request/<id>/admin_notes instead.
+    admin_notes = Column(String(), nullable=True)
+    admin_notes.internal = True
     roommate_requests = relationship("Badge", secondary="hotel_roommate_request", foreign_keys=[
                                      HotelRoommateRequest.requested, HotelRoommateRequest.requester], primaryjoin=badge == HotelRoommateRequest.requester, secondaryjoin=Badge.id == HotelRoommateRequest.requested)
     roommate_anti_requests = relationship("Badge", secondary="hotel_anti_roommate_request", foreign_keys=[
@@ -105,8 +112,13 @@ class HotelRoom(Base):
     id = Column(Integer, primary_key=True)
     event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     name = Column(String(), nullable=True)
+    # `notes` goes to the hotel in the Passkey export and `messages` to the
+    # occupants by email; `admin_notes` is for the rooming admins only and
+    # never leaves the app (see HotelRoomRequest.admin_notes).
     notes = Column(String(), nullable=True)
     messages = Column(String(), nullable=True)
+    admin_notes = Column(String(), nullable=True)
+    admin_notes.internal = True
     hotel_block = Column(Integer, ForeignKey(
         'hotel_room_block.id', ondelete="CASCADE"))
     hotel_location = Column(Integer, ForeignKey(

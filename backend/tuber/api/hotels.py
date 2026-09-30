@@ -133,7 +133,10 @@ def _room_details_data(event, rooms):
                 "id": rna.badge,
                 "name": public_name,
                 "errors": set(),
-                "room_night_assignments": {}
+                "room_night_assignments": {},
+                "notes": None,
+                "admin_notes": None,
+                "request_id": None,
             }
             request_groups[rna.hotel_room][rna.badge] = []
         details[rna.hotel_room]['roommates'][rna.badge]['room_night_assignments'][rna.room_night] = rna.id
@@ -175,6 +178,10 @@ def _room_details_data(event, rooms):
         gender_prefs[hotel_room.id].add(
             config.gender_map.get(request.preferred_gender, "Unknown"))
     for hotel_room, request in hotel_rooms:
+        mate = details[hotel_room.id]['roommates'][request.badge]
+        mate['notes'] = request.notes
+        mate['admin_notes'] = request.admin_notes
+        mate['request_id'] = request.id
         for roommate_request in request.roommate_requests:
             if not roommate_request.id in request_groups[hotel_room.id][request.badge]:
                 request_groups[hotel_room.id][request.badge].append(
@@ -289,6 +296,9 @@ def room_search(event):
     limit = int(g.data.get('limit', '10'))
     rooms = query.order_by(sort).offset(offset).limit(limit).all()
     serialized = HotelRoom.serialize(rooms, serialize_relationships=True)
+    # Admin-only: the generic serializer leaves internal columns out.
+    for room, data in zip(rooms, serialized):
+        data['admin_notes'] = room.admin_notes
     return jsonify(hotel_rooms=serialized, results=serialized, count=count), 200
 
 
@@ -311,10 +321,11 @@ def request_search(event, hotel_block):
         HotelRoomRequest.room_night_requests.any(and_(RoomNightRequest.requested, not_(RoomNightRequest.id.in_(assigned_nights))))
     ).join(Badge, Badge.id == HotelRoomRequest.badge)
     if g.data.get('search_term'):
-        reqs = reqs.filter(
-            or_(Badge.search_name.contains(g.data['search_term'].lower()), func.lower(
-                HotelRoomRequest.notes).contains(g.data['search_term'].lower()))
-        )
+        term = g.data['search_term'].lower()
+        reqs = reqs.filter(or_(
+            Badge.search_name.contains(term),
+            func.lower(HotelRoomRequest.notes).contains(term),
+            func.lower(HotelRoomRequest.admin_notes).contains(term)))
     if g.data.get('night'):
         reqs = reqs.filter(HotelRoomRequest.room_night_requests.any(and_(
             RoomNightRequest.requested,
@@ -356,6 +367,7 @@ def request_search(event, hotel_block):
         "approved_nights": {x.id: x.id in approved[req.badge] and x.id in requested_map[req.id] for x in room_nights},
         "requested_nights": {x.id: x.id in requested_map[req.id] for x in room_nights},
         "notes": req.notes,
+        "admin_notes": req.admin_notes,
         "first_name": req.first_name,
         "last_name": req.last_name,
         "public_name": req.badge_obj.public_name,
@@ -631,6 +643,7 @@ def hotel_attendee_detail(event, badge_id):
             "id": room_request.id,
             "justification": room_request.room_night_justification,
             "notes": room_request.notes,
+            "admin_notes": room_request.admin_notes,
             "declined": room_request.declined,
             "hotel_block": room_request.hotel_block,
             "prefer_department": room_request.prefer_department,
@@ -756,6 +769,7 @@ def _attendees_data(event, mode="all", search=None, block=None):
             "declined": bool(req.declined),
             "completed": completed,
             "notes": req.notes,
+            "admin_notes": req.admin_notes,
             "request_id": req.id,
             "requested_nights": len(requested),
             "approved_nights": len(requested & approved),
@@ -777,6 +791,7 @@ ATTENDEE_SORTS = {
     "name": lambda x: (x["name"] or "").lower(),
     "email": lambda x: (x["email"] or "").lower(),
     "notes": lambda x: (x["notes"] or "").lower(),
+    "admin_notes": lambda x: (x["admin_notes"] or "").lower(),
     "hotel_block": lambda x: x["hotel_block"] or 0,
     "departments": lambda x: [d.lower() for d in x["departments"]],
     "status": lambda x: (2 if x["declined"] else (1 if x["completed"] else 0)),
@@ -790,6 +805,7 @@ ATTENDEE_SEARCH_FIELDS = {
     "name": lambda x, term: term in (x["name"] or "").lower(),
     "email": lambda x, term: term in (x["email"] or "").lower(),
     "notes": lambda x, term: term in (x["notes"] or "").lower(),
+    "admin_notes": lambda x, term: term in (x["admin_notes"] or "").lower(),
     "departments": lambda x, term: any(term in d.lower() for d in x["departments"]),
 }
 
@@ -897,6 +913,9 @@ def hotel_room_grid(event, room_id):
             "badge": badge.id,
             "name": badge.public_name,
             "errors": detail.get("errors", []),
+            "notes": detail.get("notes"),
+            "admin_notes": detail.get("admin_notes"),
+            "request_id": detail.get("request_id"),
             "nights": {night.id: {
                 "requested": night.id in requested[badge.id],
                 "approved": night.id in approved[badge.id],
@@ -912,6 +931,7 @@ def hotel_room_grid(event, room_id):
         "name": room.name,
         "notes": room.notes,
         "messages": room.messages,
+        "admin_notes": room.admin_notes,
         "completed": bool(room.completed),
         "locked": bool(room.locked),
         "suggested": bool(room.suggested),
@@ -1225,6 +1245,36 @@ def hotel_request_api(event):
         if errors:
             return jsonify(errors=errors), 400
     return hotel_request_single_api(event, hotel_request.id)
+
+
+def _set_admin_notes(model, event, instance_id, missing):
+    """Shared body of the two admin-note endpoints."""
+    if not check_permission("rooming.*.manage", event=event):
+        return "", 403
+    instance = db.query(model).filter(
+        model.id == instance_id, model.event == event).one_or_none()
+    if not instance:
+        return missing, 404
+    instance.admin_notes = (g.data.get('admin_notes') or '').strip() or None
+    db.add(instance)
+    db.commit()
+    return jsonify(id=instance.id, admin_notes=instance.admin_notes)
+
+
+@app.route("/api/event/<int:event>/hotel/request/<int:request_id>/admin_notes", methods=["PATCH"])
+def hotel_request_admin_notes(event, request_id):
+    """Admin-only note on a request. It is kept off the generic API (staffers
+       can write their own request there) and out of every export, so it never
+       reaches the staffer, Uber, the hotel, or an email template."""
+    return _set_admin_notes(HotelRoomRequest, event, request_id,
+                            "Could not locate hotel room request")
+
+
+@app.route("/api/event/<int:event>/hotel/room/<int:room_id>/admin_notes", methods=["PATCH"])
+def hotel_room_admin_notes(event, room_id):
+    """Admin-only note on a room. Unlike `notes` (Passkey export to the hotel)
+       and `messages` (occupant emails) it never leaves the app."""
+    return _set_admin_notes(HotelRoom, event, room_id, "Could not locate room")
 
 
 @app.route("/api/event/<int:event>/hotel/export_passkey", methods=["GET"])
