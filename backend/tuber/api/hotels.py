@@ -309,10 +309,12 @@ def request_search(event, hotel_block):
     
     room_nights = db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()
     
+    # A select(), not a bare subquery: SQLAlchemy 2.0 only warns about the
+    # coercion inside IN(), 2.1 refuses it.
     assigned_nights = db.query(RoomNightRequest.id).filter(RoomNightRequest.requested).join(
         RoomNightAssignment, and_(RoomNightAssignment.badge == RoomNightRequest.badge,
                                   RoomNightAssignment.room_night == RoomNightRequest.room_night)
-    ).subquery()
+    ).subquery().select()
 
     reqs = db.query(HotelRoomRequest).filter(
         HotelRoomRequest.event == event,
