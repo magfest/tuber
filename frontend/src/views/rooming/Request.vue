@@ -126,8 +126,8 @@
           <Dropdown :disabled="request.declined" v-model="request.sleep_time" :options="sleep_times"></Dropdown><br><br>
         </div>
 
-        <div v-if="attempted && validationErrors.length" class="validation-errors">
-          <p v-for="error in validationErrors" :key="error">
+        <div v-if="attempted && allErrors.length" class="validation-errors">
+          <p v-for="error in allErrors" :key="error">
             <i class="pi pi-exclamation-triangle" /> {{ error }}
           </p>
         </div>
@@ -154,6 +154,18 @@ import { mapGetters } from 'vuex'
 import { RoommateField } from '../../components/rooming'
 import { ModelActionTypes } from '../../store/modules/models/actions'
 
+// The backend answers an incomplete request with 400 {"errors": [...]} and
+// rest.ts surfaces that body as the Error message. Anything else is a real
+// failure and gets the generic toast.
+function serverErrors (err) {
+  try {
+    const body = JSON.parse(err && err.message)
+    return Array.isArray(body.errors) ? body.errors : []
+  } catch (e) {
+    return []
+  }
+}
+
 export default {
   name: 'RoomRequest',
   components: {
@@ -166,6 +178,7 @@ export default {
     roommates: [1, 2],
     confirmation: false,
     attempted: false,
+    serverErrors: [],
     request: {
       declined: false,
       room_night_justification: '',
@@ -260,6 +273,9 @@ export default {
       }
       return errors
     },
+    allErrors () {
+      return this.validationErrors.concat(this.serverErrors)
+    },
     badge_departments () {
       if (!this.badge) {
         return []
@@ -314,6 +330,7 @@ export default {
     },
     saveRequest () {
       this.attempted = true
+      this.serverErrors = []
       if (this.validationErrors.length) {
         this.$toast.add({
           severity: 'warn',
@@ -325,7 +342,17 @@ export default {
       }
       patch('/api/event/' + this.event.id + '/hotel/request', this.request).then((request) => {
         this.$toast.add({ severity: 'success', summary: 'Saved Successfully', detail: 'Your request has been saved. You may continue editing it until the deadline.', life: 3000 })
-      }).catch(() => {
+      }).catch((err) => {
+        this.serverErrors = serverErrors(err)
+        if (this.serverErrors.length) {
+          this.$toast.add({
+            severity: 'warn',
+            summary: 'Missing Required Fields',
+            detail: this.serverErrors.join(' '),
+            life: 5000
+          })
+          return
+        }
         this.$toast.add({ severity: 'error', summary: 'Save Failed.', detail: 'Please contact your server administrator for assistance.', life: 3000 })
       })
     }
@@ -333,6 +360,14 @@ export default {
   watch: {
     event () {
       this.loadRequest()
+    },
+    request: {
+      deep: true,
+      handler () {
+        // Server-reported errors describe the payload that was rejected;
+        // once the form changes they are stale, so drop them.
+        this.serverErrors = []
+      }
     }
   }
 }
