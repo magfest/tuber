@@ -12,7 +12,7 @@
       </slot>
     </div>
     <DataTable :value="formattedInstances" :loading="isLoading" dataKey="id" class="p-datatable-sm" ref="dt"
-      :paginator="true" :rows="rows" :lazy="true" :totalRecords="totalRecords" @page="onPage($event)"
+      :paginator="true" :rows="rows" :first="lazyParams.first" :lazy="true" :totalRecords="totalRecords" @page="onPage($event)"
       @sort="onSort($event)" :filterDisplay="filterDisplay" @filter="onFilter($event)" :filters="filters"
       v-model:selection="selection" @select-all-change="onSelectAllChange" :selectAll="selectAll" @row-select="onRowSelect" @row-unselect="onRowUnselect">
       <slot name="columns"></slot>
@@ -282,6 +282,12 @@ export default {
       }
       this.syncRoute()
     },
+    // For parents after a bulk action: the selection may now point at rows
+    // that left the current view, so drop it and refetch the page.
+    reload () {
+      this.selection = []
+      this.load()
+    },
     onModeChange (mode) {
       this.mode = mode
       this.lazyParams.first = 0
@@ -396,7 +402,9 @@ export default {
         this.isLoading = false
       }
     },
+    // New parameters mean a different dataset too: back to the first page.
     parameters () {
+      this.lazyParams.first = 0
       this.load()
     },
     selection () {

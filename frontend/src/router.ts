@@ -8,6 +8,7 @@ import RoomAssignments from './views/rooming/Assignments.vue'
 import RoomingDashboard from './views/rooming/RoomingDashboard.vue'
 import RoomRequests from './views/rooming/Requests.vue'
 import RoomList from './views/rooming/Rooms.vue'
+import RoomBlocks from './views/rooming/Blocks.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
 
@@ -76,7 +77,8 @@ const routes = [
   },
   {
     path: '/rooming/blocks',
-    redirect: '/rooming/requests'
+    name: 'roomblocks',
+    component: RoomBlocks
   },
   {
     path: '/rooming/settings',

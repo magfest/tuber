@@ -665,7 +665,10 @@ def _attendees_data(event, mode="all", search=None, block=None):
         HotelRoomRequest.event == event).options(
         selectinload(HotelRoomRequest.room_night_requests),
         selectinload(Badge.departments))
-    if block is not None:
+    if block == -1:
+        # The Blocks page's "no block yet" view.
+        requests = requests.filter(HotelRoomRequest.hotel_block == None)
+    elif block is not None:
         requests = requests.filter(HotelRoomRequest.hotel_block == block)
     if search:
         requests = requests.filter(or_(
@@ -732,6 +735,9 @@ def _attendees_data(event, mode="all", search=None, block=None):
             continue
         if mode == "declined" and not req.declined:
             continue
+        # Placeable people for the Blocks page: not declined, wants a night.
+        if mode == "active" and (req.declined or not requested):
+            continue
         # Unassigned = nights that should be placed in a room but aren't:
         # requested-and-approved nights with no room, plus nights granted
         # without a room (the old "roomless" state), whatever their approval.
@@ -762,7 +768,7 @@ def _attendees_data(event, mode="all", search=None, block=None):
 
 
 ATTENDEE_FILTERS = ("all", "complete", "incomplete", "declined",
-                    "missing_shifts", "unassigned_approved")
+                    "missing_shifts", "unassigned_approved", "active")
 
 
 # Sort keys for the attendees list. Text fields sort case-insensitively and

@@ -97,6 +97,9 @@ export default {
                 label: 'Requests', icon: 'pi pi-fw pi-home', to: '/rooming/requests', permission: 'rooming.*.manage'
               },
               {
+                label: 'Blocks', icon: 'pi pi-fw pi-th-large', to: '/rooming/blocks', permission: 'rooming.*.manage'
+              },
+              {
                 label: 'Assignments', icon: 'pi pi-fw pi-sign-in', to: '/rooming/assignments'
               },
               {
