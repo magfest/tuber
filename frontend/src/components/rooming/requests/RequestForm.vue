@@ -8,7 +8,7 @@
 
         <h4>Let us know if you don't want to apply for a room:</h4>
         <div class="field-checkbox">
-          <Checkbox id="decline" v-model="request.declined" :binary="true" />
+          <Checkbox inputId="decline" v-model="request.declined" :binary="true" />
           <label for="decline">I do NOT want a staff room.</label>
         </div><br>
 
@@ -29,8 +29,8 @@
           <h4>Which nights would you like a room?</h4>
           <p>Nights marked "Setup" or "Teardown" will require department head approval. Talk to your department head for details.</p>
           <div v-for="night in request.room_nights" :key="night.name" class="field-checkbox">
-            <Checkbox v-model="night.requested" :id="night.name" :disabled="request.declined" :binary="true" />
-            <label :for="night.name">{{ night.restricted ? night.name + ' (' + night.restriction_type + ')' : night.name }}</label>
+            <Checkbox v-model="night.requested" :inputId="'night_' + night.id" :disabled="request.declined" :binary="true" />
+            <label :for="'night_' + night.id">{{ night.restricted ? night.name + ' (' + night.restriction_type + ')' : night.name }}</label>
           </div>
 
           <p v-if="justification_required">Please provide justification for requesting restricted nights:</p>
@@ -48,8 +48,8 @@
 
           <h4>Would you prefer single gender rooming?</h4>
           <div class="field-checkbox">
-            <Checkbox class="my-n5" :disabled="request.declined" v-model="request.prefer_single_gender" :binary="true"/>
-            <label for="single_gender">Yes, I would prefer a single-gender room.</label>
+            <Checkbox inputId="prefer_single_gender" class="my-n5" :disabled="request.declined" v-model="request.prefer_single_gender" :binary="true"/>
+            <label for="prefer_single_gender">Yes, I would prefer a single-gender room.</label>
           </div>
 
           <div class="field">
@@ -69,7 +69,7 @@
 
           <h4>Would you prefer to room with other people in your department?</h4>
           <div class="field-checkbox">
-            <Checkbox :disabled="request.declined" v-model="request.prefer_department" :binary="true" />
+            <Checkbox inputId="prefer_department" :disabled="request.declined" v-model="request.prefer_department" :binary="true" />
             <label for="prefer_department">Yes, I would prefer to room with my department.</label>
           </div>
           <p v-if="request.prefer_department && badge.departments.length > 1">You are assigned to multiple departments. Select your preferred department to room with:</p>
@@ -81,7 +81,7 @@
 
           <h4>Would you prefer non-smoking roommates?</h4>
           <div class="field-checkbox">
-            <Checkbox :disabled="request.declined" v-model="request.smoke_sensitive" :binary="true"/><br>
+            <Checkbox inputId="smoke_sensitive" :disabled="request.declined" v-model="request.smoke_sensitive" :binary="true"/><br>
             <label for="smoke_sensitive">Yes, I would prefer non-smoking roommates.</label>
           </div><br>
 

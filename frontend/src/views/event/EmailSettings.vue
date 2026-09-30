@@ -34,11 +34,11 @@
                   optionLabel="name" optionValue="id" placeholder="Pick an event" class="w-full" />
       </div>
       <div class="field-checkbox">
-        <Checkbox id="import-emails" v-model="importEmails" :binary="true" />
+        <Checkbox inputId="import-emails" v-model="importEmails" :binary="true" />
         <label for="import-emails">Email templates</label>
       </div>
       <div class="field-checkbox">
-        <Checkbox id="import-sources" v-model="importSources" :binary="true" />
+        <Checkbox inputId="import-sources" v-model="importSources" :binary="true" />
         <label for="import-sources">Email sources (sender addresses and credentials)</label>
       </div>
       <template #footer>

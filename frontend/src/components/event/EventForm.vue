@@ -26,7 +26,7 @@
         </div>
 
         <div class="field-checkbox">
-            <Checkbox id="readonly" v-model="data.readonly" :binary="true" />
+            <Checkbox inputId="readonly" v-model="data.readonly" :binary="true" />
             <label for="readonly">Read-Only</label>
         </div>
 

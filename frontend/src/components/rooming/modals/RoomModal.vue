@@ -15,12 +15,12 @@
     <div v-if="room">
       <div class="flex gap-3 mb-3">
         <div class="field-checkbox mb-0">
-          <Checkbox id="room-completed" v-model="room.completed" :binary="true"
+          <Checkbox inputId="room-completed" v-model="room.completed" :binary="true"
                     @change="saveField('completed')" />
           <label for="room-completed">Completed</label>
         </div>
         <div class="field-checkbox mb-0">
-          <Checkbox id="room-locked" v-model="room.locked" :binary="true"
+          <Checkbox inputId="room-locked" v-model="room.locked" :binary="true"
                     @change="saveField('locked')" />
           <label for="room-locked">Locked</label>
         </div>

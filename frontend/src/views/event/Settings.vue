@@ -15,7 +15,7 @@
       </div>
 
       <div class="field-checkbox">
-        <Checkbox id="readonly" v-model="eventModel.readonly" :binary="true" />
+        <Checkbox inputId="readonly" v-model="eventModel.readonly" :binary="true" />
         <label for="readonly">Read-Only</label>
       </div>
 

@@ -22,7 +22,7 @@
         </div><br v-if="restricted">
 
         <div class="field-checkbox" v-if="restricted">
-            <Checkbox id="hidden" v-model="roomNight.hidden" :binary="true" />
+            <Checkbox inputId="hidden" v-model="roomNight.hidden" :binary="true" />
             <label for="hidden">Hidden</label>
         </div>
 

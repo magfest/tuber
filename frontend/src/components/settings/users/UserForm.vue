@@ -17,7 +17,7 @@
     </div>
 
     <div class="field-checkbox">
-      <Checkbox id="active" v-model="data.active" :binary="true" />
+      <Checkbox inputId="active" v-model="data.active" :binary="true" />
       <label for="active">Active</label>
     </div>
 

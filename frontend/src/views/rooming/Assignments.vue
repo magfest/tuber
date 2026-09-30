@@ -71,7 +71,7 @@
           <Dropdown v-model="poolSort" :options="poolSortOptions" optionLabel="label" optionValue="value"
                     title="Sort requests" />
           <div class="field-checkbox mb-0">
-            <Checkbox id="poolroommates" v-model="poolRoommates" :binary="true" />
+            <Checkbox inputId="poolroommates" v-model="poolRoommates" :binary="true" />
             <label for="poolroommates" title="Only people who requested specific roommates">Has roommates</label>
           </div>
         </div>

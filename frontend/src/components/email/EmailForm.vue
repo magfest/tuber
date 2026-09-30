@@ -19,11 +19,11 @@
                     </div>
                     <div class="field col-12 md:col-6 flags">
                         <div class="field-checkbox">
-                            <Checkbox id="active" v-model="data.active" :binary="true" />
+                            <Checkbox inputId="active" v-model="data.active" :binary="true" />
                             <label for="active">Active</label>
                         </div>
                         <div class="field-checkbox">
-                            <Checkbox id="send_once" v-model="data.send_once" :binary="true" />
+                            <Checkbox inputId="send_once" v-model="data.send_once" :binary="true" />
                             <label for="send_once">Send Once</label>
                         </div>
                     </div>
