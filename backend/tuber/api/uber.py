@@ -183,16 +183,16 @@ def export_rooms(event):
                                     for x in req.room_night_requests if x.requested]
                 req_nights = [room_nights_lookup[x]
                             for x in nights if x in room_nights_lookup and x in requested_nights]
-                request = create_request(
-                    event_obj.uber_url,
-                    headers,
-                    hrr[badge].uber_id,
-                    attendee_id=badges[badge].uber_id,
-                    special_needs=hrr[badge].notes,
-                    approved=True,
-                    nights=req_nights
-                )
-                hrr[badge].uber_id = request['id']
+                #request = create_request(
+                #    event_obj.uber_url,
+                #    headers,
+                #    hrr[badge].uber_id,
+                #    attendee_id=badges[badge].uber_id,
+                #    special_needs=hrr[badge].notes,
+                #    approved=True,
+                #    nights=req_nights
+                #)
+                #hrr[badge].uber_id = request['id']
                 db.add(hrr[badge])
             if not badge in assigned:
                 assigned.append(badge)
@@ -245,16 +245,16 @@ def export_requests(event, hotel_room_requests):
             continue
         req_nights = [room_nights_lookup[x]
                     for x in requested_nights if x in room_nights_lookup]
-        request = create_request(
-            event_obj.uber_url,
-            headers,
-            hrr[badge].uber_id,
-            attendee_id=badges[badge].uber_id,
-            special_needs=hrr[badge].notes,
-            approved=True,
-            nights=req_nights
-        )
-        req.uber_id = request['id']
+        #request = create_request(
+        #    event_obj.uber_url,
+        #    headers,
+        #    hrr[badge].uber_id,
+        #    attendee_id=badges[badge].uber_id,
+        #    special_needs=hrr[badge].notes,
+        #    approved=True,
+        #    nights=req_nights
+        #)
+        #req.uber_id = request['id']
         db.add(req)
 
     db.commit()
