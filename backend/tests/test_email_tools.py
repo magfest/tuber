@@ -1,3 +1,14 @@
+def _var(nodes, path):
+    """Find a node in the preview's variable tree by its full path."""
+    for node in nodes or []:
+        if node.get("path") == path:
+            return node
+        found = _var(node.get("children"), path)
+        if found:
+            return found
+    return None
+
+
 def _seed_preview(db, models):
     """Two badges with distinct names for filter/render checks."""
     alice = models.Badge(event=1, public_name="Alice Aardvark",
@@ -37,8 +48,29 @@ def test_email_preview(client):
     assert data["preview"]["body"] == "You requested 0 night(s)."
     assert data["render_error"] is None
     # The variables card covers the full context for the previewed attendee.
-    assert data["variables"]["badge"] == "Alice Aardvark"
-    assert data["variables"]["requested_nights"] == []
+    assert _var(data["variables"], "badge")["value"] == "Alice Aardvark"
+    assert _var(data["variables"], "requested_nights")["value"] == []
+    assert data["variables_for"] == "Alice Aardvark"
+    # Every property is listed, including nested model attributes and
+    # relationships described from the schema alone.
+    assert _var(data["variables"], "badge.first_name")["value"] == "Alice"
+    assert _var(data["variables"], "event.uber_slug") is not None
+    assert _var(data["variables"], "badge.departments")["type"] == "list of Department"
+    # Relationships of top-level models carry sample values; an empty one
+    # reports nil rather than leaving the value out.
+    assert _var(data["variables"], "badge.departments[0].name")["value"] is None
+    assert _var(data["variables"], "badge.emergency_contact_phone") is not None
+    assert _var(data["variables"], "hotel_request.admin_notes") is None
+    assert _var(data["variables"], "badge.hotel_room_request[0].admin_notes") is None
+    assert _var(data["variables"], "event.uber_apikey") is None
+
+    # Lua's length operator works on Python lists and dicts.
+    rv = client.post("/api/event/1/email/preview", json={
+        "code": "return function(c) return #c.requested_nights == 0 and #c.hotel_room_nights == 0 end",
+        "subject": "", "body": "",
+    })
+    assert rv.json["filter_errors"] == []
+    assert rv.json["matched_count"] == 2
 
     # Non-matches view lists everyone the filter excludes.
     rv = client.post("/api/event/1/email/preview", json={
@@ -61,6 +93,10 @@ def test_email_preview(client):
     assert data["matched_count"] == 0
     assert len(data["attendees"]) == 2
     assert data["attendees"][0]["pertinent"] == {"requested_nights": []}
+    # With nobody matched, the Filter tab still gets a sample context.
+    assert data["preview"] is None
+    assert data["variables_for"] in ("Alice Aardvark", "Bob Badger")
+    assert _var(data["variables"], "badge.email") is not None
 
     # Previewing against a specific (even unmatched) attendee.
     rv = client.post("/api/event/1/email/preview", json={
@@ -76,6 +112,7 @@ def test_email_preview(client):
         "code": "return function(c", "subject": "", "body": ""})
     assert rv.status_code == 200
     assert rv.json["filter_errors"]
+    assert _var(rv.json["variables"], "badge.first_name") is not None
 
     # Broken Jinja reports a render error but still identifies matches.
     rv = client.post("/api/event/1/email/preview", json={
@@ -170,7 +207,8 @@ def test_email_preview_render_only(client):
     assert "matched_count" not in data
     assert data["preview"]["subject"] == "Hi Bob"
     assert data["preview"]["body"] == "Bye Badger"
-    assert data["variables"]["badge"] == "Bob Badger"
+    assert _var(data["variables"], "badge")["value"] == "Bob Badger"
+    assert data["variables_for"] == "Bob Badger"
 
     # Unknown badge is a 404, and a render error reports cleanly.
     rv = client.post("/api/event/1/email/preview", json={

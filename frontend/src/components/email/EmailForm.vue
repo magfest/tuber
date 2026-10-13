@@ -41,6 +41,15 @@
                 <code-editor v-model="data.code" language="lua" :rows="12"
                              placeholder="return function(context)&#10;    return context.hotel_request.declined ~= true&#10;end"
                              @update:modelValue="schedulePreview('filter')" />
+                <Panel v-if="preview && preview.variables" :toggleable="true" :collapsed="true" class="mt-2">
+                    <template #header>
+                        <span>Available on <code>context</code></span>
+                        <span v-if="preview.variables_for" class="hint ml-2">
+                            (values from {{ preview.variables_for }})
+                        </span>
+                    </template>
+                    <VariableTree :nodes="preview.variables" prefix="context." />
+                </Panel>
                 <div class="filter-results">
                     <ProgressSpinner v-if="filterLoading" class="spinner" strokeWidth="6" />
                     <template v-if="preview">
@@ -109,12 +118,15 @@
                             Nobody matches the filter yet — the preview appears once someone does,
                             or pick an attendee above.
                         </p>
-                        <Panel v-if="preview && preview.variables" header="Available variables" :toggleable="true"
-                               :collapsed="true" class="mt-3">
-                            <div v-for="(value, key) in preview.variables" :key="key" class="var-row">
-                                <code class="var-name">{{ key }}</code>
-                                <code class="var-value">{{ formatVar(value) }}</code>
-                            </div>
+                        <Panel v-if="preview && preview.variables" :toggleable="true" :collapsed="true"
+                               class="mt-3">
+                            <template #header>
+                                <span>Available variables</span>
+                                <span v-if="preview.variables_for" class="hint ml-2">
+                                    (values from {{ preview.variables_for }})
+                                </span>
+                            </template>
+                            <VariableTree :nodes="preview.variables" />
                         </Panel>
                     </div>
                 </div>
@@ -185,16 +197,6 @@
   width: 2.5rem;
   height: 2.5rem;
 }
-.var-row {
-  display: flex;
-  gap: 0.75rem;
-  padding: 0.15rem 0;
-  border-bottom: 1px solid var(--surface-border, #dee2e6);
-}
-.var-name {
-  min-width: 11rem;
-  font-weight: 600;
-}
 .var-value {
   white-space: pre-wrap;
   word-break: break-word;
@@ -208,12 +210,14 @@ import ProgressSpinner from 'primevue/progressspinner'
 import SelectButton from 'primevue/selectbutton'
 import { get, post } from '../../lib/rest'
 import CodeEditor from '../CodeEditor.vue'
+import VariableTree from './VariableTree.vue'
 
 export default {
   name: 'EmailForm',
   components: {
     CodeEditor,
     ProgressSpinner,
+    VariableTree,
     SelectButton
   },
   props: [
@@ -325,6 +329,7 @@ export default {
         if (renderOnly && this.preview) {
           this.preview.preview = response.preview
           this.preview.variables = response.variables
+          this.preview.variables_for = response.variables_for
           this.preview.render_error = response.render_error
         } else {
           this.preview = response

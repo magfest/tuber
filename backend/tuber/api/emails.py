@@ -3,11 +3,14 @@ from flask import request, Response, stream_with_context
 from tuber.models import *
 from tuber.database import db
 from tuber.permissions import *
-from sqlalchemy.orm import joinedload
+from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.orm import joinedload, InstanceState, with_parent
 import datetime
+import functools
 import re
 import jinja2
 import jinja2.meta
+from jinja2.sandbox import ImmutableSandboxedEnvironment
 # Pin the Lua 5.1 backend: fakeredis (used by the tests' circuitbreaker
 # fixtures) loads lupa.lua51 to match Redis, and mixing a second Lua VM
 # (lupa's default picks the newest) into the same process has caused
@@ -62,19 +65,126 @@ def referenced_symbols(code, templates):
     return symbols & CONTEXT_KEYS
 
 
-class TemplateRequest:
-    """The room request as templates and Lua filters see it: every attribute
-       of the real request except the admin-only notes, which must never be
-       rendered into an email."""
-    _blocked = {"admin_notes"}
+# Attributes no template or filter may read, on any object, however it was
+# reached (badge.hotel_room_request[0].admin_notes, badge.event_obj.uber_apikey).
+# Attributes no template or filter may read, on any object, however it was
+# reached (badge.hotel_room_request[0].admin_notes, badge.event_obj.uber_apikey).
+BLOCKED_ATTRS = frozenset({"admin_notes"})
+SECRET_ATTRS = re.compile(r'apikey|api_key|password|secret|token', re.IGNORECASE)
 
-    def __init__(self, request):
-        self._request = request
 
-    def __getattr__(self, name):
-        if name.startswith("_") or name in self._blocked:
-            raise AttributeError(name)
-        return getattr(self._request, name)
+def _is_model(obj):
+    return isinstance(sa_inspect(obj, raiseerr=False), InstanceState)
+
+
+def _readable(name):
+    return not name.startswith("_") and name not in BLOCKED_ATTRS \
+        and not SECRET_ATTRS.search(name)
+
+
+@functools.lru_cache(maxsize=None)
+def _model_attrs(cls):
+    """Column, relationship, and @property names a template may use on a
+       model class: its data, minus admin-only and secret attributes."""
+    mapper = sa_inspect(cls)
+    columns = tuple(x.key for x in mapper.column_attrs if _readable(x.key))
+    relationships = tuple(x for x in mapper.relationships if _readable(x.key))
+    properties = tuple(sorted({name for klass in cls.__mro__ for name, attr in vars(klass).items()
+                               if isinstance(attr, property) and _readable(name)}))
+    return columns, relationships, properties
+
+
+def template_can_read(obj, name):
+    """The one attribute policy for Jinja templates and Lua filters. Models
+       expose only their data (not admin notes, secrets, or helpers like
+       serialize() that would dump everything); everything else is plain
+       data left to the sandbox's rules."""
+    if not isinstance(name, str) or not _readable(name):
+        return False
+    if _is_model(obj):
+        columns, relationships, properties = _model_attrs(type(obj))
+        return name in columns or name in properties or \
+            any(rel.key == name for rel in relationships)
+    return True
+
+
+class TemplateEnvironment(ImmutableSandboxedEnvironment):
+    def is_safe_attribute(self, obj, attr, value):
+        return template_can_read(obj, attr) and super().is_safe_attribute(obj, attr, value)
+
+
+TEMPLATE_ENV = TemplateEnvironment()
+
+
+def render_template(source, context):
+    return TEMPLATE_ENV.from_string(source).render(**context)
+
+
+def _lua_attribute_filter(obj, name, is_setting):
+    if is_setting or not template_can_read(obj, name):
+        raise AttributeError(f"'{name}' is not available to email filters")
+    return name
+
+
+# Email filters run in an environment built from this allowlist; nothing
+# else (os, io, require, debug, load*, getmetatable, setfenv, ...) exists for
+# them. The loader also gives `#` meaning on Python lists and dicts, and
+# refuses precompiled bytecode, which can break out of Lua itself.
+LUA_LOADER = """
+local function copy(source, names)
+    local result = {}
+    for _, name in ipairs(names) do result[name] = source[name] end
+    return result
+end
+
+local env_template = {
+    assert = assert, error = error, ipairs = ipairs, next = next,
+    pairs = pairs, pcall = pcall, select = select, tonumber = tonumber,
+    tostring = tostring, type = type, unpack = unpack, xpcall = xpcall,
+    math = copy(math, {"abs", "ceil", "floor", "fmod", "huge", "max", "min",
+                       "modf", "pi", "pow", "sqrt"}),
+    string = copy(string, {"byte", "char", "find", "format", "gmatch", "gsub",
+                           "len", "lower", "match", "rep", "reverse", "sub",
+                           "upper"}),
+    table = copy(table, {"concat", "insert", "remove", "sort"}),
+    os = copy(os, {"clock", "date", "difftime", "time"}),
+    python = copy(python, {"enumerate", "iter", "iterex", "none"}),
+}
+
+return function(len)
+    local pobject = debug.getregistry()["POBJECT"]
+    pobject.__len = function(obj) return len(obj) end
+    pobject.__metatable = false
+    -- Strings index the real string table through their metatable.
+    string.dump = nil
+
+    return function(code)
+        if code:byte(1) == 27 then
+            error("precompiled Lua is not allowed", 0)
+        end
+        local chunk, err = loadstring(code, "filter")
+        if not chunk then
+            error(err, 0)
+        end
+        setfenv(chunk, env_template)
+        return chunk()
+    end
+end
+"""
+
+
+def _lua_runtime():
+    runtime = lupa.LuaRuntime(register_eval=False, register_builtins=False,
+                              attribute_filter=_lua_attribute_filter)
+    return runtime.execute(LUA_LOADER)(len)
+
+
+def load_filter(code):
+    """Compile an email filter and return what it returns (the filter
+       function). Each filter gets its own VM, so the allowlisted globals
+       are never shared between filters, and the template attribute policy applies to
+       every Python object it touches. Writes to Python objects are refused."""
+    return _lua_runtime()(code)
 
 
 def get_email_context(badge, tables, needed=None):
@@ -88,7 +198,7 @@ def get_email_context(badge, tables, needed=None):
     context = {
         "badge": badge,
         "event": event,
-        "hotel_request": TemplateRequest(request),
+        "hotel_request": request,
     }
     if "hotel_room_nights" in needed:
         context["hotel_room_nights"] = tables['HotelRoomNight']
@@ -165,7 +275,7 @@ def summarize_value(value, depth=0):
         return value.public_name
     if isinstance(value, HotelRoomNight):
         return value.name
-    if isinstance(value, (HotelRoomRequest, TemplateRequest)):
+    if isinstance(value, HotelRoomRequest):
         return {"declined": value.declined, "hotel_block": value.hotel_block,
                 "notes": summarize_value(value.notes, depth + 1)}
     if isinstance(value, Event):
@@ -184,6 +294,120 @@ def summarize_value(value, depth=0):
             items.append(f"+{len(value) - 12} more")
         return items
     return str(value)[:120]
+
+TREE_MAX_DEPTH = 6
+TREE_MAX_ITEMS = 50
+IDENTIFIER = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+
+def _child_path(path, key):
+    """Jinja and Lua (via lupa) both accept `a.b` for identifiers and
+       `a[0]` / `a["x y"]` otherwise."""
+    if isinstance(key, str) and IDENTIFIER.match(key):
+        return f"{path}.{key}"
+    if isinstance(key, str):
+        return f'{path}["{key}"]'
+    return f"{path}[{key}]"
+
+
+def _related_sample(obj, rel):
+    """One row of a relationship, without loading the whole collection
+       (event.badges would be every attendee)."""
+    if not sa_inspect(obj).persistent:
+        return None
+    try:
+        with db.begin_nested():
+            return db.query(rel.mapper.class_).filter(
+                with_parent(obj, getattr(type(obj), rel.key))).limit(1).first()
+    except Exception:
+        return None
+
+
+def _schema_children(cls, path, sampled=False, sample=None):
+    """Columns of a related model. When sampled, values come from the sample
+       row, or are nil because the relationship is empty."""
+    columns, _, _ = _model_attrs(cls)
+    children = []
+    for key in columns:
+        child = {"name": key, "path": _child_path(path, key), "type": "column"}
+        if sampled:
+            child["value"] = summarize_value(getattr(sample, key)) if sample is not None else None
+        children.append(child)
+    return children
+
+
+def describe_value(value, path, depth=0):
+    """A tree node describing every property of a context value that a
+       template or filter can reach, with compact sample values."""
+    node = {"name": path.rsplit(".", 1)[-1] if depth else path, "path": path}
+    if value is None or isinstance(value, (bool, int, float, str,
+                                           datetime.datetime, datetime.date)):
+        node["type"] = "nil" if value is None else type(value).__name__
+        node["value"] = summarize_value(value)
+        return node
+    if _is_model(value):
+        cls = type(value)
+        node["type"] = cls.__name__
+        node["value"] = summarize_value(value)
+        if depth >= TREE_MAX_DEPTH:
+            return node
+        columns, relationships, properties = _model_attrs(cls)
+        children = []
+        for key in columns:
+            child = describe_value(getattr(value, key), _child_path(path, key), depth + 1)
+            child["name"] = key
+            children.append(child)
+        for rel in relationships:
+            # Relationships show their columns, with values from one sample
+            # row for the top-level models (badge, event, hotel_request) —
+            # sampling every nested model would cost hundreds of queries.
+            target = rel.mapper.class_
+            rel_path = _child_path(path, rel.key)
+            sampled = depth == 0
+            sample = _related_sample(value, rel) if sampled else None
+            rel_node = {
+                "name": rel.key, "path": rel_path,
+                "type": f"list of {target.__name__}" if rel.uselist else target.__name__,
+                "children": _schema_children(target, rel_path + "[0]" if rel.uselist else rel_path,
+                                             sampled, sample),
+            }
+            if not rel.uselist and sample is not None:
+                rel_node["value"] = summarize_value(sample)
+            children.append(rel_node)
+        for key in properties:
+            children.append({"name": key, "path": _child_path(path, key), "type": "property"})
+        node["children"] = children
+        return node
+    if isinstance(value, dict):
+        node["type"] = f"dict ({len(value)})"
+        items = list(value.items())
+    elif isinstance(value, (list, tuple, set)):
+        node["type"] = f"list ({len(value)})"
+        items = list(enumerate(value))
+    else:
+        node["type"] = type(value).__name__
+        node["value"] = summarize_value(value)
+        return node
+    if depth >= TREE_MAX_DEPTH:
+        node["value"] = summarize_value(value)
+        return node
+    children = []
+    for key, item in items[:TREE_MAX_ITEMS]:
+        child = describe_value(item, _child_path(path, key), depth + 1)
+        child["name"] = str(key) if isinstance(key, str) else f"[{key}]"
+        children.append(child)
+    if len(items) > TREE_MAX_ITEMS:
+        children.append({"name": "…", "path": "", "type": "",
+                         "value": f"+{len(items) - TREE_MAX_ITEMS} more"})
+    node["children"] = children
+    if not children:
+        node["value"] = summarize_value(value)
+    return node
+
+
+def describe_context(context):
+    return [describe_value(value, key) for key, value in sorted(context.items())]
+
 
 def build_email_tables(event_id, badge_ids=None):
     """The per-event lookup tables the email context is built from.
@@ -229,10 +453,9 @@ def build_email_tables(event_id, badge_ids=None):
 def generate_emails(email):
     source = db.query(EmailSource).filter(EmailSource.id == email.source).one()
 
-    L = lupa.LuaRuntime(register_eval=False)
-    filter = L.execute(email.code)
-    subject_template = jinja2.Template(email.subject)
-    body_template = jinja2.Template(email.body)
+    filter = load_filter(email.code)
+    subject_template = TEMPLATE_ENV.from_string(email.subject)
+    body_template = TEMPLATE_ENV.from_string(email.body)
 
     badges, tables = build_email_tables(email.event)
 
@@ -261,11 +484,10 @@ def email_preview(event):
                    "email": badge.email}
         render_error = None
         context = get_email_context(badge, tables)
-        variables = {key: summarize_value(value)
-                     for key, value in sorted(context.items())}
+        variables = describe_context(context)
         try:
-            preview["subject"] = jinja2.Template(subject).render(**context)
-            preview["body"] = jinja2.Template(body).render(**context)
+            preview["subject"] = render_template(subject, context)
+            preview["body"] = render_template(body, context)
         except Exception as e:
             render_error = str(e)
         return preview, variables, render_error
@@ -281,6 +503,7 @@ def email_preview(event):
         result = {"render_only": True}
         result["preview"], result["variables"], result["render_error"] = \
             render_for(badge, tables)
+        result["variables_for"] = badge.public_name
         return jsonify(result)
 
     badges, tables = build_email_tables(event)
@@ -295,18 +518,29 @@ def email_preview(event):
         "filter_errors": [],
         "preview": None,
         "variables": None,
+        "variables_for": None,
         "render_error": None,
     }
+
+    def sample_variables():
+        """Variables for the Filter tab's reference pane when no attendee is
+           being previewed — prefer one with a room so lists have examples."""
+        if not badges:
+            return
+        sample = next((x for x in badges if x.id in tables['HotelRoomRequest']
+                       and tables['HotelRoomRequest'][x.id].room_night_assignments), badges[0])
+        result["variables"] = describe_context(get_email_context(sample, tables))
+        result["variables_for"] = sample.public_name
 
     filter = None
     if code.strip():
         try:
-            L = lupa.LuaRuntime(register_eval=False)
-            filter = L.execute(code)
+            filter = load_filter(code)
             if not callable(filter):
                 raise ValueError("The filter code must return a function.")
         except Exception as e:
             result["filter_errors"].append(str(e))
+            sample_variables()
             return jsonify(result)
 
     contexts = {}
@@ -351,6 +585,9 @@ def email_preview(event):
     if preview_badge:
         result["preview"], result["variables"], result["render_error"] = \
             render_for(preview_badge, tables)
+        result["variables_for"] = preview_badge.public_name
+    else:
+        sample_variables()
     return jsonify(result)
 
 
