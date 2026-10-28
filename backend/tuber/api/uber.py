@@ -365,7 +365,7 @@ def sync_attendees(event):
                 rnrs = badgelookup[attendee].room_night_requests
                 if any([x.requested for x in rnrs]):
                     print("WARNING: ATTENDEE REQUESTED ROOM NIGHTS")
-                #db.delete(badgelookup[attendee])
+                db.delete(badgelookup[attendee])
         else:
             print("  not deferred")
             if not attendee in badgelookup:
