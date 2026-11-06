@@ -37,8 +37,8 @@ def import_shifts(event):
             )
             db.add(job_obj)
             db.flush()
-            start_time = datetime.datetime.strptime(job["start_time"], "%Y-%m-%d %H:%M:%S.%f")
-            end_time = datetime.datetime.strptime(job["end_time"], "%Y-%m-%d %H:%M:%S.%f")
+            start_time = datetime.datetime.strptime(job["start_time"], "%Y-%m-%dT%H:%M:%S%z")
+            end_time = datetime.datetime.strptime(job["end_time"], "%Y-%m-%dT%H:%M:%S%z")
             shift_obj = Shift(
                 event=event,
                 job=job_obj.id,
