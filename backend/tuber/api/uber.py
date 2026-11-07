@@ -50,7 +50,7 @@ def import_shifts(event):
             )
             db.add(shift_obj)
             db.flush()
-            for shift in job["shifts"]:
+            for shift in job.get("shifts", []):
                 try:
                     badge = db.query(Badge).filter(Badge.event==event, Badge.uber_id==shift["attendee"]["id"]).one()
                     assignment = ShiftAssignment(
