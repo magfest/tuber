@@ -277,3 +277,50 @@ def test_email_import(client):
     # Importing from the same event is rejected.
     rv = client.post("/api/event/1/email/import", json={"from_event": 1})
     assert rv.status_code == 400
+
+
+MISSING_SHIFT_FILTER = """return function(c)
+    return not c.hotel_request.declined and #c.missing_shift_nights > 0
+end"""
+
+
+def test_missing_shift_filter(client):
+    """Matches people who requested a shift-based night they have no shift (or manual approval) for."""
+    import datetime
+
+    import tuber.models as models
+    from tuber.database import db
+    from tests.test_room_matching import _seed
+
+    s = _seed(db, models, ["Has Shift", "No Shift", "Manually Approved", "Did Not Ask", "Declined Request"])
+    friday = s["nights"][0]
+    friday.restriction_mode = "shift_window"
+    friday.shift_starttime = datetime.datetime(2025, 8, 8, 12)
+    friday.shift_endtime = datetime.datetime(2025, 8, 9, 12)
+    ids = {name: badge.id for name, badge in s["badges"].items()}
+    department = models.Department(event=1, name="Arcade")
+    db.add(department)
+    db.flush()
+    job = models.Job(event=1, name="Load-In", description="", department=department.id)
+    db.add(job)
+    db.flush()
+    shift = models.Shift(event=1, job=job.id, starttime=datetime.datetime(2025, 8, 8, 14), duration=4 * 3600,
+                         slots=5, filledslots=0, weighting=1.0)
+    db.add(shift)
+    db.flush()
+    db.add(models.ShiftAssignment(event=1, badge=ids["Has Shift"], shift=shift.id))
+    db.add(models.RoomNightApproval(event=1, badge=ids["Manually Approved"], room_night=friday.id, approved=True))
+    db.query(models.RoomNightRequest).filter(
+        models.RoomNightRequest.badge == ids["Did Not Ask"],
+        models.RoomNightRequest.room_night == friday.id).update({"requested": False})
+    s["requests"]["Declined Request"].declined = True
+    db.commit()
+
+    rv = client.post("/api/event/1/email/preview", json={
+        "code": MISSING_SHIFT_FILTER,
+        "subject": "Shift needed",
+        "body": "{% for night in missing_shift_nights %}{{ hotel_room_nights[night].name }}{% endfor %}",
+    })
+    assert rv.json["filter_errors"] == []
+    assert [x["name"] for x in rv.json["attendees"]] == ["No Shift"]
+    assert rv.json["preview"]["body"] == "Friday"

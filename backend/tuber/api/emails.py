@@ -21,13 +21,14 @@ except ImportError:
     import lupa
 from tuber.api import *
 from tuber.models import *
+from tuber.api.night_approval import approved_night_ids
 
 # Every top-level name an email filter or template can reference.
 CONTEXT_KEYS = {
     "badge", "event", "roommate_requests", "roommate_anti_requests",
     "requested_nights", "assigned_nights", "approved_nights",
     "approving_depts", "hotel_rooms", "hotel_room_nights", "has_edge_night",
-    "hotel_request",
+    "hotel_request", "missing_shift_nights",
 }
 
 
@@ -247,6 +248,19 @@ def get_email_context(badge, tables, needed=None):
                 "checkout_day": checkout_day,
             })
         context["hotel_rooms"] = hotel_rooms
+
+    if "missing_shift_nights" in needed:
+        # Requested shift-based nights with neither the shift nor a manual
+        # approval to cover them. Worked out once for everyone in the tables.
+        if "_approved" not in tables:
+            tables["_approved"] = approved_night_ids(db, event.id, list(tables['Badge']))
+        nights = tables['HotelRoomNight']
+        missing = [x.room_night for x in request.room_night_requests
+                   if x.requested and x.room_night in nights
+                   and nights[x.room_night].restriction_mode in ('shift_window', 'shift_hours')
+                   and x.room_night not in tables["_approved"][badge.id]]
+        missing.sort(key=lambda x: nights[x].date)
+        context["missing_shift_nights"] = missing
 
     if {"approved_nights", "approving_depts"} & needed:
         approvals = [x.room_night for x in request.room_night_approvals if x.approved]
