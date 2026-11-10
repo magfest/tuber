@@ -7,55 +7,17 @@
       <div class="flex gap-2 align-items-center flex-wrap">
         <Dropdown v-model="block" :options="blocks" optionLabel="name" optionValue="id"
                   placeholder="Select a block" />
+        <Dropdown v-model="matchNights" :options="matchNightsOptions" optionLabel="label" optionValue="value"
+                  aria-label="Nights to match on"
+                  title="Approved: only nights each person is approved for. Requested: every night they asked for, even with a missing shift." />
         <Button label="Suggest Rooms" icon="pi pi-star" @click="suggestRooms"
                 :loading="suggesting" :disabled="!block" />
         <Button label="Rematch All" icon="pi pi-refresh" class="p-button-outlined"
                 @click="rematchAll($event)" :disabled="!block" />
         <Button label="Clear Suggestions" icon="pi pi-trash" class="p-button-outlined p-button-danger"
                 @click="clearSuggestions($event)" :disabled="!block" />
-        <Button label="New Room" icon="pi pi-plus" class="p-button-outlined" @click="createRoom"
-                :disabled="!block" />
-      </div>
-    </div>
-
-    <!-- Suggested rooms awaiting review -->
-    <div v-if="suggestedRooms.length" class="suggested-strip">
-      <div class="flex justify-content-between align-items-center">
-        <h4>Suggested Rooms — {{ suggestedRooms.length }} awaiting review</h4>
-        <div class="flex gap-2">
-          <Button label="Accept All" icon="pi pi-check" class="p-button-sm p-button-success"
-                  @click="acceptAll($event)" />
-          <Button label="Reject All" icon="pi pi-times" class="p-button-sm p-button-danger p-button-outlined"
-                  @click="clearSuggestions($event)" />
-        </div>
-      </div>
-      <div class="suggested-cards">
-        <div v-for="room in suggestedRooms" :key="room.id" class="suggested-card">
-          <div class="flex justify-content-between align-items-center">
-            <room-name :room-id="room.id" :name="room.name" />
-            <span class="error-count" v-if="errorCount(room)">
-              <i class="pi pi-exclamation-triangle" /> {{ errorCount(room) }}
-            </span>
-          </div>
-          <div class="occupants">
-            <div v-for="mate in roomRoommates(room)" :key="mate.id" class="occupant">
-              <attendee-name :badge-id="mate.id" :name="mate.name" />
-              <Chip v-for="error in mate.errors" :key="error" :label="error" class="error-chip" />
-              <div v-if="mate.notes" class="staffer-note" :title="'From ' + mate.name + '\'s request'">
-                <i class="pi pi-comment" /> {{ mate.notes }}
-              </div>
-              <inline-note v-if="mate.request_id" compact :modelValue="mate.admin_notes || ''"
-                           @update:modelValue="mate.admin_notes = $event"
-                           :save="(text) => saveRequestNote(mate.request_id, text)" />
-            </div>
-          </div>
-          <div class="flex gap-2 mt-2">
-            <Button label="Accept" icon="pi pi-check" class="p-button-sm p-button-success"
-                    @click="acceptRoom(room)" />
-            <Button label="Reject" icon="pi pi-times" class="p-button-sm p-button-danger p-button-outlined"
-                    @click="rejectRoom(room)" />
-          </div>
-        </div>
+        <Button :label="selection.length ? 'New Room with ' + selection.length + ' selected' : 'New Room'"
+                icon="pi pi-plus" class="p-button-outlined" @click="createRoom" :disabled="!block" />
       </div>
     </div>
 
@@ -96,8 +58,11 @@
             </Column>
             <Column header="Nights">
               <template #body="slotProps">
-                <Tag v-for="night in nightTags(slotProps.data)" :key="night.id" :severity="night.severity"
-                     :value="night.name" class="mr-1 mb-1" />
+                <div class="night-tags">
+                  <Tag v-for="night in nightTags(slotProps.data)" :key="night.id" :severity="night.severity"
+                       :value="night.short" :title="night.title" class="night-tag"
+                       :class="{ 'night-tag-unrequested': !night.requested }" />
+                </div>
               </template>
             </Column>
             <Column field="notes" header="Notes"></Column>
@@ -132,10 +97,22 @@
                     title="Sort rooms" />
         </div>
         <div class="room-cards">
-          <div v-for="room in rooms" :key="room.id" class="room-card"
+          <!-- Suggested rooms come first; completing or locking one keeps it. -->
+          <div v-if="suggestedRooms.length" class="suggested-header">
+            <strong>{{ suggestedRooms.length }} suggested, awaiting review</strong>
+            <Button label="Complete All" icon="pi pi-check-circle" class="p-button-sm p-button-success"
+                    @click="completeAll($event)" />
+          </div>
+          <div v-for="room in suggestedRooms.concat(rooms)" :key="room.id" class="room-card"
                :class="{ 'room-completed': room.completed, 'room-suggested': room.suggested }">
             <div class="flex justify-content-between align-items-center">
-              <room-name :room-id="room.id" :name="room.name" />
+              <span>
+                <room-name :room-id="room.id" :name="room.name" />
+                <Tag v-if="room.suggested" severity="warning" value="Suggested" class="ml-2" />
+                <span class="error-count ml-2" v-if="room.suggested && errorCount(room)">
+                  <i class="pi pi-exclamation-triangle" /> {{ errorCount(room) }}
+                </span>
+              </span>
               <div class="flex gap-1">
                 <Button :icon="room.completed ? 'pi pi-check-circle' : 'pi pi-circle'"
                         :class="['p-button-rounded p-button-text', room.completed ? 'p-button-success' : 'p-button-warning']"
@@ -156,14 +133,32 @@
             </div>
             <div class="occupants">
               <div v-for="mate in roomRoommates(room)" :key="mate.id" class="occupant">
-                <attendee-name :badge-id="mate.id" :name="mate.name" />
-                <Chip v-for="error in mate.errors" :key="error" :label="error" class="error-chip" />
-                <div v-if="mate.notes" class="staffer-note" :title="'From ' + mate.name + '\'s request'">
-                  <i class="pi pi-comment" /> {{ mate.notes }}
+                <div class="occupant-main">
+                  <Button icon="pi pi-times" class="p-button-rounded p-button-text p-button-danger remove-mate"
+                          :title="'Remove ' + mate.name + ' from this room'" :aria-label="'Remove ' + mate.name"
+                          @click="removeRoommate(room, mate)" />
+                  <attendee-name :badge-id="mate.id" :name="mate.name" />
+                  <Chip v-for="error in otherErrors(mate)" :key="error" :label="error" class="error-chip" />
+                  <Chip v-if="extraNightsError(mate)" class="error-chip">
+                    <span>{{ extraNightsError(mate) }}</span>
+                    <Button icon="pi pi-minus" class="p-button-rounded chip-button"
+                            :title="'Remove the extra night(s) from ' + mate.name"
+                            :aria-label="'Remove extra nights from ' + mate.name"
+                            @click="removeExtraNights(room, mate)" />
+                  </Chip>
+                  <Chip v-for="wanted in mate.requested_missing" :key="'wanted' + wanted.id" class="error-chip">
+                    <span>Requested {{ wanted.name }}</span>
+                    <Button v-if="wanted.addable" icon="pi pi-plus" class="p-button-rounded chip-button"
+                            :title="'Add ' + wanted.name + ' to this room'" :aria-label="'Add ' + wanted.name"
+                            @click="addRoommates(room, [wanted.id])" />
+                  </Chip>
+                  <div v-if="mate.notes" class="staffer-note" :title="'From ' + mate.name + '\'s request'">
+                    <i class="pi pi-comment" /> {{ mate.notes }}
+                  </div>
                 </div>
-                <inline-note v-if="mate.request_id" compact :modelValue="mate.admin_notes || ''"
-                             @update:modelValue="mate.admin_notes = $event"
-                             :save="(text) => saveRequestNote(mate.request_id, text)" />
+                <div v-if="mate.admin_notes" class="occupant-admin-note" title="Admin note — edit it from the room">
+                  <i class="pi pi-pencil" /> {{ mate.admin_notes }}
+                </div>
               </div>
               <div v-if="!roomRoommates(room).length" class="empty">Empty room</div>
             </div>
@@ -228,25 +223,12 @@
 .filter-bar .p-dropdown {
   min-width: 9rem;
 }
-.suggested-strip {
-  border: 1px solid var(--orange-300, #fcd34d);
-  background: rgba(245, 158, 11, 0.07);
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  margin-top: 0.75rem;
-}
-.suggested-cards {
+.suggested-header {
   display: flex;
-  gap: 0.75rem;
-  overflow-x: auto;
-  padding-bottom: 0.5rem;
-}
-.suggested-card {
-  border: 1px solid var(--surface-border, #dee2e6);
-  border-radius: 6px;
-  padding: 0.6rem;
-  min-width: 16rem;
-  background: var(--surface-card, white);
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 .room-cards {
   display: flex;
@@ -266,6 +248,7 @@
 }
 .room-suggested {
   border-left: 4px solid var(--orange-400, #fbbf24);
+  background: rgba(245, 158, 11, 0.07);
 }
 .occupants {
   margin-top: 0.4rem;
@@ -275,7 +258,21 @@
   font-style: italic;
 }
 .occupant {
-  margin-bottom: 0.35rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.2rem;
+}
+.occupant-main {
+  min-width: 0;
+}
+.occupant-admin-note {
+  flex: 0 1 40%;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--text-color-secondary, #6c757d);
+  white-space: pre-wrap;
 }
 .staffer-note {
   font-size: 0.85rem;
@@ -289,10 +286,38 @@
   padding-top: 0.4rem;
   border-top: 1px dashed var(--surface-border, #dee2e6);
 }
+.night-tags {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+}
+
+.night-tag {
+  width: 1.75rem;
+  flex: none;
+}
+
+.night-tag-unrequested {
+  background: var(--surface-400, #adb5bd);
+  opacity: 0.4;
+}
+
 .error-chip {
   background: rgba(239, 68, 68, 0.15);
   margin-left: 0.3rem;
   font-size: 0.75rem;
+}
+.error-chip .chip-button, .remove-mate {
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+}
+.error-chip .chip-button {
+  margin-left: 0.35rem;
+}
+.remove-mate {
+  margin-right: 0.3rem;
+  vertical-align: middle;
 }
 .error-count {
   color: var(--orange-500, #f59e0b);
@@ -332,6 +357,11 @@ export default {
     suggestedRooms: [],
     roomDetails: {},
     selection: [],
+    matchNights: 'approved',
+    matchNightsOptions: [
+      { label: 'Match approved nights', value: 'approved' },
+      { label: 'Match requested nights', value: 'requested' }
+    ],
     poolSearch: '',
     poolNight: null,
     poolApproval: '',
@@ -380,6 +410,7 @@ export default {
       const [sort, order] = this.poolSort.split('_')
       const params = {
         search_term: this.poolSearch || '',
+        nights: this.matchNights,
         sort,
         order
       }
@@ -508,16 +539,23 @@ export default {
       return this.roomRoommates(room).reduce((n, mate) => n + mate.errors.length, 0)
     },
     nightTags (request) {
-      return this.nights.filter((night) => request.requested_nights[night.id]).map((night) => ({
-        id: night.id,
-        name: night.name,
-        severity: request.approved_nights[night.id] ? 'success' : 'warning'
-      }))
+      // Every night gets a chip so they line up down the table.
+      return this.nights.map((night) => {
+        const requested = !!request.requested_nights[night.id]
+        const approved = !!request.approved_nights[night.id]
+        return {
+          id: night.id,
+          short: night.name.slice(0, 2),
+          title: night.name + ': ' + (approved ? 'approved' : (requested ? 'requested, not approved' : 'not requested')),
+          requested,
+          severity: approved ? 'success' : (requested ? 'warning' : null)
+        }
+      })
     },
     async suggestRooms () {
       this.suggesting = true
       try {
-        const res = await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/suggest_rooms', {})
+        const res = await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/suggest_rooms', { nights: this.matchNights })
         this.$toast.add({
           severity: 'info',
           summary: res.created.length
@@ -537,7 +575,7 @@ export default {
         message: 'Discard current suggestions and produce a fresh batch?',
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
-          await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/rematch_all', {})
+          await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/rematch_all', { nights: this.matchNights })
           this.refresh()
         }
       })
@@ -545,7 +583,7 @@ export default {
     clearSuggestions (event) {
       this.$confirm.require({
         target: event.currentTarget,
-        message: 'Delete all unaccepted suggested rooms?',
+        message: 'Delete all suggested rooms that are not completed or locked?',
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
           await post('/api/event/' + this.event.id + '/hotel/' + this.block + '/clear_matches', {})
@@ -553,19 +591,10 @@ export default {
         }
       })
     },
-    async acceptRoom (room) {
-      await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id,
-        { id: room.id, completed: true, suggested: false })
-      this.refresh()
-    },
-    async rejectRoom (room) {
-      await del('/api/event/' + this.event.id + '/hotel_room/' + room.id)
-      this.refresh()
-    },
-    acceptAll (event) {
+    completeAll (event) {
       this.$confirm.require({
         target: event.currentTarget,
-        message: 'Accept all ' + this.suggestedRooms.length + ' suggested rooms?',
+        message: 'Mark all ' + this.suggestedRooms.length + ' suggested rooms completed?',
         icon: 'pi pi-question-circle',
         accept: async () => {
           for (const room of this.suggestedRooms) {
@@ -577,18 +606,58 @@ export default {
       })
     },
     async createRoom () {
-      await post('/api/event/' + this.event.id + '/hotel_room',
+      const room = await post('/api/event/' + this.event.id + '/hotel_room',
         { event: this.event.id, hotel_block: this.block, name: 'New Room' })
+      if (this.selection.length) {
+        await this.addSelected(room)
+      } else {
+        this.refresh()
+      }
+    },
+    otherErrors (mate) {
+      // Missing roommate requests get their own chips, with an add button.
+      return mate.errors.filter((error) => !error.startsWith('Requested ') && !error.startsWith('Extra Room Night'))
+    },
+    extraNightsError (mate) {
+      return (mate.extra_nights || []).length ? mate.errors.find((error) => error.startsWith('Extra Room Night')) : null
+    },
+    async removeExtraNights (room, mate) {
+      await post('/api/event/' + this.event.id + '/hotel/' + this.block +
+        '/room/' + room.id + '/remove_nights', { badge: mate.id, nights: mate.extra_nights })
+      this.refresh()
+    },
+    async addRoommates (room, roommates) {
+      const res = await post('/api/event/' + this.event.id + '/hotel/' + this.block +
+        '/room/' + room.id + '/add_roommates', { roommates, nights: this.matchNights })
+      if (res && res.skipped && res.skipped.length) {
+        this.$toast.add({
+          severity: 'warn',
+          summary: res.skipped.length + ' not added: no approved nights',
+          detail: 'Switch to Requested nights to place them anyway.',
+          life: 5000
+        })
+      }
+      this.refresh()
+    },
+    async removeRoommate (room, mate) {
+      await post('/api/event/' + this.event.id + '/hotel/' + this.block +
+        '/room/' + room.id + '/remove_roommates', { roommates: [mate.id] })
       this.refresh()
     },
     async toggleRoomFlag (room, flag) {
       const payload = { id: room.id }
       payload[flag] = !room[flag]
-      if (flag === 'completed' && payload.completed && room.suggested) {
+      // Completing or locking a suggested room keeps it as a regular room.
+      const kept = room.suggested && payload[flag]
+      if (kept) {
         payload.suggested = false
       }
       await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id, payload)
       Object.assign(room, payload)
+      if (kept) {
+        this.refresh()
+        return
+      }
       // Refetch when the status filter keys off the flag that just changed,
       // so a room completed under "Incomplete" (or unlocked under "Locked")
       // drops out of the list instead of lingering until the next reload.
@@ -616,10 +685,8 @@ export default {
       if (!roommates.length) {
         return
       }
-      await post('/api/event/' + this.event.id + '/hotel/' + this.block +
-        '/room/' + room.id + '/add_roommates', { roommates })
       this.selection = []
-      this.refresh()
+      await this.addRoommates(room, roommates)
     },
     async openSuggestions (room) {
       this.suggestionRoom = room
@@ -628,14 +695,14 @@ export default {
       this.suggestions = []
       try {
         this.suggestions = await get('/api/event/' + this.event.id + '/hotel/room/' +
-          room.id + '/suggest_roommates', { limit: 10 })
+          room.id + '/suggest_roommates', { limit: 10, nights: this.matchNights })
       } finally {
         this.suggestionsLoading = false
       }
     },
     async addSuggested (candidate) {
       await post('/api/event/' + this.event.id + '/hotel/' + this.block +
-        '/room/' + this.suggestionRoom.id + '/add_roommates', { roommates: [candidate.badge] })
+        '/room/' + this.suggestionRoom.id + '/add_roommates', { roommates: [candidate.badge], nights: this.matchNights })
       this.suggestions = this.suggestions.filter((x) => x.badge !== candidate.badge)
       this.refresh()
     },

@@ -119,6 +119,10 @@ class HotelRoom(Base):
     messages = Column(String(), nullable=True)
     admin_notes = Column(String(), nullable=True)
     admin_notes.internal = True
+    # The Uber room assignment this room exports as, and a hash of what
+    # was last sent so an unchanged room is not sent again.
+    uber_id = Column(String(), nullable=True)
+    uber_export_hash = Column(String(), nullable=True)
     hotel_block = Column(Integer, ForeignKey(
         'hotel_room_block.id', ondelete="CASCADE"))
     hotel_location = Column(Integer, ForeignKey(
@@ -149,6 +153,8 @@ class HotelLocation(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String())
     address = Column(String())
+    # The Uber inventory block this location's rooms are exported into.
+    uber_inventory_id = Column(String(), nullable=True)
     event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     rooms = relationship("HotelRoom")
 

@@ -48,8 +48,12 @@ export default {
     },
     async export_rooms () {
         try {
-            await post('/api/event/' + this.event.id + '/uber/export_rooms', null, this.$refs.progress, "Exporting Rooms")
-            this.$toast.add({ severity: 'success', summary: 'Rooms Exported', life: 1000 })
+            const summary = await post('/api/event/' + this.event.id + '/uber/export_rooms', null, this.$refs.progress, "Exporting Rooms")
+            const problems = [...summary.skipped, ...summary.inactive, ...summary.failed]
+            this.$toast.add({ severity: 'success', summary: 'Rooms Exported', detail: summary.exported + ' exported, ' + summary.unchanged + ' unchanged, ' + summary.cancelled + ' cancelled', life: 3000 })
+            if (problems.length) {
+                this.$toast.add({ severity: 'warn', summary: problems.length + ' rooms need attention', detail: problems.join('\n') })
+            }
         } catch {
             this.$toast.add({ severity: 'error', summary: 'Failed to export rooms', detail: 'Please contact your server administrator for assistance.', life: 3000 })
         }

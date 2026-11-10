@@ -33,8 +33,9 @@
         <thead>
           <tr>
             <th></th>
-            <th v-for="night in room.nights" :key="night.id">
-              {{ night.name }}<br><small>{{ night.date }}</small>
+            <th v-for="night in room.nights" :key="night.id" class="night-header"
+                :title="night.name + (night.date ? ', ' + night.date : '')">
+              {{ night.name.slice(0, 2) }}<br><small>{{ shortDate(night.date) }}</small>
             </th>
             <th>Issues</th>
             <th></th>
@@ -60,7 +61,13 @@
               <i v-else-if="occupant.nights[night.id].roomless" class="pi pi-home" />
             </td>
             <td>
-              <Chip v-for="error in occupant.errors" :key="error" :label="error" class="error-chip" />
+              <Chip v-for="error in otherErrors(occupant)" :key="error" :label="error" class="error-chip" />
+              <Chip v-for="wanted in occupant.requested_missing" :key="'wanted' + wanted.id" class="error-chip">
+                <span>Requested {{ wanted.name }}</span>
+                <Button v-if="wanted.addable" icon="pi pi-plus" class="p-button-rounded chip-add"
+                        :title="'Add ' + wanted.name + ' to this room'" :aria-label="'Add ' + wanted.name"
+                        @click="addOccupant(wanted.id)" />
+              </Chip>
             </td>
             <td>
               <Button icon="pi pi-times" class="p-button-rounded p-button-danger p-button-text"
@@ -113,8 +120,17 @@
 }
 .night-table th, .night-table td {
   border: 1px solid var(--surface-border, #dee2e6);
-  padding: 0.4rem 0.6rem;
+  padding: 0.4rem 0.3rem;
   text-align: center;
+}
+.night-header {
+  white-space: nowrap;
+}
+.error-chip .chip-add {
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  margin-left: 0.2rem;
 }
 .occupant-name {
   text-align: left;
@@ -122,7 +138,7 @@
 }
 .night-cell {
   cursor: pointer;
-  min-width: 3.5rem;
+  min-width: 2.25rem;
 }
 .night-cell.assigned {
   background: rgba(34, 197, 94, 0.25);
@@ -270,6 +286,30 @@ export default {
       } catch (e) {
         this.$toast.add({ severity: 'error', summary: 'Update Failed', life: 3000 })
         await this.load()
+      }
+      this.busy = false
+    },
+    shortDate (date) {
+      // 2027-01-07 -> 1/7
+      const parts = (date || '').split('-')
+      return parts.length === 3 ? parseInt(parts[1]) + '/' + parseInt(parts[2]) : ''
+    },
+    otherErrors (occupant) {
+      // Missing roommate requests get their own chips, with an add button.
+      return occupant.errors.filter((error) => !error.startsWith('Requested '))
+    },
+    async addOccupant (badge) {
+      if (this.busy) {
+        return
+      }
+      this.busy = true
+      try {
+        await post('/api/event/' + this.event.id + '/hotel/' + this.room.hotel_block.id +
+          '/room/' + this.room.id + '/add_roommates', { roommates: [badge] })
+        this.$emit('changed')
+        await this.load()
+      } catch (e) {
+        this.$toast.add({ severity: 'error', summary: 'Update Failed', life: 3000 })
       }
       this.busy = false
     },

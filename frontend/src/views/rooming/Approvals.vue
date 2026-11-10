@@ -3,8 +3,12 @@
     <Toast />
     <div class="flex justify-content-between align-items-center flex-wrap gap-2">
       <h3 class="mt-0 mb-0">Room Night Approvals<span v-if="department.name"> — {{ department.name }}</span></h3>
-      <Dropdown v-model="departmentID" :options="departments" optionLabel="name" optionValue="id"
-                placeholder="Select a department" />
+      <div class="flex gap-2 align-items-center flex-wrap">
+        <Dropdown v-model="shiftFilter" :options="shiftFilterOptions" optionLabel="label" optionValue="value"
+                  title="Filter by missing shifts" aria-label="Filter by missing shifts" />
+        <Dropdown v-model="departmentID" :options="departmentOptions" optionLabel="name" optionValue="id"
+                  placeholder="Select a department" aria-label="Department" />
+      </div>
     </div>
     <p>
         Restricted nights are approved automatically when their shift criteria are met —
@@ -12,11 +16,12 @@
         <b>shift hours</b> nights. <b>Manual approval</b> nights (and any night whose
         criteria aren't met) can be approved here:
         <TriStateCheckbox /> pending,
-        <TriStateCheckbox :modelValue="true" /> approved by this department,
+        <TriStateCheckbox :modelValue="true" /> approved {{ departmentID === ALL ? 'for the event' : 'by this department' }},
         <TriStateCheckbox :modelValue="false" /> rejected.
         Unrestricted nights are approved for everyone.
     </p>
-    <DataTable :value="requests" :loading="loading">
+    <DataTable :value="filteredRequests" :loading="loading" :paginator="filteredRequests.length > 50" :rows="50">
+        <template #empty>No requests match.</template>
         <Column headerStyle="width: 12em" field="name" header="Name" key="name">
             <template #body="slotProps">
                 <attendee-name :badge-id="slotProps.data.id" :name="slotProps.data.name" />
@@ -39,6 +44,8 @@
                              :value="nightStatus(slotProps.data, roomNight).hours_assigned + '/' + nightStatus(slotProps.data, roomNight).hours_required + 'h'" />
                         <TriStateCheckbox @change="approve(slotProps.data, roomNight.id)"
                                           v-model="slotProps.data.room_nights[String(roomNight.id)].approved" />
+                        <i v-if="nightStatus(slotProps.data, roomNight).approved_by_anyone && nightStatus(slotProps.data, roomNight).approved !== true"
+                           class="pi pi-check-circle flag-on" title="Approved elsewhere" />
                     </template>
                 </div>
             </template>
@@ -69,13 +76,23 @@ import { mapGetters } from 'vuex'
 import { get, post } from '../../lib/rest'
 import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
 
+// Stands for every department; real department ids are positive.
+const ALL = 0
+
 export default {
   name: 'RoomApprovals',
   components: {
     AttendeeName
   },
   data: () => ({
+    ALL,
     departmentID: null,
+    shiftFilter: 'all',
+    shiftFilterOptions: [
+      { label: 'Everyone', value: 'all' },
+      { label: 'Missing shifts', value: 'missing' },
+      { label: 'Missing shifts, not approved', value: 'unapproved' }
+    ],
     department: {},
     departments: [],
     requests: [],
@@ -85,7 +102,25 @@ export default {
   computed: {
     ...mapGetters([
       'event'
-    ])
+    ]),
+    departmentOptions () {
+      return [{ id: ALL, name: 'All' }].concat(this.departments)
+    },
+    filteredRequests () {
+      if (this.shiftFilter === 'all') {
+        return this.requests
+      }
+      // A requested shift-based night whose shift criteria are not met.
+      return this.requests.filter((request) => Object.values(request.room_nights).some((status) =>
+        status.requested && (status.mode === 'shift_window' || status.mode === 'shift_hours') &&
+        !status.approved_by_shifts && (this.shiftFilter === 'missing' || !status.approved_by_anyone)))
+    },
+    requestsUrl () {
+      return '/api/event/' + this.event.id + '/hotel/requests' + (this.departmentID === ALL ? '' : '/' + this.departmentID)
+    },
+    approveUrl () {
+      return '/api/event/' + this.event.id + '/hotel/approve' + (this.departmentID === ALL ? '' : '/' + this.departmentID)
+    }
   },
   mounted () {
     this.loadDepartments()
@@ -99,19 +134,27 @@ export default {
       const fromQuery = parseInt(this.$route.query.department)
       if (fromQuery && this.departments.some((x) => x.id === fromQuery)) {
         this.departmentID = fromQuery
-      } else if (this.departments.length) {
-        this.departmentID = this.departments[0].id
+      } else {
+        this.departmentID = ALL
       }
     },
     async load () {
-      if (!this.departmentID) {
+      if (this.departmentID === null) {
         return
       }
       this.loading = true
       this.department = this.departments.find((x) => x.id === this.departmentID) || {}
       this.roomNights = await get('/api/event/' + this.event.id + '/hotel_room_night',
         { sort: 'date', hidden: false })
-      this.requests = await get('/api/event/' + this.event.id + '/hotel/requests/' + this.departmentID)
+      try {
+        this.requests = await get(this.requestsUrl)
+      } catch (e) {
+        this.requests = []
+        if (this.departmentID === ALL && this.departments.length) {
+          // All needs event-wide rooming access; fall back to one department.
+          this.departmentID = this.departments[0].id
+        }
+      }
       this.loading = false
     },
     nightStatus (request, roomNight) {
@@ -122,7 +165,7 @@ export default {
       return status
     },
     approve (request, roomNight) {
-      post('/api/event/' + this.event.id + '/hotel/approve/' + this.departmentID, {
+      post(this.approveUrl, {
         room_night: roomNight,
         badge: request.id,
         approved: request.room_nights[String(roomNight)].approved
@@ -139,7 +182,7 @@ export default {
           continue
         }
         status.approved = approved
-        posts.push(post('/api/event/' + this.event.id + '/hotel/approve/' + this.departmentID, {
+        posts.push(post(this.approveUrl, {
           room_night: parseInt(roomNight),
           badge: request.id,
           approved

@@ -3,6 +3,7 @@
         <DataTable :value="hotelLocations" :loading="loading">
           <Column field="name" header="Name"></Column>
           <Column field="address" header="Address"></Column>
+          <Column field="uber_inventory_id" header="Uber Inventory ID"></Column>
           <Column header="Actions">
               <template #body="slotProps">
                   <Button @click="remove($event, slotProps.data)" icon="pi pi-times" class="p-button-rounded p-button-danger" />

@@ -1,5 +1,6 @@
 from tuber.models import *
 import tuber.config
+from .night_approval import approved_night_ids
 from types import SimpleNamespace
 from sqlalchemy import or_
 import multiprocessing
@@ -195,7 +196,8 @@ def combine_rooms(rooms):
 
 
 def load_staffer_pool(db, event, hotel_block, badge_ids=None,
-                      exclude_assigned=True, exclude_completed_room=False):
+                      exclude_assigned=True, exclude_completed_room=False,
+                      approved_only=True):
     """Load matcher staffer objects for a block.
 
     exclude_assigned: only people with no room night assignments at all (the
@@ -204,6 +206,8 @@ def load_staffer_pool(db, event, hotel_block, badge_ids=None,
         is in a room marked completed (the roommate-suggestion pool).
     badge_ids: restrict to specific badges (e.g. a room's current occupants),
         ignoring the assignment filters.
+    approved_only: match on the nights each person is approved for, rather
+        than everything they requested.
     """
     room_nights = db.query(HotelRoomNight).filter(
         HotelRoomNight.event == event).all()
@@ -221,6 +225,7 @@ def load_staffer_pool(db, event, hotel_block, badge_ids=None,
             HotelRoom.event == event, HotelRoom.completed == True).subquery()
         query = query.filter(~HotelRoomRequest.badge.in_(completed_badges.select()))
     requests = query.all()
+    approved = approved_night_ids(db, event, [badge.id for _, badge in requests]) if approved_only else None
     staffers = []
     for request, badge in requests:
         staffer = HashNS()
@@ -238,7 +243,7 @@ def load_staffer_pool(db, event, hotel_block, badge_ids=None,
         assigned = set()
         for room_night in room_nights:
             if room_night.id in requested:
-                #if not room_night.restricted or room_night.id in approved:
+                if approved is None or room_night.id in approved[badge.id]:
                     assigned.add(room_night.id)
 
         if assigned:
@@ -291,16 +296,16 @@ def clear_hotel_block(db, event, hotel_block, suggested_only=False):
     db.commit()
 
 
-def rematch_hotel_block(db, event, hotel_block):
+def rematch_hotel_block(db, event, hotel_block, approved_only=True):
     clear_hotel_block(db, event, hotel_block, suggested_only=True)
-    return match_block(db, event, hotel_block)
+    return match_block(db, event, hotel_block, approved_only=approved_only)
 
 
-def match_block(db, event, hotel_block):
+def match_block(db, event, hotel_block, approved_only=True):
     """Run the matcher over everyone in the block who has no assignments yet,
        creating persisted suggested rooms for review. Returns created room ids."""
     start = time.perf_counter()
-    staffers = load_staffer_pool(db, event, hotel_block)
+    staffers = load_staffer_pool(db, event, hotel_block, approved_only=approved_only)
     if not staffers:
         return []
     print(f"Load time: {time.perf_counter() - start}")
@@ -360,7 +365,7 @@ def match_block(db, event, hotel_block):
     return [hotel_room.id for _, hotel_room in hotels]
 
 
-def suggest_roommates(db, event, room, limit=10):
+def suggest_roommates(db, event, room, limit=10, approved_only=True):
     """Rank the best additions to a room using the matcher's scoring.
 
     Candidates are people in the room's block who are not in any completed
@@ -368,14 +373,14 @@ def suggest_roommates(db, event, room, limit=10):
     would be moved). Anti-request conflicts are skipped outright.
     """
     occupant_ids = {x.id for x in room.roommates}
-    pool = load_staffer_pool(db, event, room.hotel_block,
+    pool = load_staffer_pool(db, event, room.hotel_block, approved_only=approved_only,
                              exclude_assigned=False, exclude_completed_room=True)
     # Occupants may not appear in the pool (e.g. declined since placement);
     # load them explicitly so scoring sees the full room.
     pool_ids = {x.id for x in pool}
     missing_occupants = occupant_ids - pool_ids
     if missing_occupants:
-        pool.extend(load_staffer_pool(db, event, room.hotel_block,
+        pool.extend(load_staffer_pool(db, event, room.hotel_block, approved_only=approved_only,
                                       badge_ids=missing_occupants))
     occupants = {x for x in pool if x.id in occupant_ids}
     candidates = [x for x in pool if x.id not in occupant_ids]

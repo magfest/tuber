@@ -9,6 +9,11 @@
             <label for="address">Address</label><br>
             <InputText id="address" v-model="hotelLocation.address" /><br>
           </div><br>
+
+          <div class="field">
+            <label for="uber_inventory_id">Uber Inventory ID</label><br>
+            <InputText id="uber_inventory_id" v-model="hotelLocation.uber_inventory_id" placeholder="Inventory block rooms export into" /><br>
+          </div><br>
     </form>
 </template>
 
@@ -26,7 +31,8 @@ export default {
   data: () => ({
     hotelLocation: {
       name: '',
-      address: ''
+      address: '',
+      uber_inventory_id: ''
     }
   }),
   computed: {
