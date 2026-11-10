@@ -4,7 +4,7 @@ from tuber.models import *
 from tuber.database import db
 from tuber.permissions import *
 from sqlalchemy import inspect as sa_inspect
-from sqlalchemy.orm import joinedload, InstanceState, with_parent
+from sqlalchemy.orm import joinedload, selectinload, InstanceState, with_parent
 import datetime
 import functools
 import re
@@ -431,15 +431,17 @@ def build_email_tables(event_id, badge_ids=None):
     rendering a preview for a single attendee."""
     event = db.query(Event).filter(Event.id == event_id).one()
     badge_query = db.query(Badge).filter(Badge.event == event_id)
+    # selectinload, not joinedload: joining several collections at once
+    # multiplies the rows fetched per request by the size of each collection.
     request_query = db.query(HotelRoomRequest).filter(HotelRoomRequest.event == event_id) \
-        .options(joinedload(HotelRoomRequest.room_night_assignments)) \
-        .options(joinedload(HotelRoomRequest.room_night_approvals)) \
-        .options(joinedload(HotelRoomRequest.room_night_requests)) \
-        .options(joinedload(HotelRoomRequest.roommate_requests)) \
-        .options(joinedload(HotelRoomRequest.roommate_anti_requests))
+        .options(selectinload(HotelRoomRequest.room_night_assignments)) \
+        .options(selectinload(HotelRoomRequest.room_night_approvals)) \
+        .options(selectinload(HotelRoomRequest.room_night_requests)) \
+        .options(selectinload(HotelRoomRequest.roommate_requests)) \
+        .options(selectinload(HotelRoomRequest.roommate_anti_requests))
     room_query = db.query(HotelRoom).filter(HotelRoom.event == event_id) \
-        .options(joinedload(HotelRoom.room_night_assignments)) \
-        .options(joinedload(HotelRoom.roommates))
+        .options(selectinload(HotelRoom.room_night_assignments)) \
+        .options(selectinload(HotelRoom.roommates))
     if badge_ids is not None:
         room_ids = {x.hotel_room for x in db.query(RoomNightAssignment).filter(
             RoomNightAssignment.badge.in_(badge_ids),
