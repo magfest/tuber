@@ -42,10 +42,11 @@
       </Column>
       <Column header="Occupants">
         <template #body="slotProps">
-          <span v-for="(mate, index) in occupants(slotProps.data)" :key="mate.id">
-            <template v-if="index > 0">, </template>
+          <div v-for="mate in occupants(slotProps.data)" :key="mate.id" class="occupant-line"
+               :class="groupTag(slotProps.data, mate) && groupTag(slotProps.data, mate).className"
+               :title="groupTag(slotProps.data, mate) && groupTag(slotProps.data, mate).title">
             <attendee-name :badge-id="mate.id" :name="mate.name" />
-          </span>
+          </div>
           <span v-if="!occupants(slotProps.data).length" class="empty">Empty</span>
         </template>
       </Column>
@@ -78,6 +79,10 @@
 </template>
 
 <style scoped>
+.occupant-line {
+  margin: 1px 0;
+  padding: 0.1rem 0.4rem;
+}
 .filter-bar {
   display: flex;
   gap: 0.5rem;
@@ -101,6 +106,7 @@ import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
 import RoomName from '../../components/rooming/modals/RoomName.vue'
 import InlineNote from '../../components/rooming/InlineNote.vue'
 import { saveRoomAdminNote } from '../../lib/adminNotes'
+import { requestGroupTags } from '../../lib/requestGroups'
 
 export default {
   name: 'RoomList',
@@ -200,7 +206,22 @@ export default {
     },
     occupants (room) {
       const details = this.roomDetails[room.id]
-      return details ? Object.values(details.roommates) : []
+      return details ? Object.values(details.roommates).sort((a, b) => {
+        // Keep each request group together, ahead of people on their own.
+        const [x, y] = [this.groupTag(room, a), this.groupTag(room, b)]
+        return (x ? x.index : 99) - (y ? y.index : 99)
+      }) : []
+    },
+    groupTag (room, mate) {
+      // room_details groups are objects keyed by badge id.
+      const details = this.roomDetails[room.id]
+      if (!details) {
+        return null
+      }
+      const names = {}
+      Object.values(details.roommates).forEach((x) => { names[x.id] = x.name })
+      const groups = (details.groups || []).map((group) => Object.keys(group).map(Number))
+      return requestGroupTags(groups, names)[mate.id] || null
     },
     issues (room) {
       return this.occupants(room).flatMap(

@@ -132,7 +132,9 @@
               </div>
             </div>
             <div class="occupants">
-              <div v-for="mate in roomRoommates(room)" :key="mate.id" class="occupant">
+              <div v-for="mate in roomRoommates(room)" :key="mate.id" class="occupant"
+                   :class="groupTag(room, mate) && groupTag(room, mate).className"
+                   :title="groupTag(room, mate) && groupTag(room, mate).title">
                 <div class="occupant-main">
                   <Button icon="pi pi-times" class="p-button-rounded p-button-text p-button-danger remove-mate"
                           :title="'Remove ' + mate.name + ' from this room'" :aria-label="'Remove ' + mate.name"
@@ -331,6 +333,7 @@ import TuberTable from '../../components/TuberTable.vue'
 import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
 import RoomName from '../../components/rooming/modals/RoomName.vue'
 import InlineNote from '../../components/rooming/InlineNote.vue'
+import { requestGroupTags } from '../../lib/requestGroups'
 import { saveRequestAdminNote, saveRoomAdminNote } from '../../lib/adminNotes'
 
 export default {
@@ -533,7 +536,11 @@ export default {
       if (!details) {
         return []
       }
-      return Object.values(details.roommates)
+      return Object.values(details.roommates).sort((a, b) => {
+        // Keep each request group together, ahead of people on their own.
+        const [x, y] = [this.groupTag(room, a), this.groupTag(room, b)]
+        return (x ? x.index : 99) - (y ? y.index : 99)
+      })
     },
     errorCount (room) {
       return this.roomRoommates(room).reduce((n, mate) => n + mate.errors.length, 0)
@@ -613,6 +620,17 @@ export default {
       } else {
         this.refresh()
       }
+    },
+    groupTag (room, mate) {
+      // room_details groups are objects keyed by badge id.
+      const details = this.roomDetails[room.id]
+      if (!details) {
+        return null
+      }
+      const names = {}
+      Object.values(details.roommates).forEach((x) => { names[x.id] = x.name })
+      const groups = (details.groups || []).map((group) => Object.keys(group).map(Number))
+      return requestGroupTags(groups, names)[mate.id] || null
     },
     otherErrors (mate) {
       // Missing roommate requests get their own chips, with an add button.

@@ -43,7 +43,8 @@
         </thead>
         <tbody>
           <tr v-for="occupant in room.occupants" :key="occupant.badge">
-            <td class="occupant-name">
+            <td class="occupant-name" :class="groupTags[occupant.badge] && groupTags[occupant.badge].className"
+                :title="groupTags[occupant.badge] && groupTags[occupant.badge].title">
               <attendee-name :badge-id="occupant.badge" :name="occupant.name" />
               <div v-if="occupant.notes" class="staffer-note" :title="'From ' + occupant.name + '\'s request'">
                 <i class="pi pi-comment" /> {{ occupant.notes }}
@@ -167,6 +168,7 @@ import { mapGetters } from 'vuex'
 import { get, post, patch, del } from '../../../lib/rest'
 import AttendeeName from './AttendeeName.vue'
 import InlineNote from '../InlineNote.vue'
+import { requestGroupTags } from '../../../lib/requestGroups'
 import { saveRequestAdminNote, saveRoomAdminNote } from '../../../lib/adminNotes'
 
 export default {
@@ -190,7 +192,12 @@ export default {
   computed: {
     ...mapGetters([
       'event'
-    ])
+    ]),
+    groupTags () {
+      const names = {}
+      this.room.occupants.forEach((x) => { names[x.badge] = x.name })
+      return requestGroupTags(this.room.groups, names)
+    }
   },
   mounted () {
     this.load()
