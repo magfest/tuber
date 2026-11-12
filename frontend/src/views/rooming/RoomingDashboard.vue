@@ -96,6 +96,13 @@
             <div class="stat-big">{{ block.nights.room_night_floor }}</div>
             <div class="stat-sub">fewest room-nights possible for {{ block.nights.people }} people</div>
             <ul class="stat-list">
+              <li v-if="block.nights.peak_night"
+                  title="Rooms are held across nights, so the busiest night sets the minimum">
+                <b>{{ block.nights.min_rooms }} rooms</b> at minimum:
+                {{ block.nights.peak_night.people }} people on {{ block.nights.peak_night.name }}, the busiest night
+              </li>
+              <li>{{ block.nights.exact_pattern_rooms }} rooms if every room had identical nights</li>
+              <li>{{ block.rooms_built }} rooms built so far</li>
               <li title="Rooms only ever hold people with identical nights">
                 {{ block.nights.exact_pattern_room_nights }} room-nights if every room had identical nights
                 (<b>{{ percentOver(block.nights.exact_pattern_room_nights, block.nights.room_night_floor) }}</b>)
@@ -121,6 +128,25 @@
             <div class="stat-big">{{ block.roommates.mutual_pairs }}</div>
             <div class="stat-sub">mutual pairs from {{ block.roommates.requests }} requests by
               {{ block.roommates.requesters }} people</div>
+            <table v-if="block.roommates.groups.length" class="mini-table">
+              <thead>
+                <tr>
+                  <th title="People joined by mutual roommate requests">Group size</th>
+                  <th>Groups</th>
+                  <th :title="'Every member has the same ' + matchNights + ' nights'">
+                    Same nights {{ matchNights }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="group in block.roommates.groups" :key="group.size"
+                    :class="{ warn: group.size > roomSize }"
+                    :title="group.size > roomSize ? 'Too big for one room' : ''">
+                  <td>{{ group.size }}</td>
+                  <td>{{ group.groups }}</td>
+                  <td>{{ group.matching_nights }}</td>
+                </tr>
+              </tbody>
+            </table>
             <ul class="stat-list">
               <li>{{ block.roommates.one_way }} one-way requests within the block</li>
               <li v-for="(count, reason) in block.roommates.unplaceable" :key="reason">
@@ -129,9 +155,6 @@
               <li v-if="block.roommates.mutual_pairs">
                 {{ block.roommates.pairs_identical_nights }} of {{ block.roommates.mutual_pairs }} mutual pairs
                 want identical nights ({{ block.roommates.pairs_night_match }}% night match on average)
-              </li>
-              <li v-if="Object.keys(block.roommates.group_sizes).length">
-                Request groups: {{ groupSizes(block.roommates.group_sizes) }}
               </li>
               <li v-if="block.roommates.oversized_groups" class="warn">
                 {{ block.roommates.oversized_groups }} groups too big for one room
@@ -374,9 +397,6 @@ export default {
     },
     unplaceableLabel (reason) {
       return UNPLACEABLE_LABELS[reason] || reason
-    },
-    groupSizes (sizes) {
-      return Object.entries(sizes).map(([size, count]) => count + ' of ' + size).join(', ')
     },
     requestsLink (filter) {
       return { path: '/rooming/requests', query: { afilter: filter } }

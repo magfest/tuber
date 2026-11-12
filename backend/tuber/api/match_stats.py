@@ -23,11 +23,18 @@ def _night_stats(staffers, nights):
         per_night.update(staffer.room_nights)
         patterns[frozenset(staffer.room_nights)] += 1
     floor = sum(math.ceil(count / ROOM_SIZE) for count in per_night.values())
+    # Rooms are held across nights, so the busiest night sets the minimum.
+    # With consecutive nights it can be met: each bed is a run of stays that
+    # don't overlap, and the busiest night needs that many beds.
+    peak = max(nights, key=lambda night: per_night[night.id], default=None)
     exact = sum(math.ceil(count / ROOM_SIZE) * len(pattern) for pattern, count in patterns.items())
     person_nights = sum(per_night.values())
     order = {night.id: idx for idx, night in enumerate(nights)}
     top = patterns.most_common()
     return {
+        "min_rooms": math.ceil(per_night[peak.id] / ROOM_SIZE) if peak else 0,
+        "peak_night": {"name": peak.name, "people": per_night[peak.id]} if peak else None,
+        "exact_pattern_rooms": sum(math.ceil(count / ROOM_SIZE) for count in patterns.values()),
         "people": len(staffers),
         "person_nights": person_nights,
         "average_nights": round(person_nights / len(staffers), 1) if staffers else 0,
@@ -83,8 +90,11 @@ def _roommate_stats(staffers, event, hotel_block):
     identical = len([1 for a, b in pairs if pool[a].room_nights == pool[b].room_nights])
     match = [night_match([pool[a], pool[b]]) for a, b in pairs]
 
+    # Groups joined by mutual requests, by size, and how many of them have
+    # identical nights for every member (so the group can share every night).
     seen = set()
     group_sizes = Counter()
+    group_matching = Counter()
     for staffer in staffers:
         if staffer in seen:
             continue
@@ -92,6 +102,8 @@ def _roommate_stats(staffers, event, hotel_block):
         seen.update(group)
         if len(group) > 1:
             group_sizes[len(group)] += 1
+            if len({frozenset(x.room_nights) for x in group}) == 1:
+                group_matching[len(group)] += 1
 
     conflicts = len([1 for a in staffers for b in a.roommates if a in b.antiroommates])
     return {
@@ -102,7 +114,8 @@ def _roommate_stats(staffers, event, hotel_block):
         "unplaceable": dict(unplaceable),
         "pairs_identical_nights": identical,
         "pairs_night_match": round(sum(match) / len(match) * 100, 1) if match else None,
-        "group_sizes": {str(k): v for k, v in sorted(group_sizes.items())},
+        "groups": [{"size": size, "groups": count, "matching_nights": group_matching[size]}
+                   for size, count in sorted(group_sizes.items())],
         "oversized_groups": sum(v for k, v in group_sizes.items() if k > ROOM_SIZE),
         "anti_requests": sum(len(x.antiroommates) for x in staffers),
         "conflicts": conflicts,
@@ -172,6 +185,8 @@ def hotel_match_stats(event):
             "no_nights_requested": open_requests - requested,
             "no_eligible_nights": requested - len(staffers),
             "booked_room_nights": _booked_room_nights(event, block.id),
+            "rooms_built": db.query(HotelRoom).filter(
+                HotelRoom.event == event, HotelRoom.hotel_block == block.id).count(),
             "nights": _night_stats(staffers, nights),
             "roommates": _roommate_stats(staffers, event, block.id),
             "gender": _gender_stats(staffers),
