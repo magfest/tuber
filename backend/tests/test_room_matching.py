@@ -188,3 +188,49 @@ def test_suggest_roommates(client):
 
     rv = client.get("/api/event/1/hotel/room/99999/suggest_roommates")
     assert rv.status_code == 404
+
+
+def _staffer(rm, id, nights, gender="", single_gender=False):
+    return rm.HashNS(id=id, name=f"s{id}", room_nights=set(nights),
+                     roommates=set(), iroommates=set(), antiroommates=set(),
+                     iantiroommates=set(), departments=[], prefer_dept=False,
+                     preferred_dept=None, preferred_gender=gender,
+                     prefer_single_gender=single_gender)
+
+
+def test_combine_skips_mismatched_nights(tuber):
+    """Two Th-Sa people and two Sa-Mo people are not merged into one room."""
+    from tuber.api import room_matcher as rm
+
+    early = [_staffer(rm, i, [1, 2, 3]) for i in (1, 2)]
+    late = [_staffer(rm, i, [3, 4, 5]) for i in (3, 4)]
+    rooms = rm.combine_rooms([set([x]) for x in early + late])
+    assert sorted(sorted(x.id for x in r) for r in rooms) == [[1, 2], [3, 4]]
+
+
+def test_combine_prefers_matching_nights(tuber):
+    """Identical-night people pair up before near-matches fill a room."""
+    from tuber.api import room_matcher as rm
+
+    a, b = _staffer(rm, 1, [1, 2, 3, 4]), _staffer(rm, 2, [2, 3, 4])
+    c, d = _staffer(rm, 3, [1, 2, 3, 4]), _staffer(rm, 4, [2, 3, 4])
+    rooms = rm.combine_rooms([{a}, {b}, {c}, {d}], min_night_match=0.9)
+    assert {frozenset(r) for r in rooms} == {frozenset([a, c]), frozenset([b, d])}
+
+
+def test_combine_respects_single_gender(tuber):
+    """A single-gender requester is only merged with the same mapped gender
+       (case-insensitively), never with a different or blank gender."""
+    import tuber.config
+    from tuber.api import room_matcher as rm
+    tuber.config.gender_map = {"Female": "F", "Woman": "F", "Male": "M"}
+
+    s = _staffer(rm, 1, [1, 2], "woman ", single_gender=True)
+    f = _staffer(rm, 2, [1, 2], "FEMALE")
+    m = _staffer(rm, 3, [1, 2], "male")
+    blank = _staffer(rm, 4, [1, 2])
+    rooms = rm.combine_rooms([{s}, {m}, {blank}, {f}])
+    room = next(r for r in rooms if s in r)
+    assert room == {s, f}
+    assert not rm.single_gender_violated({s, f})
+    assert rm.single_gender_violated({s, blank})

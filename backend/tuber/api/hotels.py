@@ -11,7 +11,7 @@ import os
 from tuber.api.util import *
 from .night_approval import (approved_night_ids, manual_approved_night_ids,
                              shift_hours_totals, shift_satisfied_night_ids)
-from .room_matcher import (clear_hotel_block, match_block,
+from .room_matcher import (clear_hotel_block, match_block, normalize_gender,
                            rematch_hotel_block, suggest_roommates)
 from .uber import export_requests
 from .util import paginate
@@ -166,12 +166,6 @@ def _room_details_data(event, rooms):
             request_groups[rna.hotel_room][rna.badge] = []
         details[rna.hotel_room]['roommates'][rna.badge]['room_night_assignments'][rna.room_night] = rna.id
 
-    all_rnas = db.query(RoomNightAssignment).filter(
-        RoomNightAssignment.badge.in_(badges)).all()
-    rnas_by_badge = defaultdict(list)
-    for rna in all_rnas:
-        rnas_by_badge[rna.badge].append(rna)
-
     gender_prefs = {}
 
     room_nights = db.query(HotelRoomNight).filter(
@@ -201,7 +195,7 @@ def _room_details_data(event, rooms):
         if not hotel_room.id in gender_prefs:
             gender_prefs[hotel_room.id] = set()
         gender_prefs[hotel_room.id].add(
-            config.gender_map.get(request.preferred_gender, "Unknown"))
+            normalize_gender(request.preferred_gender) or "Unknown")
     # Requested roommates who can be added with one click: an open request
     # in the room's block, with nights requested, and not in a room yet.
     wanted = {x.id for _, request in hotel_rooms for x in request.roommate_requests}
@@ -240,15 +234,17 @@ def _room_details_data(event, rooms):
         # Each person needs their own approval; a roommate's does not cover them.
         nights = {x.room_night for x in request.room_night_requests
                   if x.requested and x.room_night in approved[request.badge]}
-        assigned_nights = [x.room_night for x in rnas_by_badge[request.badge]]
-        missing_nights = nights.difference(set(assigned_nights))
-        # Nights they hold in this room without having them requested and approved.
-        extra_nights = sorted(set(mate['room_night_assignments']).difference(nights),
-                              key=lambda x: room_nights[x].date)
-        mate['extra_nights'] = extra_nights
-        if extra_nights:
+        # Compared against the nights they hold in this room only: a room-less
+        # grant or a night in another room doesn't make this room match.
+        missing_nights = nights.difference(set(mate['room_night_assignments']))
+        by_date = lambda x: room_nights[x].date
+        # Nights the room runs that they aren't eligible for, whether or not
+        # they hold them. Only the ones they hold can be removed from them.
+        room_extra = sorted(set(details[hotel_room.id]['room_nights']).difference(nights), key=by_date)
+        mate['extra_nights'] = sorted(set(mate['room_night_assignments']).difference(nights), key=by_date)
+        if room_extra:
             details[hotel_room.id]['roommates'][request.badge]['errors'].add(
-                f'Extra Room Night ({", ".join([room_nights[x].name[:2] for x in extra_nights])})')
+                f'Extra Room Night ({", ".join([room_nights[x].name[:2] for x in room_extra])})')
         if missing_nights:
             details[hotel_room.id]['roommates'][request.badge]['errors'].add(
                 f'Missing Room Night ({", ".join([room_nights[x].name[:2] for x in missing_nights])})')

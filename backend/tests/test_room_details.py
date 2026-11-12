@@ -13,7 +13,8 @@ def _details(client, room):
 
 
 def test_extra_night_warning_survives_an_approved_roommate(client):
-    """A night someone is not approved for stays flagged on them, whoever else is in the room."""
+    """A night the room runs that someone is not approved for is flagged on
+       them, whoever else is in the room."""
     import tuber.models as models
     from tuber.database import db
 
@@ -36,13 +37,17 @@ def test_extra_night_warning_survives_an_approved_roommate(client):
     assert mates[str(bob)]["errors"] == []
     assert len(mates[str(alice)]["room_night_assignments"]) == 2
 
-    # Removing the extra night clears the warning and leaves her other night.
+    # Removing the extra night leaves her other night. The room still runs
+    # Friday for Bob, which she isn't approved for, so the warning stays but
+    # there is nothing left of hers to remove.
     assert mates[str(alice)]["extra_nights"] == [friday.id]
     rv = client.post(f"/api/event/1/hotel/{block}/room/{room}/remove_nights",
                      json={"badge": alice, "nights": mates[str(alice)]["extra_nights"]})
     assert rv.status_code == 200
     mates = _details(client, room)["roommates"]
-    assert mates[str(alice)]["errors"] == [] and len(mates[str(alice)]["room_night_assignments"]) == 1
+    assert mates[str(alice)]["errors"] == ["Extra Room Night (Fr)"]
+    assert mates[str(alice)]["extra_nights"] == []
+    assert len(mates[str(alice)]["room_night_assignments"]) == 1
     assert len(mates[str(bob)]["room_night_assignments"]) == 2
 
 
@@ -142,3 +147,47 @@ def test_all_departments_approvals(client):
     rows = {x["name"]: x for x in client.get("/api/event/1/hotel/requests").json}
     assert rows["Alice One"]["room_nights"][str(friday)]["approved"] is True
     assert rows["Alice One"]["room_nights"][str(friday)]["approved_by_anyone"] is True
+
+
+def test_missing_night_compares_eligible_nights_to_this_room(client):
+    """A night held without a room, or in another room, still counts as
+       missing from this room."""
+    import tuber.models as models
+    from tuber.database import db
+
+    s = _seed(db, models, ["Alice One"])
+    block = s["block"].id
+    alice = s["badges"]["Alice One"].id
+    friday, saturday = [x.id for x in s["nights"]]
+    room = _room(db, models, block)
+    db.add(models.RoomNightAssignment(event=1, badge=alice, room_night=saturday, hotel_room=room))
+    db.add(models.RoomNightAssignment(event=1, badge=alice, room_night=friday, hotel_room=None))
+    db.commit()
+    assert _details(client, room)["roommates"][str(alice)]["errors"] == ["Missing Room Night (Fr)"]
+
+    db.query(models.RoomNightAssignment).filter(
+        models.RoomNightAssignment.room_night == friday).update({"hotel_room": room})
+    db.commit()
+    assert _details(client, room)["roommates"][str(alice)]["errors"] == []
+
+
+def test_extra_night_when_room_runs_longer(client):
+    """Someone eligible for one night in a two-night room is flagged even
+       though they only hold their own night."""
+    import tuber.models as models
+    from tuber.database import db
+
+    s = _seed(db, models, ["Alice One", "Bob Two"])
+    block = s["block"].id
+    alice, bob = s["badges"]["Alice One"].id, s["badges"]["Bob Two"].id
+    friday, saturday = [x.id for x in s["nights"]]
+    db.query(models.RoomNightRequest).filter(models.RoomNightRequest.badge == alice,
+                                             models.RoomNightRequest.room_night == saturday).delete()
+    room = _room(db, models, block)
+    for badge, night in [(alice, friday), (bob, friday), (bob, saturday)]:
+        db.add(models.RoomNightAssignment(event=1, badge=badge, room_night=night, hotel_room=room))
+    db.commit()
+    mates = _details(client, room)["roommates"]
+    assert mates[str(alice)]["errors"] == ["Extra Room Night (Sa)"]
+    assert mates[str(alice)]["extra_nights"] == []
+    assert mates[str(bob)]["errors"] == []

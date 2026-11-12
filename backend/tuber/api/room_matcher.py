@@ -30,6 +30,42 @@ class HashNS(SimpleNamespace):
 
 unmapped = set()
 
+# Rooms below this night match (filled slots / (nights * occupants)) are not
+# created by combining strangers. 0.8 allows e.g. two Th-Su + two Fr-Mo, but
+# not two Th-Sa + two Sa-Mo.
+MIN_NIGHT_MATCH = 0.8
+
+
+def normalize_gender(raw):
+    """Map a free-text gender answer onto config.gender_map, ignoring case and
+       whitespace on both sides. Unmapped answers group by their own text
+       rather than all collapsing into one bucket. Blank returns None."""
+    if not raw or not raw.strip():
+        return None
+    gender = raw.lower().strip()
+    gender_map = {k.lower().strip(): v for k, v in tuber.config.gender_map.items()}
+    if gender in gender_map:
+        return gender_map[gender]
+    if gender not in unmapped:
+        print(f"WARNING: Unmapped gender preference: {gender}")
+        unmapped.add(gender)
+    return gender
+
+
+def single_gender_violated(staffers):
+    """True if anyone wanting a single-gender room shares with someone of a
+       different (or unstated) gender. Blank counts as its own value, matching
+       the Gender Mismatch check on room details."""
+    if not any(x.prefer_single_gender for x in staffers):
+        return False
+    return len({normalize_gender(x.preferred_gender) for x in staffers}) > 1
+
+
+def night_match(staffers):
+    nights = set().union(*[x.room_nights for x in staffers])
+    filled_slots = sum([len(x.room_nights) for x in staffers])
+    return filled_slots / (len(nights) * len(staffers))
+
 
 def score_room(staffers, room_night_weight=100, roommate_weight=5, department_weight=1, other_weight=1, allow_empty=True):
     staffers = set(staffers)
@@ -70,24 +106,13 @@ def score_room(staffers, room_night_weight=100, roommate_weight=5, department_we
     else:
         dept_score = department_weight
 
-    genders = set()
-    for staffer in staffers:
-        if staffer.preferred_gender:
-            gender = staffer.preferred_gender.lower().strip()
-            if not gender in tuber.config.gender_map:
-                print(f"WARNING: Unmapped gender preference: {gender}")
-                unmapped.add(gender)
-                genders.add(None)
-            else:
-                genders.add(tuber.config.gender_map[gender])
-        else:
-            gender = None
+    single_gender_ok = not single_gender_violated(staffers)
     filled_prefs = 0
     total_prefs = 0
     for staffer in staffers:
         if staffer.prefer_single_gender:
             total_prefs += 1
-            if len(genders) <= 1:
+            if single_gender_ok:
                 filled_prefs += 1
     if total_prefs:
         other_score = other_weight * (filled_prefs / total_prefs)
@@ -143,7 +168,12 @@ def match_perfect(staffers, matched, n):
     return rooms
 
 
-def combine_rooms(rooms):
+def combine_rooms(rooms, min_night_match=MIN_NIGHT_MATCH):
+    """Greedily merge rooms of strangers. Merges are ranked by how well the
+       occupants' nights line up first, then by the overall score (which
+       favors fuller rooms), so identical-night groups pair up before anyone
+       is squeezed into a mismatched room. Merges that would break a
+       single-gender preference or fall under min_night_match are skipped."""
     rooms = list(rooms)
     lengths = {4: 0, 3: 0, 2: 0, 1: 0}
     for i in rooms:
@@ -161,23 +191,26 @@ def combine_rooms(rooms):
 
     while rooms:
         best = None
-        best_score = 0
+        best_score = None
         for perm in itertools.combinations(rooms, 2):
-            try:
-                a, b = perm
-                if len(a) + len(b) > 4:
-                    continue
-                ordered = list(a.union(b))
-                ordered.sort()
-                ordered = tuple(ordered)
-                if ordered in scores:
-                    score = scores[ordered]
-                else:
-                    score = sum(score_room(ordered, allow_empty=False))
-                    scores[ordered] = score
-            except AntiRequestException:
+            a, b = perm
+            if len(a) + len(b) > 4:
                 continue
-            if score > best_score:
+            ordered = list(a.union(b))
+            ordered.sort()
+            ordered = tuple(ordered)
+            if ordered not in scores:
+                scores[ordered] = None
+                match = night_match(ordered)
+                if match >= min_night_match and not single_gender_violated(ordered):
+                    try:
+                        scores[ordered] = (match, sum(score_room(ordered, allow_empty=False)))
+                    except AntiRequestException:
+                        pass
+            score = scores[ordered]
+            if score is None:
+                continue
+            if best_score is None or score > best_score:
                 best_score = score
                 best = perm
         if best:

@@ -25,7 +25,7 @@
       <!-- Unassigned request pool. Keyed on the block so switching blocks mounts
            a fresh table (first page, empty selection) instead of mutating the
            old one while its last request may still be in flight. -->
-      <div class="col-12 lg:col-5">
+      <div class="col-12 lg:col-5 request-pool">
         <div class="flex justify-content-between align-items-center">
           <h4>Unassigned Requests</h4>
           <span class="p-input-icon-left">
@@ -84,7 +84,7 @@
           <h4>Rooms</h4>
           <span class="p-input-icon-left">
             <i class="pi pi-search" />
-            <InputText v-model="roomSearch" placeholder="Room or roommate name" @change="onRoomFilter" />
+            <InputText v-model="roomSearch" placeholder="Room or roommate name" />
           </span>
         </div>
         <div class="filter-bar">
@@ -105,15 +105,19 @@
           </div>
           <div v-for="room in suggestedRooms.concat(rooms)" :key="room.id" class="room-card"
                :class="{ 'room-completed': room.completed, 'room-suggested': room.suggested }">
-            <div class="flex justify-content-between align-items-center">
-              <span>
+            <div class="room-header">
+              <span class="room-title">
                 <room-name :room-id="room.id" :name="room.name" />
-                <Tag v-if="room.suggested" severity="warning" value="Suggested" class="ml-2" />
                 <span class="error-count ml-2" v-if="room.suggested && errorCount(room)">
                   <i class="pi pi-exclamation-triangle" /> {{ errorCount(room) }}
                 </span>
               </span>
-              <div class="flex gap-1">
+              <div class="night-tags">
+                <Tag v-for="night in roomNightTags(room)" :key="night.id" :severity="night.severity"
+                     :value="night.short" :title="night.title" class="night-tag"
+                     :class="{ 'night-tag-unrequested': !night.booked }" />
+              </div>
+              <div class="flex gap-1 room-actions">
                 <Button :icon="room.completed ? 'pi pi-check-circle' : 'pi pi-circle'"
                         :class="['p-button-rounded p-button-text', room.completed ? 'p-button-success' : 'p-button-warning']"
                         :title="room.completed ? 'Completed — click to reopen' : 'Click to mark completed'"
@@ -143,7 +147,7 @@
                   <Chip v-for="error in otherErrors(mate)" :key="error" :label="error" class="error-chip" />
                   <Chip v-if="extraNightsError(mate)" class="error-chip">
                     <span>{{ extraNightsError(mate) }}</span>
-                    <Button icon="pi pi-minus" class="p-button-rounded chip-button"
+                    <Button v-if="(mate.extra_nights || []).length" icon="pi pi-minus" class="p-button-rounded chip-button"
                             :title="'Remove the extra night(s) from ' + mate.name"
                             :aria-label="'Remove extra nights from ' + mate.name"
                             @click="removeExtraNights(room, mate)" />
@@ -288,15 +292,39 @@
   padding-top: 0.4rem;
   border-top: 1px dashed var(--surface-border, #dee2e6);
 }
+.room-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+.room-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.room-actions {
+  flex: none;
+}
+/* Sized so 10 nights fit on one line in both the request table and room headers. */
 .night-tags {
   display: flex;
   flex-wrap: nowrap;
-  gap: 0.25rem;
+  gap: 0.1rem;
 }
 
 .night-tag {
-  width: 1.75rem;
+  width: 1.25rem;
   flex: none;
+  padding: 0.1rem 0;
+  font-size: 0.65rem;
+}
+/* Tighter cells so most names fit on one line beside the nights. */
+.request-pool :deep(.p-datatable-sm .p-datatable-tbody > tr > td),
+.request-pool :deep(.p-datatable-sm .p-datatable-thead > tr > th) {
+  padding: 0.3rem 0.25rem;
+}
+.request-pool :deep(.inline-note) {
+  min-width: 6rem;
 }
 
 .night-tag-unrequested {
@@ -354,6 +382,7 @@ export default {
     roomLoadSequence: 0,
     roomOffset: 0,
     roomSearch: '',
+    roomSearchTimer: null,
     roomStatus: 'incomplete',
     roomLocation: null,
     roomSort: 'modified_desc',
@@ -443,6 +472,7 @@ export default {
   },
   unmounted () {
     window.removeEventListener('detailmodal-changed', this.refresh)
+    clearTimeout(this.roomSearchTimer)
   },
   methods: {
     async load () {
@@ -559,6 +589,28 @@ export default {
         }
       })
     },
+    roomNightTags (room) {
+      // Which nights the room holds, and how many people each night.
+      const details = this.roomDetails[room.id]
+      const counts = {}
+      if (details) {
+        Object.values(details.roommates).forEach((mate) => {
+          Object.keys(mate.room_night_assignments).forEach((night) => {
+            counts[night] = (counts[night] || 0) + 1
+          })
+        })
+      }
+      return this.nights.map((night) => {
+        const count = counts[night.id] || 0
+        return {
+          id: night.id,
+          short: night.name.slice(0, 2),
+          title: night.name + ': ' + (count ? count + ' assigned' : 'not booked'),
+          booked: !!count,
+          severity: count ? 'success' : null
+        }
+      })
+    },
     async suggestRooms () {
       this.suggesting = true
       try {
@@ -637,7 +689,9 @@ export default {
       return mate.errors.filter((error) => !error.startsWith('Requested ') && !error.startsWith('Extra Room Night'))
     },
     extraNightsError (mate) {
-      return (mate.extra_nights || []).length ? mate.errors.find((error) => error.startsWith('Extra Room Night')) : null
+      // The room may run nights they aren't eligible for without them holding
+      // those nights; the chip still shows, just without the remove button.
+      return mate.errors.find((error) => error.startsWith('Extra Room Night')) || null
     },
     async removeExtraNights (room, mate) {
       await post('/api/event/' + this.event.id + '/hotel/' + this.block +
@@ -704,6 +758,9 @@ export default {
         return
       }
       this.selection = []
+      if (this.$refs.pool) {
+        this.$refs.pool.clearSelection()
+      }
       await this.addRoommates(room, roommates)
     },
     async openSuggestions (room) {
@@ -748,6 +805,10 @@ export default {
         this.$router.replace({ query })
       }
       this.onRoomFilter()
+    },
+    roomSearch () {
+      clearTimeout(this.roomSearchTimer)
+      this.roomSearchTimer = setTimeout(this.onRoomFilter, 300)
     },
     roomStatus () {
       this.onRoomFilter()

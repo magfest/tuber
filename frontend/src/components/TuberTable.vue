@@ -14,7 +14,7 @@
     <DataTable :value="formattedInstances" :loading="isLoading" dataKey="id" class="p-datatable-sm" ref="dt"
       :paginator="true" :rows="rows" :first="lazyParams.first" :lazy="true" :totalRecords="totalRecords" @page="onPage($event)"
       @sort="onSort($event)" :filterDisplay="filterDisplay" @filter="onFilter($event)" :filters="filters"
-      v-model:selection="selection" @select-all-change="onSelectAllChange" :selectAll="selectAll" @row-select="onRowSelect" @row-unselect="onRowUnselect">
+      v-model:selection="selection" @select-all-change="onSelectAllChange" :selectAll="allSelected" @row-select="onRowSelect" @row-unselect="onRowUnselect">
       <slot name="columns"></slot>
       <slot name="actions" :edit="edit" :remove="remove" v-if="showActions">
         <Column header="Actions" style="width: 10rem">
@@ -193,7 +193,6 @@ export default {
     totalRecords: 0,
     lazyParams: {},
     selection: [],
-    selectAll: false,
     mode: '',
     loadSequence: 0
   }),
@@ -209,6 +208,10 @@ export default {
     },
     eventSpecific () {
       return this.url.includes('<event>')
+    },
+    allSelected () {
+      return this.formattedInstances.length > 0 && this.formattedInstances.every(
+        (row) => this.selection.some((x) => x.id === row.id))
     }
   },
   mounted () {
@@ -288,6 +291,17 @@ export default {
       this.selection = []
       this.load()
     },
+    clearSelection () {
+      this.selection = []
+    },
+    // After a reload, keep only selected rows that are still on this page.
+    pruneSelection () {
+      const ids = new Set(this.formattedInstances.map((x) => x.id))
+      if (this.selection.some((x) => !ids.has(x.id))) {
+        this.selection = this.formattedInstances.filter(
+          (row) => this.selection.some((x) => x.id === row.id))
+      }
+    },
     onModeChange (mode) {
       this.mode = mode
       this.lazyParams.first = 0
@@ -361,6 +375,8 @@ export default {
       })
     },
     onPage (event) {
+      // Selection is per page: never act on rows the user can't see.
+      this.selection = []
       this.lazyParams = event
       this.load()
     },
@@ -372,8 +388,10 @@ export default {
       this.lazyParams = event
       this.load()
     },
+    // With :selectAll bound, DataTable leaves select-all to us; select the
+    // rows on this page only.
     onSelectAllChange (event) {
-      this.selectAll = !this.selectAll
+      this.selection = event.checked ? [...this.formattedInstances] : []
     }
   },
   watch: {
@@ -396,10 +414,12 @@ export default {
         Promise.resolve(this.format(this.instances)).then((formatted) => {
           this.formattedInstances = formatted
           this.isLoading = false
+          this.pruneSelection()
         })
       } else {
         this.formattedInstances = []
         this.isLoading = false
+        this.pruneSelection()
       }
     },
     // New parameters mean a different dataset too: back to the first page.

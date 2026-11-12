@@ -74,6 +74,13 @@
           {{ formatTimestamp(slotProps.data.modified) }}
         </template>
       </Column>
+      <Column header="" style="width: 3rem">
+        <template #body="slotProps">
+          <Button icon="pi pi-trash" class="p-button-rounded p-button-text p-button-danger"
+                  title="Delete room" :aria-label="'Delete ' + slotProps.data.name"
+                  @click="removeRoom($event, slotProps.data)" />
+        </template>
+      </Column>
     </DataTable>
   </div>
 </template>
@@ -101,7 +108,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { get, patch, download } from '../../lib/rest'
+import { get, patch, del, download } from '../../lib/rest'
 import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
 import RoomName from '../../components/rooming/modals/RoomName.vue'
 import InlineNote from '../../components/rooming/InlineNote.vue'
@@ -239,6 +246,21 @@ export default {
         { id: room.id, hotel_block: blockId })
       room.hotel_block = blockId
       this.$toast.add({ severity: 'success', summary: 'Block Updated', life: 1500 })
+    },
+    removeRoom (event, room) {
+      this.$confirm.require({
+        target: event.currentTarget,
+        message: 'Delete ' + room.name + '? Occupants return to the pool.',
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+          try {
+            await del('/api/event/' + this.event.id + '/hotel_room/' + room.id)
+          } catch (e) {
+            this.$toast.add({ severity: 'error', summary: 'Delete Failed', life: 3000 })
+          }
+          this.loadRooms()
+        }
+      })
     },
     async exportPasskey () {
       try {

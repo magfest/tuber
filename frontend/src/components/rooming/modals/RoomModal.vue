@@ -13,7 +13,9 @@
     </template>
 
     <div v-if="room">
-      <div class="flex gap-3 mb-3">
+      <!-- Own group so the page's popup (if any) doesn't answer for us. -->
+      <ConfirmPopup group="room-modal"></ConfirmPopup>
+      <div class="flex gap-3 mb-3 align-items-center">
         <div class="field-checkbox mb-0">
           <Checkbox inputId="room-completed" v-model="room.completed" :binary="true"
                     @change="saveField('completed')" />
@@ -24,11 +26,14 @@
                     @change="saveField('locked')" />
           <label for="room-locked">Locked</label>
         </div>
+        <Button label="Delete Room" icon="pi pi-trash" class="p-button-sm p-button-outlined p-button-danger ml-auto"
+                @click="removeRoom($event)" />
       </div>
 
       <p class="hint">Click a night cell to assign or unassign that night for that person.
          Green = assigned here, blue outline = requested and approved,
-         orange outline = granted but not yet placed in a room, gray = not requested.</p>
+         orange outline = granted but not yet placed in a room, yellow = requested but not approved,
+         gray = not requested.</p>
       <table class="night-table">
         <thead>
           <tr>
@@ -156,6 +161,11 @@
   box-shadow: inset 0 0 0 2px var(--orange-400, #fbbf24);
   color: var(--orange-500, #f59e0b);
 }
+/* Last so it wins the background over assigned/elsewhere; the icon still
+   says where the night is placed. */
+.night-cell.unapproved {
+  background: rgba(234, 179, 8, 0.3);
+}
 .error-chip {
   background: rgba(239, 68, 68, 0.15);
   margin: 0.1rem;
@@ -228,19 +238,20 @@ export default {
     },
     cellClass (occupant, night) {
       const status = occupant.nights[night.id]
+      const unapproved = status.requested && !status.approved ? ['unapproved'] : []
       if (status.assigned) {
-        return 'assigned'
+        return ['assigned'].concat(unapproved)
       }
       if (status.assigned_room) {
-        return 'elsewhere'
+        return ['elsewhere'].concat(unapproved)
       }
       if (status.roomless) {
-        return 'roomless'
+        return ['roomless'].concat(unapproved)
       }
       if (status.requested && status.approved) {
-        return 'wanted'
+        return ['wanted']
       }
-      return ''
+      return unapproved
     },
     cellTitle (occupant, night) {
       const status = occupant.nights[night.id]
@@ -336,6 +347,24 @@ export default {
         return
       }
       this.busy = false
+    },
+    removeRoom (event) {
+      this.$confirm.require({
+        group: 'room-modal',
+        target: event.currentTarget,
+        message: 'Delete this room? Occupants return to the pool.',
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+          try {
+            await del('/api/event/' + this.event.id + '/hotel_room/' + this.room.id)
+          } catch (e) {
+            this.$toast.add({ severity: 'error', summary: 'Delete Failed', life: 3000 })
+            return
+          }
+          this.$emit('changed')
+          this.$emit('update:visible', false)
+        }
+      })
     },
     async saveField (field) {
       try {
