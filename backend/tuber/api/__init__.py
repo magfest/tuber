@@ -5,6 +5,7 @@ from .shifts import *
 from .emails import *
 from .importer import *
 from .hotels import *
+from .match_stats import *
 from .util import paginate
 from functools import partial
 from flask import request, jsonify, g
