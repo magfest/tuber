@@ -192,10 +192,8 @@ def _room_details_data(event, rooms):
     approved = approved_night_ids(db, event, badges)
 
     for hotel_room, request in hotel_rooms:
-        if not hotel_room.id in gender_prefs:
-            gender_prefs[hotel_room.id] = set()
-        gender_prefs[hotel_room.id].add(
-            normalize_gender(request.preferred_gender) or "Unknown")
+        gender_prefs.setdefault(hotel_room.id, {})[request.badge] = \
+            normalize_gender(request.preferred_gender) or "Unknown"
     # Requested roommates who can be added with one click: an open request
     # in the room's block, with nights requested, and not in a room yet.
     wanted = {x.id for _, request in hotel_rooms for x in request.roommate_requests}
@@ -248,9 +246,14 @@ def _room_details_data(event, rooms):
         if missing_nights:
             details[hotel_room.id]['roommates'][request.badge]['errors'].add(
                 f'Missing Room Night ({", ".join([room_nights[x].name[:2] for x in missing_nights])})')
-        if request.prefer_single_gender and len(gender_prefs[hotel_room.id]) > 1:
-            details[hotel_room.id]['roommates'][request.badge]['errors'].add(
-                f'Gender Mismatch ({request.preferred_gender}) ({", ".join(gender_prefs[hotel_room.id])})')
+        if request.prefer_single_gender:
+            # Roommates they asked for themselves don't count against them.
+            requested = {x.id for x in request.roommate_requests}
+            genders = {gender for badge, gender in gender_prefs[hotel_room.id].items()
+                       if badge == request.badge or badge not in requested}
+            if len(genders) > 1:
+                details[hotel_room.id]['roommates'][request.badge]['errors'].add(
+                    f'Gender Mismatch ({request.preferred_gender}) ({", ".join(sorted(genders))})')
         details[hotel_room.id]['roommates'][request.badge]['errors'] = list(
             details[hotel_room.id]['roommates'][request.badge]['errors'])
         details[hotel_room.id]['empty_slots'] += len(

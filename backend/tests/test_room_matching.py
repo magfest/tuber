@@ -234,3 +234,16 @@ def test_combine_respects_single_gender(tuber):
     assert room == {s, f}
     assert not rm.single_gender_violated({s, f})
     assert rm.single_gender_violated({s, blank})
+
+
+def test_single_gender_allows_requested_roommates(tuber):
+    """Someone they asked for doesn't break their single-gender preference;
+       a stranger of another gender still does."""
+    from tuber.api import room_matcher as rm
+
+    s = _staffer(rm, 1, [1, 2], "female", single_gender=True)
+    friend = _staffer(rm, 2, [1, 2], "male")
+    stranger = _staffer(rm, 3, [1, 2], "male")
+    s.roommates.add(friend)
+    assert not rm.single_gender_violated({s, friend})
+    assert rm.single_gender_violated({s, friend, stranger})

@@ -191,3 +191,28 @@ def test_extra_night_when_room_runs_longer(client):
     assert mates[str(alice)]["errors"] == ["Extra Room Night (Sa)"]
     assert mates[str(alice)]["extra_nights"] == []
     assert mates[str(bob)]["errors"] == []
+
+
+def test_gender_mismatch_skips_requested_roommates(client):
+    import tuber.models as models
+    from tuber.database import db
+
+    s = _seed(db, models, ["Alice One", "Bob Two", "Carol Three"],
+              roommate_pairs=[("Alice One", "Bob Two")])
+    block = s["block"].id
+    ids = {name: badge.id for name, badge in s["badges"].items()}
+    s["requests"]["Alice One"].prefer_single_gender = True
+    s["requests"]["Alice One"].preferred_gender = "woman"
+    s["requests"]["Bob Two"].preferred_gender = "man"
+    s["requests"]["Carol Three"].preferred_gender = "nonbinary"
+    db.commit()
+    room = _room(db, models, block)
+
+    client.post(f"/api/event/1/hotel/{block}/room/{room}/add_roommates",
+                json={"roommates": [ids["Alice One"], ids["Bob Two"]]})
+    assert _details(client, room)["roommates"][str(ids["Alice One"])]["errors"] == []
+
+    client.post(f"/api/event/1/hotel/{block}/room/{room}/add_roommates",
+                json={"roommates": [ids["Carol Three"]]})
+    errors = _details(client, room)["roommates"][str(ids["Alice One"])]["errors"]
+    assert errors == ["Gender Mismatch (woman) (nonbinary, woman)"]

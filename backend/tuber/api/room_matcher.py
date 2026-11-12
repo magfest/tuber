@@ -54,11 +54,17 @@ def normalize_gender(raw):
 
 def single_gender_violated(staffers):
     """True if anyone wanting a single-gender room shares with someone of a
-       different (or unstated) gender. Blank counts as its own value, matching
-       the Gender Mismatch check on room details."""
-    if not any(x.prefer_single_gender for x in staffers):
-        return False
-    return len({normalize_gender(x.preferred_gender) for x in staffers}) > 1
+       different (or unstated) gender whom they didn't request themselves.
+       Blank counts as its own value, matching the Gender Mismatch check on
+       room details."""
+    for staffer in staffers:
+        if not staffer.prefer_single_gender:
+            continue
+        others = [x for x in staffers if x is not staffer and x not in staffer.roommates]
+        gender = normalize_gender(staffer.preferred_gender)
+        if any(normalize_gender(x.preferred_gender) != gender for x in others):
+            return True
+    return False
 
 
 def night_match(staffers):
