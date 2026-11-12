@@ -51,6 +51,7 @@
             <td class="occupant-name" :class="groupTags[occupant.badge] && groupTags[occupant.badge].className"
                 :title="groupTags[occupant.badge] && groupTags[occupant.badge].title">
               <attendee-name :badge-id="occupant.badge" :name="occupant.name" />
+              <single-gender-tag :preference="occupant.single_gender" />
               <div v-if="occupant.notes" class="staffer-note" :title="'From ' + occupant.name + '\'s request'">
                 <i class="pi pi-comment" /> {{ occupant.notes }}
               </div>
@@ -178,6 +179,7 @@ import { mapGetters } from 'vuex'
 import { get, post, patch, del } from '../../../lib/rest'
 import AttendeeName from './AttendeeName.vue'
 import InlineNote from '../InlineNote.vue'
+import SingleGenderTag from '../SingleGenderTag.vue'
 import { requestGroupTags } from '../../../lib/requestGroups'
 import { saveRequestAdminNote, saveRoomAdminNote } from '../../../lib/adminNotes'
 
@@ -185,7 +187,8 @@ export default {
   name: 'RoomModal',
   components: {
     AttendeeName,
-    InlineNote
+    InlineNote,
+    SingleGenderTag
   },
   props: [
     'visible',

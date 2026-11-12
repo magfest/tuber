@@ -216,3 +216,66 @@ def test_gender_mismatch_skips_requested_roommates(client):
                 json={"roommates": [ids["Carol Three"]]})
     errors = _details(client, room)["roommates"][str(ids["Alice One"])]["errors"]
     assert errors == ["Gender Mismatch (woman) (nonbinary, woman)"]
+
+
+def test_null_gender_answers_are_not_matched_but_shown(client):
+    """An answer mapped to null drops the single-gender preference for
+       matching and the mismatch warning, but the room still shows it."""
+    import tuber.config
+    import tuber.models as models
+    from tuber.database import db
+    tuber.config.gender_map = {"woman": "female", "man": "male", "who's asking?": None}
+
+    s = _seed(db, models, ["Alice One", "Bob Two"])
+    block = s["block"].id
+    ids = {name: badge.id for name, badge in s["badges"].items()}
+    s["requests"]["Alice One"].prefer_single_gender = True
+    s["requests"]["Alice One"].preferred_gender = "Who's asking?"
+    s["requests"]["Bob Two"].preferred_gender = "man"
+    db.commit()
+    room = _room(db, models, block)
+    client.post(f"/api/event/1/hotel/{block}/room/{room}/add_roommates", json={"roommates": list(ids.values())})
+
+    alice = _details(client, room)["roommates"][str(ids["Alice One"])]
+    assert alice["errors"] == []
+    assert alice["single_gender"] == {"answer": "Who's asking?", "group": None, "ignored": True}
+    assert _details(client, room)["roommates"][str(ids["Bob Two"])]["single_gender"] is None
+    grid = client.get(f"/api/event/1/hotel/room/{room}/details").json
+    assert {x["name"]: x["single_gender"] for x in grid["occupants"]}["Alice One"]["ignored"] is True
+
+    from tuber.api.room_matcher import load_staffer_pool, single_gender_violated
+    pool = load_staffer_pool(db, 1, block, exclude_assigned=False)
+    assert not any(x.prefer_single_gender for x in pool)
+    assert not single_gender_violated(set(pool))
+
+
+def test_room_search_single_gender_filter(client):
+    import tuber.config
+    import tuber.models as models
+    from tuber.database import db
+    tuber.config.gender_map = {"woman": "female", "trans woman": "female", "man": "male",
+                               "who could say": None}
+
+    s = _seed(db, models, ["Alice One", "Bob Two", "Carol Three", "Dave Four"])
+    block = s["block"].id
+    ids = {name: badge.id for name, badge in s["badges"].items()}
+    answers = {"Alice One": ("Trans Woman", True), "Bob Two": ("man", True),
+               "Carol Three": ("woman", False), "Dave Four": ("who could say", True)}
+    for name, (answer, prefer) in answers.items():
+        s["requests"][name].preferred_gender = answer
+        s["requests"][name].prefer_single_gender = prefer
+    db.commit()
+    rooms = {}
+    for name in answers:
+        rooms[name] = _room(db, models, block, name)
+        client.post(f"/api/event/1/hotel/{block}/room/{rooms[name]}/add_roommates",
+                    json={"roommates": [ids[name]]})
+
+    assert client.get("/api/event/1/hotel/gender_groups").json == ["female", "male"]
+
+    def names(group):
+        rv = client.get("/api/event/1/hotel/room_search", query_string={"single_gender": group, "limit": 50})
+        return sorted(x["name"] for x in rv.json["hotel_rooms"])
+    # Carol is female but didn't ask; Dave's answer is ignored.
+    assert names("female") == ["Alice One"]
+    assert names("male") == ["Bob Two"]

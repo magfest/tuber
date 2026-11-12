@@ -163,6 +163,9 @@
             </table>
             <ul class="stat-list">
               <li>{{ block.gender.blank }} people left gender blank (they can't share with these requesters)</li>
+              <li v-if="block.gender.requesters_ignored" class="warn">
+                {{ block.gender.requesters_ignored }} more asked, but their answer maps to null so it isn't matched on
+              </li>
               <li v-if="block.gender.requesters_blank" class="warn">
                 {{ block.gender.requesters_blank }} requesters left their own gender blank
               </li>

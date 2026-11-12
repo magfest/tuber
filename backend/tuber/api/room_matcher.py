@@ -52,6 +52,34 @@ def normalize_gender(raw):
     return gender
 
 
+def gender_ignored(raw):
+    """True when the answer is mapped to null: a non-answer ("who's asking?")
+       that can't be grouped, so the person is matched as if they had no
+       single-gender preference."""
+    if not raw or not raw.strip():
+        return False
+    gender_map = {k.lower().strip(): v for k, v in tuber.config.gender_map.items()}
+    gender = raw.lower().strip()
+    return gender in gender_map and gender_map[gender] is None
+
+
+def wants_single_gender(prefer, raw):
+    return bool(prefer) and not gender_ignored(raw)
+
+
+def gender_groups():
+    """The groups single-gender rooms are matched by: the mapped values."""
+    return sorted({x for x in tuber.config.gender_map.values() if x})
+
+
+def single_gender_preference(prefer, raw):
+    """What a room should show about someone's single-gender request, or None."""
+    if not prefer:
+        return None
+    return {"answer": raw or "", "group": normalize_gender(raw),
+            "ignored": gender_ignored(raw)}
+
+
 def single_gender_violated(staffers):
     """True if anyone wanting a single-gender room shares with someone of a
        different (or unstated) gender whom they didn't request themselves.
@@ -300,7 +328,8 @@ def load_staffer_pool(db, event, hotel_block, badge_ids=None,
             staffer.hotel_block = request.hotel_block
             staffer.name = badge.public_name
             staffer.preferred_gender = request.preferred_gender
-            staffer.prefer_single_gender = request.prefer_single_gender
+            staffer.prefer_single_gender = wants_single_gender(
+                request.prefer_single_gender, request.preferred_gender)
             staffers.append(staffer)
 
     stafferlookup = {x.id: x for x in staffers}

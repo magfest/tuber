@@ -21,6 +21,10 @@
       <Dropdown v-if="locations.length" v-model="location" :options="locationOptions"
                 optionLabel="label" optionValue="value" placeholder="Any location"
                 :showClear="location !== null" title="Filter by hotel location" />
+      <Dropdown v-if="genderGroups.length" v-model="singleGender" :options="singleGenderOptions"
+                optionLabel="label" optionValue="value" placeholder="Any gender preference"
+                :showClear="singleGender !== null"
+                title="Rooms with someone who asked for a single-gender room in this group" />
     </div>
 
     <DataTable :value="rooms" :loading="loading" dataKey="id" class="p-datatable-sm"
@@ -46,6 +50,7 @@
                :class="groupTag(slotProps.data, mate) && groupTag(slotProps.data, mate).className"
                :title="groupTag(slotProps.data, mate) && groupTag(slotProps.data, mate).title">
             <attendee-name :badge-id="mate.id" :name="mate.name" />
+            <single-gender-tag :preference="mate.single_gender" />
           </div>
           <span v-if="!occupants(slotProps.data).length" class="empty">Empty</span>
         </template>
@@ -112,6 +117,7 @@ import { get, patch, del, download } from '../../lib/rest'
 import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
 import RoomName from '../../components/rooming/modals/RoomName.vue'
 import InlineNote from '../../components/rooming/InlineNote.vue'
+import SingleGenderTag from '../../components/rooming/SingleGenderTag.vue'
 import { saveRoomAdminNote } from '../../lib/adminNotes'
 import { requestGroupTags } from '../../lib/requestGroups'
 
@@ -120,7 +126,8 @@ export default {
   components: {
     AttendeeName,
     RoomName,
-    InlineNote
+    InlineNote,
+    SingleGenderTag
   },
   data: () => ({
     rooms: [],
@@ -133,6 +140,8 @@ export default {
     block: null,
     status: '',
     location: null,
+    singleGender: null,
+    genderGroups: [],
     blocks: [],
     locations: [],
     roomDetails: {},
@@ -151,6 +160,10 @@ export default {
     blockOptions () {
       return [{ label: 'Any block', value: null }].concat(
         this.blocks.map((block) => ({ label: block.name, value: block.id })))
+    },
+    singleGenderOptions () {
+      return [{ label: 'Any gender preference', value: null }].concat(
+        this.genderGroups.map((group) => ({ label: 'Single gender: ' + group, value: group })))
     },
     locationOptions () {
       return [{ label: 'Any location', value: null }].concat(
@@ -171,6 +184,7 @@ export default {
       }
       this.blocks = await get('/api/event/' + this.event.id + '/hotel_room_block', { sort: 'name' })
       this.locations = await get('/api/event/' + this.event.id + '/hotel_location', { sort: 'name' })
+      this.genderGroups = await get('/api/event/' + this.event.id + '/hotel/gender_groups')
       if (this.$route.query.block) {
         this.block = parseInt(this.$route.query.block) || null
       }
@@ -198,6 +212,9 @@ export default {
       }
       if (this.location) {
         params.hotel_location = this.location
+      }
+      if (this.singleGender) {
+        params.single_gender = this.singleGender
       }
       const found = await get('/api/event/' + this.event.id + '/hotel/room_search', params)
       this.rooms = found.hotel_rooms || []
@@ -305,6 +322,9 @@ export default {
       this.onFilter()
     },
     location () {
+      this.onFilter()
+    },
+    singleGender () {
       this.onFilter()
     }
   }

@@ -127,6 +127,9 @@ def _gender_stats(staffers):
     return {
         "requesters": len(requesters),
         "requesters_blank": len([x for x in requesters if not normalize_gender(x.preferred_gender)]),
+        # Asked, but their answer maps to null, so the matcher ignores it.
+        "requesters_ignored": len([x for x in staffers
+                                   if x.request.prefer_single_gender and not x.prefer_single_gender]),
         "blank": len([x for x in staffers if not normalize_gender(x.preferred_gender)]),
         "buckets": sorted([{"gender": gender, "mapped": gender in mapped, **counts}
                            for gender, counts in buckets.items() if counts["requesters"]],

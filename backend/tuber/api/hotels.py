@@ -12,7 +12,8 @@ from tuber.api.util import *
 from .night_approval import (approved_night_ids, manual_approved_night_ids,
                              shift_hours_totals, shift_satisfied_night_ids)
 from .room_matcher import (clear_hotel_block, match_block, normalize_gender,
-                           rematch_hotel_block, suggest_roommates)
+                           rematch_hotel_block, suggest_roommates, gender_groups,
+                           single_gender_preference, wants_single_gender)
 from .uber import export_requests
 from .util import paginate
 import time
@@ -162,6 +163,7 @@ def _room_details_data(event, rooms):
                 "request_id": None,
                 "requested_missing": [],
                 "extra_nights": [],
+                "single_gender": None,
             }
             request_groups[rna.hotel_room][rna.badge] = []
         details[rna.hotel_room]['roommates'][rna.badge]['room_night_assignments'][rna.room_night] = rna.id
@@ -246,7 +248,9 @@ def _room_details_data(event, rooms):
         if missing_nights:
             details[hotel_room.id]['roommates'][request.badge]['errors'].add(
                 f'Missing Room Night ({", ".join([room_nights[x].name[:2] for x in missing_nights])})')
-        if request.prefer_single_gender:
+        mate['single_gender'] = single_gender_preference(
+            request.prefer_single_gender, request.preferred_gender)
+        if wants_single_gender(request.prefer_single_gender, request.preferred_gender):
             # Roommates they asked for themselves don't count against them.
             requested = {x.id for x in request.roommate_requests}
             genders = {gender for badge, gender in gender_prefs[hotel_room.id].items()
@@ -292,6 +296,8 @@ def room_search(event):
        search (matches room name or a roommate's name), hotel_block,
        hotel_location, suggested (true/false),
        status (completed|incomplete|locked|unlocked),
+       single_gender (a gender group: rooms with someone wanting a
+       single-gender room in that group),
        sort (name|created|modified), order (asc|desc), offset, limit."""
     if not check_permission("hotel_block.*.read"):
         return "", 403
@@ -317,6 +323,13 @@ def room_search(event):
     elif status == 'unlocked':
         query = query.filter(or_(HotelRoom.locked == False,
                                  HotelRoom.locked == None))
+    if g.data.get('single_gender'):
+        group = g.data['single_gender']
+        badges = [req.badge for req in db.query(HotelRoomRequest).filter(
+            HotelRoomRequest.event == event, HotelRoomRequest.prefer_single_gender == True)
+            if wants_single_gender(True, req.preferred_gender)
+            and normalize_gender(req.preferred_gender) == group]
+        query = query.filter(HotelRoom.roommates.any(Badge.id.in_(badges)))
     if g.data.get('search'):
         term = g.data['search'].lower()
         query = query.filter(or_(
@@ -339,6 +352,13 @@ def room_search(event):
     for room, data in zip(rooms, serialized):
         data['admin_notes'] = room.admin_notes
     return jsonify(hotel_rooms=serialized, results=serialized, count=count), 200
+
+
+@app.route("/api/event/<int:event>/hotel/gender_groups", methods=["GET"])
+def hotel_gender_groups(event):
+    if not check_permission("hotel_block.*.read"):
+        return "", 403
+    return jsonify(gender_groups())
 
 
 @app.route("/api/event/<int:event>/hotel/<int:hotel_block>/request_search", methods=["GET"])
@@ -987,6 +1007,7 @@ def hotel_room_grid(event, room_id):
             "admin_notes": detail.get("admin_notes"),
             "request_id": detail.get("request_id"),
             "requested_missing": detail.get("requested_missing", []),
+            "single_gender": detail.get("single_gender"),
             "nights": {night.id: {
                 "requested": night.id in requested[badge.id],
                 "approved": night.id in approved[badge.id],

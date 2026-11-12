@@ -144,6 +144,7 @@
                           :title="'Remove ' + mate.name + ' from this room'" :aria-label="'Remove ' + mate.name"
                           @click="removeRoommate(room, mate)" />
                   <attendee-name :badge-id="mate.id" :name="mate.name" />
+                  <single-gender-tag :preference="mate.single_gender" />
                   <Chip v-for="error in otherErrors(mate)" :key="error" :label="error" class="error-chip" />
                   <Chip v-if="extraNightsError(mate)" class="error-chip">
                     <span>{{ extraNightsError(mate) }}</span>
@@ -361,6 +362,7 @@ import TuberTable from '../../components/TuberTable.vue'
 import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
 import RoomName from '../../components/rooming/modals/RoomName.vue'
 import InlineNote from '../../components/rooming/InlineNote.vue'
+import SingleGenderTag from '../../components/rooming/SingleGenderTag.vue'
 import { requestGroupTags } from '../../lib/requestGroups'
 import { saveRequestAdminNote, saveRoomAdminNote } from '../../lib/adminNotes'
 
@@ -370,7 +372,8 @@ export default {
     TuberTable,
     AttendeeName,
     RoomName,
-    InlineNote
+    InlineNote,
+    SingleGenderTag
   },
   data: () => ({
     block: null,
