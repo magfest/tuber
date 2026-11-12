@@ -97,13 +97,13 @@
                     title="Sort rooms" />
         </div>
         <div class="room-cards">
-          <!-- Suggested rooms come first; completing or locking one keeps it. -->
+          <!-- Suggested rooms sit in the list like any other; completing or locking one keeps it. -->
           <div v-if="suggestedRooms.length" class="suggested-header">
             <strong>{{ suggestedRooms.length }} suggested, awaiting review</strong>
             <Button label="Complete All" icon="pi pi-check-circle" class="p-button-sm p-button-success"
                     @click="completeAll($event)" />
           </div>
-          <div v-for="room in suggestedRooms.concat(rooms)" :key="room.id" class="room-card"
+          <div v-for="room in rooms" :key="room.id" class="room-card"
                :class="{ 'room-completed': room.completed, 'room-suggested': room.suggested }">
             <div class="room-header">
               <span class="room-title">
@@ -521,34 +521,35 @@ export default {
       // while a request is in flight must not let the old response win.
       const sequence = ++this.roomLoadSequence
       const [sort, order] = this.roomSort.split('_')
-      const params = {
-        hotel_block: this.block,
-        suggested: false,
+      // Suggested rooms are part of the one list: they sort, filter and
+      // paginate like any other room and are only styled differently.
+      const filters = { hotel_block: this.block }
+      if (this.roomStatus) {
+        filters.status = this.roomStatus
+      }
+      if (this.roomLocation) {
+        filters.hotel_location = this.roomLocation
+      }
+      if (this.roomSearch) {
+        filters.search = this.roomSearch
+      }
+      const url = '/api/event/' + this.event.id + '/hotel/room_search'
+      const found = await get(url, Object.assign({
         sort,
         order,
         limit: 25,
         offset: this.roomOffset
-      }
-      if (this.roomStatus) {
-        params.status = this.roomStatus
-      }
-      if (this.roomLocation) {
-        params.hotel_location = this.roomLocation
-      }
-      if (this.roomSearch) {
-        params.search = this.roomSearch
-      }
-      const found = await get('/api/event/' + this.event.id + '/hotel/room_search', params)
-      const suggested = await get('/api/event/' + this.event.id + '/hotel_room', {
-        full: true,
-        hotel_block: this.block,
+      }, filters))
+      // Every suggested room matching the filters, across all pages, for the
+      // header count and Complete All.
+      const suggested = (await get(url, Object.assign({
         suggested: true,
-        completed: false,
         sort: 'id',
-        order: 'asc'
-      })
+        order: 'asc',
+        limit: 10000
+      }, filters))).hotel_rooms || []
       const details = await this.loadRoomDetails(
-        (found.hotel_rooms || []).concat(suggested).map((x) => x.id))
+        (found.hotel_rooms || []).map((x) => x.id))
       if (sequence !== this.roomLoadSequence) {
         return
       }

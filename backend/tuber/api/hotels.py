@@ -298,7 +298,7 @@ def room_search(event):
        status (completed|incomplete|locked|unlocked),
        single_gender (a gender group: rooms with someone wanting a
        single-gender room in that group),
-       sort (name|created|modified), order (asc|desc), offset, limit."""
+       sort (id|name|created|modified), order (asc|desc), offset, limit."""
     if not check_permission("hotel_block.*.read"):
         return "", 403
     query = db.query(HotelRoom).filter(HotelRoom.event == event)
@@ -334,9 +334,14 @@ def room_search(event):
         term = g.data['search'].lower()
         query = query.filter(or_(
             func.lower(HotelRoom.name).contains(term),
-            HotelRoom.roommates.any(Badge.search_name.contains(term))))
+            # search_name is built from the legal first/last name; the page
+            # shows public_name, so match what the admin can actually see too.
+            HotelRoom.roommates.any(or_(
+                Badge.search_name.contains(term),
+                func.lower(Badge.public_name).contains(term)))))
     count = query.count()
     sorts = {
+        "id": HotelRoom.id,
         "name": HotelRoom.name,
         "created": HotelRoom.created,
         "modified": HotelRoom.modified,

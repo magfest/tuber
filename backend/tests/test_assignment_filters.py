@@ -129,6 +129,23 @@ def test_room_search_filters(client):
     names, _ = rooms(hotel_block=block, search="alice", status="completed")
     assert names == []
 
+    # The page shows public_name, which can differ from the legal-name-based
+    # search_name; searching for what is displayed has to work.
+    alice = s["badges"]["Alice One"]
+    alice.public_name = "Dakota One"
+    db.add(models.RoomNightAssignment(
+        event=1, badge=alice.id,
+        room_night=s["nights"][1].id, hotel_room=suggested.id))
+    db.commit()
+    names, _ = rooms(hotel_block=block, search="dakota", sort="name")
+    assert names == ["Green Room", "Suggested Room"]
+    # The workspace fetches pending suggestions with the same filters.
+    names, _ = rooms(hotel_block=block, search="dakota", suggested="true",
+                     sort="id")
+    assert names == ["Suggested Room"]
+    names, _ = rooms(hotel_block=block, search="dakota", suggested="false")
+    assert names == ["Green Room"]
+
     # Sort by name descending and paginate.
     names, count = rooms(hotel_block=block, suggested="false", sort="name",
                          order="desc", limit=1, offset=1)
