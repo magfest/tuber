@@ -121,9 +121,80 @@ def update_assignment(url, headers, **params):
         raise UberError(response.status_code, res['error'].get('message', 'Unknown error'))
     return res['result']
 
+def uber_call(url, headers, method, **params):
+    """One JSON-RPC call to Uber, raising UberError on an error reply."""
+    req = {"method": method}
+    if params:
+        req["params"] = params
+    response = requests.post(url, headers=headers, json=req, timeout=60)
+    res = response.json()
+    if res.get('error'):
+        raise UberError(response.status_code, res['error'].get('message', 'Unknown error'))
+    return res['result']
+
+
+def _inventory_options(event):
+    inventory = db.query(UberInventory).filter(UberInventory.event == event).order_by(
+        UberInventory.hotel_name, UberInventory.name).all()
+    partitions = db.query(UberPartition).filter(UberPartition.event == event).order_by(
+        UberPartition.name).all()
+    stamps = [x.modified or x.created for x in inventory + partitions if x.modified or x.created]
+    return {
+        "inventory": [{"uber_id": x.uber_id, "name": x.name, "hotel_name": x.hotel_name,
+                       "active": x.active} for x in inventory],
+        "partitions": [{"uber_id": x.uber_id, "name": x.name, "active": x.active,
+                        "inventory_ids": json.loads(x.inventory_ids or "[]")} for x in partitions],
+        "imported": max(stamps).isoformat() if stamps else None,
+    }
+
+
+@app.route("/api/event/<int:event>/uber/inventory_options", methods=["GET"])
+def inventory_options(event):
+    """The inventory blocks and partitions last imported from Uber, for the
+    per-room dropdowns."""
+    if not check_permission("hotel_block.*.read", event=event):
+        return "", 403
+    return jsonify(_inventory_options(event)), 200
+
+
+@app.route("/api/event/<int:event>/uber/import_inventory", methods=["POST"])
+def import_inventory(event):
+    """Replace the stored inventory blocks and partitions with Uber's current
+    lists (hotel.inventory and hotel.partitions). Rooms keep the Uber ids they
+    were given, even when one is no longer in Uber's list."""
+    if not check_permission("rooming.*.manage", event=event):
+        return "", 403
+    event_obj = db.query(Event).filter(Event.id == event).one()
+    headers = {'X-Auth-Token': event_obj.uber_apikey}
+    try:
+        inventory = uber_call(event_obj.uber_url, headers, "hotel.inventory")
+        partitions = uber_call(event_obj.uber_url, headers, "hotel.partitions")
+    except UberError as e:
+        return f"Uber refused the request: {e}", 502
+    except Exception as e:
+        return f"Could not reach Uber: {e}", 502
+
+    # Fetched in full before anything is deleted, so a failed call above
+    # leaves the previous lists in place.
+    db.query(UberInventory).filter(UberInventory.event == event).delete()
+    db.query(UberPartition).filter(UberPartition.event == event).delete()
+    for row in inventory:
+        db.add(UberInventory(
+            event=event, uber_id=str(row["id"]), name=row.get("name") or "",
+            hotel_name=row.get("hotel_name") or "", active=row.get("active", True)))
+    for row in partitions:
+        db.add(UberPartition(
+            event=event, uber_id=str(row["id"]), name=row.get("name") or "",
+            active=row.get("active", True),
+            inventory_ids=json.dumps([str(x["inventory_id"]) for x in row.get("blocks", [])])))
+    db.commit()
+    return jsonify(_inventory_options(event)), 200
+
+
 @app.route("/api/event/<int:event>/uber/export_rooms", methods=["POST"])
 def export_rooms(event):
-    """Export each room to Uber as one "Staff Crash Space" room assignment.
+    """Export each completed room to Uber as one "Staff Crash Space" room
+    assignment. Rooms not marked completed are not touched.
 
     The room's roommates go along as its occupants, each with their own
     dates. Running it again is safe: each room keeps one Uber assignment
@@ -141,8 +212,15 @@ def export_rooms(event):
     night_dates = {x.id: x.date for x in db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()}
     inventory_ids = {x.id: x.uber_inventory_id for x in db.query(HotelLocation).filter(HotelLocation.event == event).all()}
     badge_uber_ids = {x.id: x.uber_id for x in db.query(Badge).filter(Badge.event == event).all()}
-    rooms = [(x.id, x.name, x.notes, x.hotel_location, x.uber_id, x.uber_export_hash)
-             for x in db.query(HotelRoom).filter(HotelRoom.event == event).order_by(HotelRoom.id).all()]
+    # Only completed rooms are sent. One that is not completed is left exactly
+    # as it is in Uber, whether or not it was exported before: reopening a
+    # room to edit it must not cancel or half-update the reservation.
+    all_rooms = db.query(HotelRoom).filter(HotelRoom.event == event).order_by(HotelRoom.id).all()
+    incomplete = sum(1 for x in all_rooms if not x.completed)
+    # A room's own inventory wins over its location's.
+    rooms = [(x.id, x.name, x.notes, x.uber_inventory_id or inventory_ids.get(x.hotel_location),
+              x.uber_partition_id, x.uber_id, x.uber_export_hash)
+             for x in all_rooms if x.completed]
 
     room_stays = {}
     for ass in db.query(RoomNightAssignment).filter(RoomNightAssignment.event == event).all():
@@ -153,10 +231,11 @@ def export_rooms(event):
         db.query(HotelRoom).filter(HotelRoom.id == room_id).update(values)
         db.commit()
 
-    summary = {"exported": 0, "unchanged": 0, "cancelled": 0, "skipped": [], "inactive": [], "failed": []}
+    summary = {"exported": 0, "unchanged": 0, "cancelled": 0, "incomplete": incomplete,
+               "skipped": [], "inactive": [], "failed": []}
     one_day = datetime.timedelta(days=1)
 
-    for idx, (room_id, name, notes, location, uber_id, exported_hash) in enumerate(rooms):
+    for idx, (room_id, name, notes, inventory_id, partition_id, uber_id, exported_hash) in enumerate(rooms):
         g.progress(idx / len(rooms), status=f"Exporting Room {name}")
         stays = room_stays.get(room_id)
         try:
@@ -172,8 +251,8 @@ def export_rooms(event):
                     summary["cancelled"] += 1
                 continue
 
-            if not inventory_ids.get(location):
-                summary["skipped"].append(f"{name}: its location has no Uber inventory ID")
+            if not inventory_id:
+                summary["skipped"].append(f"{name}: neither it nor its location has an Uber inventory ID")
                 continue
 
             # The night of date X is slept X to X+1, so check-out is the day after the last night.
@@ -186,13 +265,18 @@ def export_rooms(event):
             params = {
                 # Uber needs one name on the reservation; any roommate will do.
                 "attendee_id": occupants[0]["attendee_id"],
-                "inventory_id": inventory_ids[location],
+                "inventory_id": inventory_id,
                 "assignment_reason": "Staff Crash Space",
                 "assigned_check_in_date": str(min(all_dates)),
                 "assigned_check_out_date": str(max(all_dates) + one_day),
                 "special_requests": notes or "",
                 "occupants": occupants
             }
+            if partition_id:
+                # Only sent when set here: a room without one keeps whatever
+                # partition it was given in Uber, and its fingerprint stays
+                # what it was before rooms could carry a partition.
+                params["partition_id"] = partition_id
             fingerprint = hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()
             if uber_id and fingerprint == exported_hash:
                 # Leaving it alone also keeps any edits made to it in Uber.

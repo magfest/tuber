@@ -47,7 +47,7 @@ def _rooms(db, models, uber_inventory_id="inv-1"):
     db.add(location)
     db.flush()
     room = models.HotelRoom(event=1, name="Room 1", notes="Near elevator", hotel_block=s["block"].id,
-                            hotel_location=location.id)
+                            hotel_location=location.id, completed=True)
     db.add(room)
     db.flush()
     friday, saturday = s["nights"]
@@ -74,7 +74,7 @@ def test_export_room_as_crash_space_with_occupants(client):
     with patch('tuber.api.uber.requests.post', uber):
         rv = client.post("/api/event/1/uber/export_rooms")
         assert rv.status_code == 200
-        assert rv.json == {"exported": 1, "unchanged": 0, "cancelled": 0, "skipped": [], "inactive": [], "failed": []}
+        assert rv.json == {"exported": 1, "unchanged": 0, "cancelled": 0, "incomplete": 0, "skipped": [], "inactive": [], "failed": []}
         uber_id = _room(db, models, room_id).uber_id
         assert uber.calls == [{
             "id": uber_id,
@@ -188,7 +188,7 @@ def test_export_skips_unmapped_location_and_reports_failures(client):
     with patch('tuber.api.uber.requests.post', uber):
         rv = client.post("/api/event/1/uber/export_rooms")
         assert rv.json["exported"] == 0
-        assert rv.json["skipped"] == ["Room 1: its location has no Uber inventory ID"]
+        assert rv.json["skipped"] == ["Room 1: neither it nor its location has an Uber inventory ID"]
         assert uber.calls == []
 
         db.query(models.HotelLocation).filter(models.HotelLocation.id == location_id).one().uber_inventory_id = "inv-1"
@@ -203,3 +203,168 @@ def test_export_skips_unmapped_location_and_reports_failures(client):
         rv = client.post("/api/event/1/uber/export_rooms")
         assert rv.json["exported"] == 1
         assert uber.calls[-1]["payment_type"] == "masterbill"
+
+
+class _UberLists:
+    """Stands in for Uber's hotel.inventory and hotel.partitions."""
+
+    def __init__(self):
+        self.inventory = [
+            {"id": "inv-king", "name": "King", "hotel_name": "Big Hotel", "active": True},
+            {"id": "inv-double", "name": "Double", "hotel_name": "Big Hotel", "active": False},
+        ]
+        self.partitions = [
+            {"id": "part-staff", "name": "Staff", "active": True,
+             "blocks": [{"inventory_id": "inv-king", "quantity": 5}]},
+        ]
+        self.error = None
+
+    def __call__(self, url, headers=None, json=None, timeout=None):
+        assert headers == {"X-Auth-Token": "123456"}
+        lists, error = self, self.error
+
+        class Response:
+            status_code = 500 if error else 200
+
+            def json(self):
+                if error:
+                    return {"error": {"code": -32601, "message": error}}
+                return {"result": {"hotel.inventory": lists.inventory,
+                                   "hotel.partitions": lists.partitions}[json["method"]]}
+        return Response()
+
+
+def test_import_inventory_and_partitions(client):
+    import tuber.models as models
+    from tuber.database import db
+
+    _rooms(db, models)
+    assert client.get("/api/event/1/uber/inventory_options").json == {
+        "inventory": [], "partitions": [], "imported": None}
+
+    uber = _UberLists()
+    with patch('tuber.api.uber.requests.post', uber):
+        rv = client.post("/api/event/1/uber/import_inventory")
+        assert rv.status_code == 200
+        options = client.get("/api/event/1/uber/inventory_options").json
+        assert rv.json == options
+        assert options["inventory"] == [
+            {"uber_id": "inv-double", "name": "Double", "hotel_name": "Big Hotel", "active": False},
+            {"uber_id": "inv-king", "name": "King", "hotel_name": "Big Hotel", "active": True},
+        ]
+        assert options["partitions"] == [
+            {"uber_id": "part-staff", "name": "Staff", "active": True, "inventory_ids": ["inv-king"]}]
+        assert options["imported"]
+
+        # A re-import replaces the lists rather than adding to them.
+        uber.inventory = uber.inventory[:1]
+        uber.partitions = []
+        rv = client.post("/api/event/1/uber/import_inventory")
+        assert [x["uber_id"] for x in rv.json["inventory"]] == ["inv-king"]
+        assert rv.json["partitions"] == []
+
+        # A failed call leaves what was imported before in place.
+        uber.error = "Method not found"
+        rv = client.post("/api/event/1/uber/import_inventory")
+        assert rv.status_code == 502
+        assert "Method not found" in rv.get_data(as_text=True)
+        options = client.get("/api/event/1/uber/inventory_options").json
+        assert [x["uber_id"] for x in options["inventory"]] == ["inv-king"]
+
+
+def test_room_inventory_and_partition_are_exported(client):
+    import tuber.models as models
+    from tuber.database import db
+
+    room_id, location_id = _rooms(db, models)
+    uber = _Uber()
+    with patch('tuber.api.uber.requests.post', uber):
+        client.post("/api/event/1/uber/export_rooms")
+        # No partition of its own, so none is sent and Uber's is left alone.
+        assert uber.calls[0]["inventory_id"] == "inv-1"
+        assert "partition_id" not in uber.calls[0]
+
+        # Assigned through the ordinary room API, as the page does.
+        rv = client.patch(f"/api/event/1/hotel_room/{room_id}", json={
+            "id": room_id, "uber_inventory_id": "inv-king", "uber_partition_id": "part-staff"})
+        assert rv.status_code == 200
+        rv = client.post("/api/event/1/uber/export_rooms")
+        assert (rv.json["exported"], rv.json["unchanged"]) == (1, 0)
+        # The room's own inventory wins over its location's.
+        assert uber.calls[1]["inventory_id"] == "inv-king"
+        assert uber.calls[1]["partition_id"] == "part-staff"
+
+        # A room's own inventory is enough when its location has none.
+        db.query(models.HotelLocation).filter(models.HotelLocation.id == location_id).update(
+            {"uber_inventory_id": None})
+        db.commit()
+        rv = client.post("/api/event/1/uber/export_rooms")
+        assert (rv.json["unchanged"], rv.json["skipped"]) == (1, [])
+
+        # Clearing it falls back to the location, which now has nothing.
+        rv = client.patch(f"/api/event/1/hotel_room/{room_id}", json={
+            "id": room_id, "uber_inventory_id": None})
+        assert rv.status_code == 200
+        rv = client.post("/api/event/1/uber/export_rooms")
+        assert rv.json["skipped"] == ["Room 1: neither it nor its location has an Uber inventory ID"]
+
+
+def test_room_search_uber_filters(client):
+    import tuber.models as models
+    from tuber.database import db
+
+    room_id, _ = _rooms(db, models)
+    other = models.HotelRoom(event=1, name="Room 2", uber_inventory_id="inv-king",
+                             uber_partition_id="part-staff")
+    db.add(other)
+    db.commit()
+
+    def names(**params):
+        rv = client.get("/api/event/1/hotel/room_search", query_string=dict(params, sort="name"))
+        assert rv.status_code == 200
+        return [x["name"] for x in rv.json["hotel_rooms"]]
+
+    assert names(uber_inventory="missing") == ["Room 1"]
+    assert names(uber_inventory="inv-king") == ["Room 2"]
+    assert names(uber_partition="missing") == ["Room 1"]
+    assert names(uber_partition="part-staff") == ["Room 2"]
+    room = client.get("/api/event/1/hotel/room_search", query_string={"uber_inventory": "inv-king"}).json["hotel_rooms"][0]
+    assert (room["uber_inventory_id"], room["uber_partition_id"]) == ("inv-king", "part-staff")
+
+
+def test_only_completed_rooms_are_exported(client):
+    import tuber.models as models
+    from tuber.database import db
+
+    room_id, _ = _rooms(db, models)
+    _room(db, models, room_id).completed = False
+    db.commit()
+    uber = _Uber()
+    with patch('tuber.api.uber.requests.post', uber):
+        rv = client.post("/api/event/1/uber/export_rooms")
+        assert (rv.json["exported"], rv.json["incomplete"]) == (0, 1)
+        assert uber.calls == []
+        assert _room(db, models, room_id).uber_id is None
+
+        _room(db, models, room_id).completed = True
+        db.commit()
+        rv = client.post("/api/event/1/uber/export_rooms")
+        assert (rv.json["exported"], rv.json["incomplete"]) == (1, 0)
+
+        # Reopened and changed, even emptied: Uber keeps what it has until
+        # the room is completed again.
+        room = _room(db, models, room_id)
+        room.completed = False
+        room.notes = "Top floor"
+        db.query(models.RoomNightAssignment).filter(
+            models.RoomNightAssignment.hotel_room == room_id).delete()
+        db.commit()
+        rv = client.post("/api/event/1/uber/export_rooms")
+        assert (rv.json["exported"], rv.json["cancelled"], rv.json["incomplete"]) == (0, 0, 1)
+        assert len(uber.calls) == 1
+
+        # Completed while empty: now the cancellation goes through.
+        _room(db, models, room_id).completed = True
+        db.commit()
+        rv = client.post("/api/event/1/uber/export_rooms")
+        assert rv.json["cancelled"] == 1

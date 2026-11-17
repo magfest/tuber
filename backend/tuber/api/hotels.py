@@ -296,6 +296,7 @@ def room_search(event):
        search (matches room name or a roommate's name), hotel_block,
        hotel_location, suggested (true/false),
        status (completed|incomplete|locked|unlocked),
+       uber_inventory / uber_partition (an Uber id, or 'missing'),
        single_gender (a gender group: rooms with someone wanting a
        single-gender room in that group),
        sort (id|name|created|modified), order (asc|desc), offset, limit."""
@@ -323,6 +324,14 @@ def room_search(event):
     elif status == 'unlocked':
         query = query.filter(or_(HotelRoom.locked == False,
                                  HotelRoom.locked == None))
+    # 'missing' finds rooms with no value of their own; anything else is an
+    # exact Uber id.
+    for param, column in (('uber_inventory', HotelRoom.uber_inventory_id),
+                          ('uber_partition', HotelRoom.uber_partition_id)):
+        if g.data.get(param) == 'missing':
+            query = query.filter(or_(column == None, column == ''))
+        elif g.data.get(param):
+            query = query.filter(column == g.data[param])
     if g.data.get('single_gender'):
         group = g.data['single_gender']
         badges = [req.badge for req in db.query(HotelRoomRequest).filter(

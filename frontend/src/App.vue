@@ -106,6 +106,9 @@ export default {
                 label: 'Rooms', icon: 'pi pi-fw pi-list', to: '/rooming/rooms'
               },
               {
+                label: 'Uber Inventory', icon: 'pi pi-fw pi-building', to: '/rooming/uber_inventory', permission: 'rooming.*.manage'
+              },
+              {
                 label: 'Approvals', icon: 'pi pi-fw pi-thumbs-up', to: '/rooming/approvals'
               },
               {

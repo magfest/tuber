@@ -123,6 +123,11 @@ class HotelRoom(Base):
     # was last sent so an unchanged room is not sent again.
     uber_id = Column(String(), nullable=True)
     uber_export_hash = Column(String(), nullable=True)
+    # The Uber inventory block and partition this room exports into, as Uber
+    # ids (see UberInventory / UberPartition). Without an inventory of its
+    # own a room falls back to its location's.
+    uber_inventory_id = Column(String(), nullable=True)
+    uber_partition_id = Column(String(), nullable=True)
     hotel_block = Column(Integer, ForeignKey(
         'hotel_room_block.id', ondelete="CASCADE"))
     hotel_location = Column(Integer, ForeignKey(
@@ -157,6 +162,31 @@ class HotelLocation(Base):
     uber_inventory_id = Column(String(), nullable=True)
     event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     rooms = relationship("HotelRoom")
+
+
+class UberInventory(Base):
+    """An inventory block as last imported from Uber, to pick from when
+    assigning rooms. Rooms store the Uber id, not a key into this table, so
+    a re-import can replace these rows freely."""
+    __tablename__ = "uber_inventory"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    uber_id = Column(String(), nullable=False)
+    name = Column(String())
+    hotel_name = Column(String())
+    active = Column(Boolean, default=True)
+
+
+class UberPartition(Base):
+    """A partition as last imported from Uber. `inventory_ids` is a JSON list
+    of the Uber inventory blocks the partition draws from."""
+    __tablename__ = "uber_partition"
+    id = Column(Integer, primary_key=True)
+    event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
+    uber_id = Column(String(), nullable=False)
+    name = Column(String())
+    active = Column(Boolean, default=True)
+    inventory_ids = Column(String(), default="[]")
 
 
 class HotelRoomNight(Base):

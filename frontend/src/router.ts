@@ -9,6 +9,7 @@ import RoomingDashboard from './views/rooming/RoomingDashboard.vue'
 import RoomRequests from './views/rooming/Requests.vue'
 import RoomList from './views/rooming/Rooms.vue'
 import RoomBlocks from './views/rooming/Blocks.vue'
+import UberInventory from './views/rooming/UberInventory.vue'
 import UberLogin from './views/rooming/UberLogin.vue'
 import UberDepartmentLogin from './views/rooming/UberDepartmentLogin.vue'
 
@@ -79,6 +80,11 @@ const routes = [
     path: '/rooming/blocks',
     name: 'roomblocks',
     component: RoomBlocks
+  },
+  {
+    path: '/rooming/uber_inventory',
+    name: 'uberinventory',
+    component: UberInventory
   },
   {
     path: '/rooming/settings',

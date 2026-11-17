@@ -4,7 +4,7 @@
         <h3>Server Actions</h3>
         <Button @click="import_shifts" label="Import Shifts"></Button><br /><br />
         <Button @click="sync_attendees" label="Sync Attendees"></Button><br /><br />
-        <Button @click="export_rooms" label="Export Rooms to Uber"></Button><br /><br />
+        <Button @click="export_rooms" label="Export Rooms to Uber" title="Sends completed rooms only"></Button><br /><br />
         <Button @click="export_requests" label="Export Hotel Requests to Uber"></Button><br /><br />
         <Progress ref="progress" />
     </div>
@@ -50,7 +50,7 @@ export default {
         try {
             const summary = await post('/api/event/' + this.event.id + '/uber/export_rooms', null, this.$refs.progress, "Exporting Rooms")
             const problems = [...summary.skipped, ...summary.inactive, ...summary.failed]
-            this.$toast.add({ severity: 'success', summary: 'Rooms Exported', detail: summary.exported + ' exported, ' + summary.unchanged + ' unchanged, ' + summary.cancelled + ' cancelled', life: 3000 })
+            this.$toast.add({ severity: 'success', summary: 'Rooms Exported', detail: summary.exported + ' exported, ' + summary.unchanged + ' unchanged, ' + summary.cancelled + ' cancelled, ' + summary.incomplete + ' not completed (left alone)', life: 5000 })
             if (problems.length) {
                 this.$toast.add({ severity: 'warn', summary: problems.length + ' rooms need attention', detail: problems.join('\n') })
             }
