@@ -6,7 +6,7 @@
         <h3 class="mt-0 mb-0">Uber Inventory</h3>
         <small class="hint">
           Which Uber inventory block and partition each room exports into.
-          A room without its own inventory uses its location's.
+          A room with no inventory is not exported.
         </small>
       </div>
       <div class="flex gap-2 align-items-center">
@@ -24,9 +24,6 @@
     <div class="filter-bar">
       <Dropdown v-model="block" :options="blockOptions" optionLabel="label" optionValue="value"
                 placeholder="Any block" :showClear="block !== null" title="Filter by hotel block" />
-      <Dropdown v-if="locations.length" v-model="location" :options="locationOptions"
-                optionLabel="label" optionValue="value" placeholder="Any location"
-                :showClear="location !== null" title="Filter by hotel location" />
       <Dropdown v-model="inventoryFilter" :options="inventoryFilterOptions" optionLabel="label"
                 optionValue="value" placeholder="Any inventory" :showClear="inventoryFilter !== null"
                 title="Filter by Uber inventory" />
@@ -61,21 +58,27 @@
           <room-name :room-id="slotProps.data.id" :name="slotProps.data.name" />
         </template>
       </Column>
-      <Column header="Location">
+      <Column header="Occupants">
         <template #body="slotProps">
-          {{ locationName(slotProps.data) }}
+          <div v-for="mate in occupants(slotProps.data)" :key="mate.id" class="occupant-line">
+            <attendee-name :badge-id="mate.id" :name="mate.name" />
+          </div>
+          <span v-if="!occupants(slotProps.data).length" class="hint">Empty</span>
         </template>
       </Column>
-      <Column header="Occupants" style="width: 6rem">
+      <Column header="Hotel Notes">
         <template #body="slotProps">
-          {{ (slotProps.data.roommates || []).length }}
+          <inline-note compact :modelValue="slotProps.data.notes || ''" label="note for the hotel"
+                       placeholder="Add hotel note"
+                       @update:modelValue="slotProps.data.notes = $event"
+                       :save="(text) => saveHotelNote(slotProps.data, text)" />
         </template>
       </Column>
       <Column header="Inventory" style="width: 22rem">
         <template #body="slotProps">
           <Dropdown :modelValue="slotProps.data.uber_inventory_id || null"
                     :options="inventoryOptionsFor(slotProps.data)" optionLabel="label" optionValue="value"
-                    :placeholder="inventoryPlaceholder(slotProps.data)" :showClear="true" :filter="true"
+                    placeholder="Not set" :showClear="true" :filter="true"
                     class="p-inputtext-sm w-full"
                     @update:modelValue="setField(slotProps.data, 'uber_inventory_id', $event)" />
         </template>
@@ -83,7 +86,7 @@
       <Column header="Partition" style="width: 18rem">
         <template #body="slotProps">
           <Dropdown :modelValue="slotProps.data.uber_partition_id || null"
-                    :options="partitionOptionsFor(effectiveInventory(slotProps.data), slotProps.data.uber_partition_id)"
+                    :options="partitionOptionsFor(slotProps.data.uber_inventory_id, slotProps.data.uber_partition_id)"
                     optionLabel="label" optionValue="value" placeholder="No partition"
                     :showClear="true" :filter="true" class="p-inputtext-sm w-full"
                     @update:modelValue="setField(slotProps.data, 'uber_partition_id', $event)" />
@@ -94,8 +97,8 @@
       </Column>
       <Column header="Uber" style="width: 8rem">
         <template #body="slotProps">
-          <Tag v-if="!effectiveInventory(slotProps.data)" severity="danger" value="No inventory"
-               title="The export skips this room until it or its location has an inventory" />
+          <Tag v-if="!slotProps.data.uber_inventory_id" severity="danger" value="No inventory"
+               title="The export skips this room until it has an inventory" />
           <Tag v-else-if="slotProps.data.uber_id" severity="success" value="Exported"
                title="Changes here are sent on the next export" />
           <Tag v-else severity="info" value="Not exported" />
@@ -121,6 +124,9 @@
   border: 1px solid var(--surface-border, #dee2e6);
   border-radius: 6px;
 }
+.occupant-line {
+  margin: 1px 0;
+}
 .hint {
   color: var(--text-color-secondary, #6c757d);
 }
@@ -135,11 +141,15 @@
 import { mapGetters } from 'vuex'
 import { get, post, patch } from '../../lib/rest'
 import RoomName from '../../components/rooming/modals/RoomName.vue'
+import AttendeeName from '../../components/rooming/modals/AttendeeName.vue'
+import InlineNote from '../../components/rooming/InlineNote.vue'
 
 export default {
   name: 'UberInventory',
   components: {
-    RoomName
+    RoomName,
+    AttendeeName,
+    InlineNote
   },
   data: () => ({
     rooms: [],
@@ -153,11 +163,10 @@ export default {
     applying: false,
     search: '',
     block: null,
-    location: null,
     inventoryFilter: null,
     partitionFilter: null,
     blocks: [],
-    locations: [],
+    roomDetails: {},
     inventory: [],
     partitions: [],
     imported: null,
@@ -173,15 +182,11 @@ export default {
       return [{ label: 'Any block', value: null }].concat(
         this.blocks.map((block) => ({ label: block.name, value: block.id })))
     },
-    locationOptions () {
-      return [{ label: 'Any location', value: null }].concat(
-        this.locations.map((location) => ({ label: location.name, value: location.id })))
-    },
     inventoryOptions () {
       return this.inventory.map((x) => ({ label: this.inventoryLabel(x), value: x.uber_id }))
     },
     inventoryFilterOptions () {
-      return [{ label: 'No inventory of its own', value: 'missing' }].concat(this.inventoryOptions)
+      return [{ label: 'No inventory', value: 'missing' }].concat(this.inventoryOptions)
     },
     partitionFilterOptions () {
       return [{ label: 'No partition', value: 'missing' }].concat(this.partitions.map((x) => ({ label: this.partitionLabel(x), value: x.uber_id })))
@@ -200,7 +205,6 @@ export default {
         return
       }
       this.blocks = await get('/api/event/' + this.event.id + '/hotel_room_block', { sort: 'name' })
-      this.locations = await get('/api/event/' + this.event.id + '/hotel_location', { sort: 'name' })
       this.setOptions(await get('/api/event/' + this.event.id + '/uber/inventory_options'))
       await this.loadRooms()
     },
@@ -229,9 +233,6 @@ export default {
       if (this.block) {
         params.hotel_block = this.block
       }
-      if (this.location) {
-        params.hotel_location = this.location
-      }
       if (this.inventoryFilter) {
         params.uber_inventory = this.inventoryFilter
       }
@@ -240,10 +241,15 @@ export default {
       }
       try {
         const found = await get('/api/event/' + this.event.id + '/hotel/room_search', params)
+        const ids = (found.hotel_rooms || []).map((x) => x.id)
+        const details = ids.length
+          ? await get('/api/event/' + this.event.id + '/hotel/room_details', { rooms: ids.join(',') })
+          : {}
         if (sequence !== this.loadSequence) {
           return
         }
         this.rooms = found.hotel_rooms || []
+        this.roomDetails = details
         this.count = found.count || 0
         this.selection = []
       } finally {
@@ -274,26 +280,17 @@ export default {
     partitionLabel (item) {
       return item.active ? item.name : item.name + ' (inactive)'
     },
-    locationFor (room) {
-      return this.locations.find((x) => x.id === room.hotel_location)
+    occupants (room) {
+      const details = this.roomDetails[room.id]
+      return details
+        ? Object.values(details.roommates).sort((a, b) => a.name.localeCompare(b.name))
+        : []
     },
-    locationName (room) {
-      const location = this.locationFor(room)
-      return location ? location.name : ''
-    },
-    effectiveInventory (room) {
-      const location = this.locationFor(room)
-      return room.uber_inventory_id || (location && location.uber_inventory_id) || null
-    },
-    inventoryName (id) {
-      const item = this.inventory.find((x) => x.uber_id === id)
-      return item ? this.inventoryLabel(item) : 'Unknown (' + id + ')'
-    },
-    inventoryPlaceholder (room) {
-      const location = this.locationFor(room)
-      return location && location.uber_inventory_id
-        ? 'Location default: ' + this.inventoryName(location.uber_inventory_id)
-        : 'Not set'
+    // The hotel note is sent to Uber as the room's special requests.
+    async saveHotelNote (room, text) {
+      const saved = await patch('/api/event/' + this.event.id + '/hotel_room/' + room.id,
+        { id: room.id, notes: text })
+      return { notes: saved.notes }
     },
     // An id the last import no longer lists still has to show as selected.
     inventoryOptionsFor (room) {
@@ -316,7 +313,7 @@ export default {
     },
     partitionMismatch (room) {
       const partition = this.partitions.find((x) => x.uber_id === room.uber_partition_id)
-      const inventory = this.effectiveInventory(room)
+      const inventory = room.uber_inventory_id
       return Boolean(partition && inventory && !partition.inventory_ids.includes(inventory))
     },
     async setField (room, field, value) {
@@ -385,9 +382,6 @@ export default {
       this.load()
     },
     block () {
-      this.onFilter()
-    },
-    location () {
       this.onFilter()
     },
     inventoryFilter () {

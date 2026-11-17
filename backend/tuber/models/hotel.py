@@ -124,8 +124,8 @@ class HotelRoom(Base):
     uber_id = Column(String(), nullable=True)
     uber_export_hash = Column(String(), nullable=True)
     # The Uber inventory block and partition this room exports into, as Uber
-    # ids (see UberInventory / UberPartition). Without an inventory of its
-    # own a room falls back to its location's.
+    # ids (see UberInventory / UberPartition), set on the Uber Inventory page.
+    # A room without an inventory is not exported.
     uber_inventory_id = Column(String(), nullable=True)
     uber_partition_id = Column(String(), nullable=True)
     hotel_block = Column(Integer, ForeignKey(
@@ -158,7 +158,8 @@ class HotelLocation(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String())
     address = Column(String())
-    # The Uber inventory block this location's rooms are exported into.
+    # No longer used: the export reads HotelRoom.uber_inventory_id. Kept
+    # because a migration copied it onto the rooms that relied on it.
     uber_inventory_id = Column(String(), nullable=True)
     event = Column(Integer, ForeignKey('event.id', ondelete="CASCADE"))
     rooms = relationship("HotelRoom")

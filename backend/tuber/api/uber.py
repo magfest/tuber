@@ -210,15 +210,15 @@ def export_rooms(event):
 
     # Plain values, since the commit after each room expires loaded objects.
     night_dates = {x.id: x.date for x in db.query(HotelRoomNight).filter(HotelRoomNight.event == event).all()}
-    inventory_ids = {x.id: x.uber_inventory_id for x in db.query(HotelLocation).filter(HotelLocation.event == event).all()}
     badge_uber_ids = {x.id: x.uber_id for x in db.query(Badge).filter(Badge.event == event).all()}
     # Only completed rooms are sent. One that is not completed is left exactly
     # as it is in Uber, whether or not it was exported before: reopening a
     # room to edit it must not cancel or half-update the reservation.
     all_rooms = db.query(HotelRoom).filter(HotelRoom.event == event).order_by(HotelRoom.id).all()
     incomplete = sum(1 for x in all_rooms if not x.completed)
-    # A room's own inventory wins over its location's.
-    rooms = [(x.id, x.name, x.notes, x.uber_inventory_id or inventory_ids.get(x.hotel_location),
+    # Inventory and partition come from the room alone (the Uber Inventory
+    # page); its location plays no part.
+    rooms = [(x.id, x.name, x.notes, x.uber_inventory_id,
               x.uber_partition_id, x.uber_id, x.uber_export_hash)
              for x in all_rooms if x.completed]
 
@@ -252,7 +252,7 @@ def export_rooms(event):
                 continue
 
             if not inventory_id:
-                summary["skipped"].append(f"{name}: neither it nor its location has an Uber inventory ID")
+                summary["skipped"].append(f"{name}: it has no Uber inventory assigned")
                 continue
 
             # The night of date X is slept X to X+1, so check-out is the day after the last night.

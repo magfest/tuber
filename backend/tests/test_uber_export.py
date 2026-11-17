@@ -38,16 +38,17 @@ class _Uber:
 
 
 def _rooms(db, models, uber_inventory_id="inv-1"):
-    """Alice (Fri+Sat) and Bob (Sat only) share a room at a mapped location."""
+    """Alice (Fri+Sat) and Bob (Sat only) share a room with an Uber inventory."""
     s = _seed(db, models, ["Alice One", "Bob Two", "Carol Three"])
     event = db.query(models.Event).filter(models.Event.id == 1).one()
     event.uber_url = "https://uber.test/jsonrpc"
     event.uber_apikey = "123456"
-    location = models.HotelLocation(event=1, name="Big Hotel", address="", uber_inventory_id=uber_inventory_id)
+    # The location's own inventory is a leftover the export must ignore.
+    location = models.HotelLocation(event=1, name="Big Hotel", address="", uber_inventory_id="inv-location")
     db.add(location)
     db.flush()
     room = models.HotelRoom(event=1, name="Room 1", notes="Near elevator", hotel_block=s["block"].id,
-                            hotel_location=location.id, completed=True)
+                            hotel_location=location.id, completed=True, uber_inventory_id=uber_inventory_id)
     db.add(room)
     db.flush()
     friday, saturday = s["nights"]
@@ -179,7 +180,7 @@ def test_export_cancels_emptied_room(client):
         assert len(uber.calls) == 2
 
 
-def test_export_skips_unmapped_location_and_reports_failures(client):
+def test_export_skips_room_without_inventory_and_reports_failures(client):
     import tuber.models as models
     from tuber.database import db
 
@@ -188,10 +189,11 @@ def test_export_skips_unmapped_location_and_reports_failures(client):
     with patch('tuber.api.uber.requests.post', uber):
         rv = client.post("/api/event/1/uber/export_rooms")
         assert rv.json["exported"] == 0
-        assert rv.json["skipped"] == ["Room 1: neither it nor its location has an Uber inventory ID"]
+        # Its location has one, but only the room's own counts.
+        assert rv.json["skipped"] == ["Room 1: it has no Uber inventory assigned"]
         assert uber.calls == []
 
-        db.query(models.HotelLocation).filter(models.HotelLocation.id == location_id).one().uber_inventory_id = "inv-1"
+        _room(db, models, room_id).uber_inventory_id = "inv-1"
         db.commit()
         uber.fail_for = "uber-alice"
         rv = client.post("/api/event/1/uber/export_rooms")
@@ -290,30 +292,23 @@ def test_room_inventory_and_partition_are_exported(client):
         assert rv.status_code == 200
         rv = client.post("/api/event/1/uber/export_rooms")
         assert (rv.json["exported"], rv.json["unchanged"]) == (1, 0)
-        # The room's own inventory wins over its location's.
         assert uber.calls[1]["inventory_id"] == "inv-king"
         assert uber.calls[1]["partition_id"] == "part-staff"
 
-        # A room's own inventory is enough when its location has none.
-        db.query(models.HotelLocation).filter(models.HotelLocation.id == location_id).update(
-            {"uber_inventory_id": None})
-        db.commit()
-        rv = client.post("/api/event/1/uber/export_rooms")
-        assert (rv.json["unchanged"], rv.json["skipped"]) == (1, [])
-
-        # Clearing it falls back to the location, which now has nothing.
+        # Clearing it stops the export; the location's is not a fallback.
         rv = client.patch(f"/api/event/1/hotel_room/{room_id}", json={
             "id": room_id, "uber_inventory_id": None})
         assert rv.status_code == 200
         rv = client.post("/api/event/1/uber/export_rooms")
-        assert rv.json["skipped"] == ["Room 1: neither it nor its location has an Uber inventory ID"]
+        assert rv.json["skipped"] == ["Room 1: it has no Uber inventory assigned"]
+        assert len(uber.calls) == 2
 
 
 def test_room_search_uber_filters(client):
     import tuber.models as models
     from tuber.database import db
 
-    room_id, _ = _rooms(db, models)
+    room_id, _ = _rooms(db, models, uber_inventory_id=None)
     other = models.HotelRoom(event=1, name="Room 2", uber_inventory_id="inv-king",
                              uber_partition_id="part-staff")
     db.add(other)
