@@ -218,7 +218,7 @@ def export_rooms(event):
     incomplete = sum(1 for x in all_rooms if not x.completed)
     # Inventory and partition come from the room alone (the Uber Inventory
     # page); its location plays no part.
-    rooms = [(x.id, x.name, x.notes, x.uber_inventory_id,
+    rooms = [(x.id, x.name, x.notes, x.messages, x.uber_inventory_id,
               x.uber_partition_id, x.uber_id, x.uber_export_hash)
              for x in all_rooms if x.completed]
 
@@ -235,7 +235,7 @@ def export_rooms(event):
                "skipped": [], "inactive": [], "failed": []}
     one_day = datetime.timedelta(days=1)
 
-    for idx, (room_id, name, notes, inventory_id, partition_id, uber_id, exported_hash) in enumerate(rooms):
+    for idx, (room_id, name, notes, messages, inventory_id, partition_id, uber_id, exported_hash) in enumerate(rooms):
         g.progress(idx / len(rooms), status=f"Exporting Room {name}")
         stays = room_stays.get(room_id)
         try:
@@ -277,6 +277,9 @@ def export_rooms(event):
                 # partition it was given in Uber, and its fingerprint stays
                 # what it was before rooms could carry a partition.
                 params["partition_id"] = partition_id
+            if messages:
+                # Fingerprinted only when set, so rooms without one are not all re-sent.
+                params["occupant_message"] = messages
             fingerprint = hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()
             if uber_id and fingerprint == exported_hash:
                 # Leaving it alone also keeps any edits made to it in Uber.
@@ -289,6 +292,8 @@ def export_rooms(event):
                     {"uber_id": str(uuid.uuid4())})
                 db.commit()
                 uber_id = db.query(HotelRoom.uber_id).filter(HotelRoom.id == room_id).scalar()
+            # Always sent, so clearing the message here clears it in Uber.
+            params.setdefault("occupant_message", "")
             if not exported_hash:
                 # Only until the first export lands, so a billing change made in Uber survives a re-export.
                 params["payment_type"] = "masterbill"

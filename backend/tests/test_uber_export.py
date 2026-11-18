@@ -86,6 +86,7 @@ def test_export_room_as_crash_space_with_occupants(client):
             "assigned_check_in_date": "2025-08-08",
             "assigned_check_out_date": "2025-08-10",
             "special_requests": "Near elevator",
+            "occupant_message": "",
             "payment_type": "masterbill",
             "occupants": [
                 {"attendee_id": "uber-alice", "check_in_date": "2025-08-08", "check_out_date": "2025-08-10"},
@@ -118,6 +119,32 @@ def test_reexport_sends_only_changed_rooms(client):
         # Billing is only set on the first export.
         assert "payment_type" not in uber.calls[1]
         assert list(uber.rooms) == [uber_id]
+
+
+def test_room_messages_go_to_uber_and_admin_notes_do_not(client):
+    import tuber.models as models
+    from tuber.database import db
+
+    room_id, _ = _rooms(db, models)
+    room = _room(db, models, room_id)
+    room.admin_notes = "Do not share"
+    db.commit()
+    uber = _Uber()
+    with patch('tuber.api.uber.requests.post', uber):
+        client.post("/api/event/1/uber/export_rooms")
+        # A room with no message keeps its fingerprint, so it is not re-sent.
+        assert client.post("/api/event/1/uber/export_rooms").json["unchanged"] == 1
+
+        _room(db, models, room_id).messages = "Keys are at the staff suite"
+        db.commit()
+        client.post("/api/event/1/uber/export_rooms")
+        assert uber.calls[-1]["occupant_message"] == "Keys are at the staff suite"
+
+        _room(db, models, room_id).messages = None
+        db.commit()
+        client.post("/api/event/1/uber/export_rooms")
+        assert len(uber.calls) == 3 and uber.calls[-1]["occupant_message"] == ""
+    assert all("Do not share" not in str(call) for call in uber.calls)
 
 
 def test_reexport_after_lost_reply_reuses_the_uber_room(client):

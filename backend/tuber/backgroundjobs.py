@@ -56,9 +56,22 @@ class AsyncMiddleware(object):
                 raise ValueError("This is an intentional exception.")
             return "Permission Denied", 403
 
+    def close(self):
+        """Stop the worker threads and release the pool's pipes and locks.
+        Nothing does this implicitly: the routes registered above keep the
+        middleware alive for as long as the application is."""
+        pool = self.__dict__.pop("pool", None)
+        if pool is not None:
+            pool.terminate()
+            pool.join()
+
     def __del__(self):
-        self.pool.close()
-        self.pool.terminate()
+        # May run after a failed __init__ or at interpreter shutdown, when
+        # the pool is missing or already torn down.
+        try:
+            self.close()
+        except Exception:
+            pass
 
     def get_view_function(self, path, method):
         adapter = self.application.url_map.bind('localhost')

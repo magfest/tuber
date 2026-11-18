@@ -7,6 +7,14 @@ import time
 import sys
 import os
 
+# Worker pools made for the running test, closed when its fixture ends.
+_middlewares = []
+
+def _middleware(tuber):
+    middleware = tuber.backgroundjobs.AsyncMiddleware(tuber.app)
+    _middlewares.append(middleware)
+    return middleware
+
 def csrf(client):
     return client.get_cookie("csrf_token").value or ""
 
@@ -28,6 +36,14 @@ def tuber(postgresql, redis=False):
         redis = fakeredis.FakeStrictRedis()
         mod.db.r = redis
     yield mod
+    # Every test builds a fresh app, engine and worker pool. Left to the
+    # garbage collector they pile up until the process runs out of file
+    # descriptors, so release them here.
+    for middleware in _middlewares:
+        middleware.close()
+    _middlewares.clear()
+    mod.database.db.remove()
+    mod.database.engine.dispose()
     for key in list(sys.modules.keys()):
         if key.startswith("tuber"):
             del sys.modules[key]
@@ -38,7 +54,7 @@ def client_fresh(tuber):
     """
     tuber.database.create_tables()
     if os.environ['ENABLE_CIRCUITBREAKER'].lower() == "true":
-        yield Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
+        yield Client(_middleware(tuber))
     else:
         with tuber.app.test_client() as client:
             yield client
@@ -70,7 +86,7 @@ def client(tuber):
     """
     tuber.database.create_tables()
     if os.environ['ENABLE_CIRCUITBREAKER'].lower() == "true":
-        client = Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
+        client = Client(_middleware(tuber))
     else:
         client = tuber.app.test_client()
     #with tuber.app.test_client() as client:
@@ -130,11 +146,16 @@ def prod_client(postgresql):
     tuber.backgroundjobs = importlib.import_module('tuber.backgroundjobs')
     tuber.database.create_tables()
     if os.environ['ENABLE_CIRCUITBREAKER'].lower() == "true":
-        yield Client(tuber.backgroundjobs.AsyncMiddleware(tuber.app))
+        yield Client(_middleware(tuber))
     else:
         with tuber.app.test_client() as client:
             yield client
     tuber.database.drop_tables()
+    for middleware in _middlewares:
+        middleware.close()
+    _middlewares.clear()
+    tuber.database.db.remove()
+    tuber.database.engine.dispose()
     for key in list(sys.modules.keys()):
         if key.startswith("tuber"):
             del sys.modules[key]
